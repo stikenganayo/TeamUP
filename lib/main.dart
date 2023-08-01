@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/authentication_screen.dart';
 import 'package:snapchat_ui_clone/screens/camera_screen.dart';
 import 'package:snapchat_ui_clone/screens/stories_screen.dart';
 import 'package:snapchat_ui_clone/screens/temporary_screen.dart';
@@ -31,7 +32,7 @@ class MyApp extends StatelessWidget {
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
       ),
-      home: AuthenticationScreen(),
+      home: MainPage(),
     );
   }
 }
