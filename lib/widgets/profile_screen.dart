@@ -25,8 +25,8 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(''),
-        backgroundColor: Colors.red, // Set the app bar color to red
+        title: const Text('Profile'),
+        backgroundColor: Colors.lightBlue, // Set the app bar color to red
         actions: [
           IconButton(
             icon: const Icon(Icons.edit), // Add the edit icon
