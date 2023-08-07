@@ -5,7 +5,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/screens/authentication_screen.dart';
 import 'package:snapchat_ui_clone/screens/camera_screen.dart';
+import 'package:snapchat_ui_clone/screens/challenge_screen.dart';
+import 'package:snapchat_ui_clone/screens/chat_screen.dart';
 import 'package:snapchat_ui_clone/screens/stories_screen.dart';
+import 'package:snapchat_ui_clone/screens/team_screen.dart';
 import 'package:snapchat_ui_clone/screens/temporary_screen.dart';
 import 'package:snapchat_ui_clone/style.dart';
 
@@ -33,6 +36,7 @@ class MyApp extends StatelessWidget {
         highlightColor: Colors.transparent,
       ),
       home: MainPage(),
+      //home: AuthenticationScreen(),
     );
   }
 }
@@ -109,11 +113,15 @@ class _MainPageState extends State<MainPage> {
           });
         },
         children: <Widget> [
-          TemporaryScreen(color: _colors[0]),
-          TemporaryScreen(color: _colors[1]),
+          // TemporaryScreen(color: _colors[0]),
+          const ChatScreen(),
+          // TemporaryScreen(color: _colors[1]),
+          const TeamScreen(),
           CameraScreen(cameraController: _cameraController, initCamera: initCamera),
+          // TemporaryScreen(color: _colors[3]),
+          const ChallengeScreen(),
           const StoriesScreen(),
-          TemporaryScreen(color: _colors[4]),
+          // TemporaryScreen(color: _colors[4]),
 
         ],
       ),

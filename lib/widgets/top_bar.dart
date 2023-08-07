@@ -1,8 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/challenge_screen.dart';
 import 'package:snapchat_ui_clone/widgets/custom_icon.dart';
 
+import '../screens/add_challenge_screen.dart';
 import '../style.dart';
+import 'package:snapchat_ui_clone/main.dart';
 
 class TopBar extends StatelessWidget {
   const TopBar({Key? key, required this.isCameraPage, this.text}) : super(key: key);
@@ -29,9 +32,16 @@ class TopBar extends StatelessWidget {
         Positioned(
           top: 40,
           right: 67,
+          child: GestureDetector(
+            onTap: () {
+
+
+              },
+
           child: CustomIcon(
             child: Icon(CupertinoIcons.add_circled, color: color, size: 28), isCameraPage: isCameraPage,
           ),
+        ),
         ),
         Positioned(
           top: 40,

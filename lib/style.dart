@@ -70,6 +70,15 @@ class Style {
     ),
   );
 
+  static Text statusName(String text) => Text(
+    text,
+    style: const TextStyle(
+      fontSize: 12,
+      color: blackText,
+    ),
+  );
+
+
   static Text subscriptionTitle(String text) => Text(
     text,
     overflow: TextOverflow.ellipsis,

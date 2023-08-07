@@ -20,6 +20,15 @@ class Data {
     Friend('assets/images/bitmojis/5.png', 'Julia', 9, '1h', 0),
   ];
 
+
+  static List<Chat> chatFriends = [
+    Chat('Tom', 'Received', '2m', 178),
+    Chat('Lily', 'Sent', '7m', 0),
+    Chat('Cat', 'Sent', '21m', 134),
+
+  ];
+
+
   static List<Article> subscriptions = [
     Article('The Washington Post',
         'Opinion | What\'s up with Amnesty International and its moral myopia on Ukraine?'),

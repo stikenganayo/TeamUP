@@ -23,7 +23,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
       ),
       child: Stack(
         children:  [
-          const TopBar(isCameraPage: false, text: 'Stories'),
+          const TopBar(isCameraPage: false, text: 'Community'),
           Positioned(
             top: 100,
             left: 0,
@@ -34,15 +34,15 @@ class _StoriesScreenState extends State<StoriesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Style.sectionTitle('Friends'),
+                  Style.sectionTitle('Community Coach Stories'),
                   const Stories(),
                   const SizedBox(height: 28),
 
-                  Style.sectionTitle('Subscriptions'),
+                  Style.sectionTitle('Community Coaches Available'),
                   const Subscriptions(),
                   const SizedBox(height: 20),
 
-                  Style.sectionTitle('Discover'),
+                  Style.sectionTitle('Community Programs/Products'),
                   const DiscoverGrid(),
                 ],
               ),
