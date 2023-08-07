@@ -7,6 +7,8 @@ import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import '../style.dart';
 import '../widgets/custom_icon.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:path_provider/path_provider.dart';
+import 'image_list_screen.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key, required this.cameraController, required this.initCamera})
@@ -35,6 +37,15 @@ class _CameraScreenState extends State<CameraScreen> {
         print("Error capturing picture: $e");
       }
     }
+  }
+
+  void _openImageListScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ImageListScreen(),
+      ),
+    );
   }
 
   @override
@@ -82,8 +93,17 @@ class _CameraScreenState extends State<CameraScreen> {
           bottom: 15,
           child: Row(
             children: [
-              const CustomIcon(
-                  child: Icon(CupertinoIcons.photo_on_rectangle, color: Style.white, size: 28), isCameraPage: true),
+              GestureDetector(
+                onTap: _openImageListScreen, // Open the new screen
+                child: const CustomIcon(
+                  child: Icon(
+                    CupertinoIcons.photo_on_rectangle,
+                    color: Style.white,
+                    size: 28,
+                  ),
+                  isCameraPage: true,
+                ),
+              ),
               const SizedBox(width: 18),
               GestureDetector(
                 onTap: () => takePictureAndShow(),
@@ -102,61 +122,91 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 }
 
-class PictureScreen extends StatefulWidget {
+class PictureScreen extends StatelessWidget {
   final String imagePath;
 
   const PictureScreen({Key? key, required this.imagePath}) : super(key: key);
 
-  @override
-  _PictureScreenState createState() => _PictureScreenState();
-}
+  Future<void> _savePictureToDevice(BuildContext context) async {
+    try {
+      final Directory? picturesDir = await getExternalStorageDirectory();
+      if (picturesDir == null) {
+        // Handle the case when getExternalStorageDirectory returns null
+        if (kDebugMode) {
+          print("Error: External storage directory is not available.");
+        }
+        return;
+      }
 
-class _PictureScreenState extends State<PictureScreen> {
-  int _selectedIndex = 0;
+      final String savePath = "${picturesDir.path}/TeamUP/${DateTime.now().millisecondsSinceEpoch}.jpg";
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+      // Create the directory if it doesn't exist
+      final savedDir = Directory(savePath);
+      if (!savedDir.existsSync()) {
+        savedDir.createSync(recursive: true);
+      }
+
+      // Copy the image to the specified save path
+      final File imageFile = File(imagePath);
+      await imageFile.copy(savePath);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Picture saved to: $savePath"),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error saving picture: $e");
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          color: Colors.white, // Set the background color to white
-          child: Image.file(File(widget.imagePath)),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Navigate back when the back button is pressed
+          },
         ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: SizedBox(
-            height: Platform.isIOS ? 110 : 80,
-            child: BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              selectedItemColor: Colors.red,
-              onTap: _onItemTapped,
-              items: const <BottomNavigationBarItem>[
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.arrow_down_circle_fill, size: 28),
-                  label: 'Save',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.plus_app_fill, size: 28),
-                  label: 'Story',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(CupertinoIcons.arrowshape_turn_up_right_circle_fill, size: 28),
-                  label: 'Send',
-                ),
-              ],
+        title: const Text(''),
+      ),
+      body: Container(
+        color: Colors.white, // Set the background color to white
+        child: Image.file(File(imagePath)),
+      ),
+      extendBody: true,
+      bottomNavigationBar: SizedBox(
+        height: Platform.isIOS ? 90 : 60,
+        child: BottomNavigationBar(
+          currentIndex: 0,
+          selectedItemColor: Colors.red,
+          onTap: (index) {
+            if (index == 0) {
+              // Call the save function when the "Save" icon is clicked
+              _savePictureToDevice(context);
+            }
+          },
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.arrow_down_circle_fill, size: 28),
+              label: 'Save',
             ),
-          ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.plus_app_fill, size: 28),
+              label: 'Story',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.arrowshape_turn_up_right_circle_fill, size: 28),
+              label: 'Send',
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
