@@ -28,6 +28,12 @@ class Data {
 
   ];
 
+  static List<Chat> challenges = [
+    Chat('Tom', 'Received', '2m', 178),
+    Chat('Lily', 'Sent', '7m', 0),
+    Chat('Cat', 'Sent', '21m', 134),
+
+  ];
 
   static List<Article> subscriptions = [
     Article('The Washington Post',

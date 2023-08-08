@@ -5,6 +5,7 @@ import '../style.dart';
 import '../widgets/discover_grid.dart';
 import '../widgets/stories.dart';
 import '../widgets/subscriptions.dart';
+import 'add_challenge_screen.dart';
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({Key? key}) : super(key: key);
@@ -37,7 +38,25 @@ class _TeamScreenState extends State<TeamScreen> {
                     Style.sectionTitle('Team Stories'),
                     const Stories(),
                     const SizedBox(height: 28),
+                    Center(
+                        child: GestureDetector(
+                            onTap: (){
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const CreateTeam()),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.blue,
 
+                              ),
+                              child: const Icon(Icons.add, size: 32, color: Colors.white),
+                            )
+                        )
+                    )
                     // Style.sectionTitle('Coaches'),
                     // const Subscriptions(),
                     // const SizedBox(height: 20),
