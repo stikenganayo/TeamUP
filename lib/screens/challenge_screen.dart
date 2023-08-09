@@ -103,18 +103,83 @@ class _ExpansionIconListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    List<String> physicalWellnessItems = [
+      'Incline barbell',
+      'Pushups',
+      'Incline Bench',
+      'Side lunges',
+    ];
+
+    List<String> mentalWellnessItems = [
+      'Meditation',
+      'Deep breathing',
+      'Positive affirmations',
+    ];
+
+    List<String> socialWellnessItems = [
+      'Chat with a friend',
+      'Learn a language',
+      'Host a game night',
+      'Go for a drink with a friend',
+    ];
+
+    List<String> financialWellnessItems = [
+      'Build a financial plan',
+      'Minimize restaurant spending',
+      'Map out major purchases',
+      'Restrict online shopping',
+    ];
+
+    List<String> selectedItems = title == 'Physical Wellness'
+        ? physicalWellnessItems
+        : title == 'Mental Wellness'
+        ? mentalWellnessItems
+        : title == 'Social Wellness'
+        ? socialWellnessItems
+        : title == 'Financial Wellness'
+        ? financialWellnessItems
+        : [];
+
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.blueGrey, width: 2),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: ExpansionTile(
         leading: Icon(icon),
         title: Text(title),
-        children: const <Widget>[
-          // Add additional content for each expansion tile if needed
-          // You can put any widgets here that you want to display when the tile is expanded.
-          // For example, you could include buttons, descriptions, or more information.
+        children: <Widget>[
+          if (selectedItems.isNotEmpty)
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.blueGrey, width: 2),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              margin: const EdgeInsets.all(4.0),
+              padding: const EdgeInsets.all(4.0),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shrinkWrap: true,
+                itemCount: selectedItems.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey, width: 1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star),
+                        const SizedBox(width: 4),
+                        Text(selectedItems[index]),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
