@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/login_screen.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
@@ -162,24 +163,115 @@ class _ExpansionIconListItem extends StatelessWidget {
                 shrinkWrap: true,
                 itemCount: selectedItems.length,
                 itemBuilder: (context, index) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey, width: 1),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.star),
-                        const SizedBox(width: 4),
-                        Text(selectedItems[index]),
-                      ],
-                    ),
+                  bool isItemSelected = false;
+
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey, width: 1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  isItemSelected = !isItemSelected;
+                                });
+                              },
+                              child: Icon(
+                                isItemSelected
+                                    ? Icons.check_box
+                                    : Icons.check_box_outline_blank,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                // Navigate to the new app page
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) {
+                                      // Replace with the widget you want to display on the new app page
+                                      return NewItemScreen(itemName: selectedItems[index],);
+                                    },
+                                  ),
+                                );
+                              },
+                              child: const Icon(Icons.add_box),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(selectedItems[index]),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+class NewItemScreen extends StatefulWidget {
+  final String itemName;
+
+  const NewItemScreen({Key? key, required this.itemName}) : super(key: key);
+
+  @override
+  _NewItemScreenState createState() => _NewItemScreenState();
+}
+
+class _NewItemScreenState extends State<NewItemScreen> {
+  late TextEditingController _textEditingController;
+  late String updatedItemName;
+
+  @override
+  void initState() {
+    super.initState();
+    _textEditingController = TextEditingController(text: widget.itemName);
+    updatedItemName = widget.itemName;
+  }
+
+  @override
+  void dispose() {
+    _textEditingController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Set Challenge'),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _textEditingController,
+            decoration: const InputDecoration(
+              labelText: 'Edit Challenge Name',
+            ),
+            onChanged: (newValue) {
+              setState(() {
+                updatedItemName = newValue;
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Perform an action with the updated item name, if needed
+            },
+            child: Text('Update Item Name'),
+          ),
         ],
       ),
     );
