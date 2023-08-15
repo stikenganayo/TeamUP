@@ -50,21 +50,30 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                         children: const <Widget>[
                           _ExpansionIconListItem(icon: Icons.add_box, title: 'Custom Challenge'),
                           _ExpansionIconListItem(icon: Icons.book, title: 'Self-Awareness & Self-Reflection', subItems: [
-                            'Incline barbell',
-                            'Pushups',
-                            'Incline Bench',
-                            'Side lunges',
+                            'Emotional Awareness',
+                            'Self-Identity',
+                            'Sses',
+                            'Tns',
+                            'Gons',
+                            'fdgdfg',
+                            'MiAwareness',
+                            'Pehers',
+                            'Trins',
+                            'Seing',
+                            'Perrowth',
+                            'Selon',
+
                           ]),
-                          _ExpansionIconListItem(icon: Icons.sports, title: 'Goal Setting & Planning'),
-                          _ExpansionIconListItem(icon: Icons.group, title: 'Learning & Skill Development'),
-                          _ExpansionIconListItem(icon: Icons.attach_money, title: 'Health & Well-being'),
-                          _ExpansionIconListItem(icon: Icons.monitor_heart, title: 'Relationships & Communication'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Time Management & Productivity'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Financial Literacy & Management'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Emotional Intelligence'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Spirituality & Purpose'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Creativity & Self-Expression'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Personal Boundaries & Self-Care'),
+                          _ExpansionIconListItem(icon: Icons.sports, title: 'G'),
+                          _ExpansionIconListItem(icon: Icons.group, title: 'L'),
+                          _ExpansionIconListItem(icon: Icons.attach_money, title: 'He'),
+                          _ExpansionIconListItem(icon: Icons.monitor_heart, title: 'R'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Ti'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'F & Management'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Emotiona'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Spiri'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Creat'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Pers'),
                         ],
                       ),
                     ),
@@ -109,10 +118,10 @@ class _ExpansionIconListItem extends StatelessWidget {
                           height: 200,
                           child: ListView(
                             children: const [
-                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Incline barbell'),
-                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Awesome'),
-                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Incline Bench'),
-                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Side lunges'),
+
+                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Emotional Awareness'),
+                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Self-Identity'),
+
                             ],
                           ),
                         );
@@ -135,103 +144,125 @@ class _ExpansionIconListItem extends StatelessWidget {
   }
 }
 
-class _SubExpansionIconListItem extends StatelessWidget {
+class _SubExpansionIconListItem extends StatefulWidget {
   final IconData icon;
   final String title;
 
   const _SubExpansionIconListItem({required this.icon, required this.title});
 
   @override
+  _SubExpansionIconListItemState createState() =>
+      _SubExpansionIconListItemState();
+}
+
+class _SubExpansionIconListItemState extends State<_SubExpansionIconListItem> {
+  Set<String> selectedItems = Set();
+
+  @override
   Widget build(BuildContext context) {
-    List<String> InclineBarbellItem = [
-      'helo',
-      'awesome',
-      'Incline Bench',
-      'Side lunges',
+    List<String> emotionalAwarenessItem = [
+      'Emotion Journaling',
+      'Emotion Wheel',
+      'Mindfulness Meditation',
+      'Guided Visualization',
+
+      'Emotion Charades',
+      'Feelings Thermometer',
+      'Art Expression',
+      'Emotion Cards',
+
+      'Role Play',
+      'Emotion Sharing Circles',
+      'Reflective Writing',
+      'Music Exploration',
+
+      'Group Emotion Mapping',
+      'Storytelling',
+      'Emotion-focused Apps',
+
+
     ];
 
+    List<String> selfIdentityItem = [
+      'Self-Portrait',
+      'Values Exploration',
+      '"I Am" Collage',
+      'Identity Timeline',
+
+      'Personal Statement',
+      'Cultural Exploration',
+      'Letter to Your Younger Self',
+      'Positive Affirmations',
+
+      'Identity Wheel',
+      'Strengths Assessment',
+      'Identity Map',
+      'Name Exploration',
+
+      'Bucket List',
+      'Reflective Writing Prompts',
+      'Identity Interviews',
 
 
-    List<String> selectedItems = title == 'Incline barbell'
-        ? InclineBarbellItem
+    ];
+
+    List<String> items = widget.title == 'Emotional Awareness'
+        ? emotionalAwarenessItem
+        : widget.title == 'Self-Identity'
+        ? selfIdentityItem
         : [];
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.blueGrey, width: 2),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: ExpansionTile(
-        leading: Icon(icon),
-        title: Text(title),
-        children: <Widget>[
-          if (selectedItems.isNotEmpty)
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blueGrey, width: 2),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              margin: const EdgeInsets.all(4.0),
-              padding: const EdgeInsets.all(4.0),
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                shrinkWrap: true,
-                itemCount: selectedItems.length,
-                itemBuilder: (context, index) {
-                  bool isItemSelected = false;
+    return Column(
+      children: items.map((item) {
+        bool isSelected = selectedItems.contains(item);
 
-                  return StatefulBuilder(
-                    builder: (context, setState) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: Colors.grey, width: 1),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  isItemSelected = !isItemSelected;
-                                });
-                              },
-                              child: Icon(
-                                isItemSelected
-                                    ? Icons.check_box
-                                    : Icons.check_box_outline_blank,
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                // Navigate to the new app page
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) {
-                                      // Replace with the widget you want to display on the new app page
-                                      return NewItemScreen(itemName: selectedItems[index],);
-                                    },
-                                  ),
-                                );
-                              },
-                              child: const Icon(Icons.add_box),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(selectedItems[index]),
-                          ],
-                        ),
-                      );
-                    },
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Colors.grey, width: 1),
+            ),
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      selectedItems.remove(item);
+                    } else {
+                      selectedItems.add(item);
+                    }
+                  });
+                },
+                child: Icon(
+                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  // Navigate to the new app page
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) {
+                        // Replace with the widget you want to display on the new app page
+                        return NewItemScreen(itemName: item);
+                      },
+                    ),
                   );
                 },
+                child: const Icon(Icons.add_box),
               ),
-            ),
-        ],
-      ),
+              const SizedBox(width: 4),
+              Text(item),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
+
 
 
 class NewItemScreen extends StatefulWidget {
