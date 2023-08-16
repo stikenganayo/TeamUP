@@ -6,6 +6,22 @@ import 'dart:io';
 import '../style.dart';
 import '../widgets/stories.dart';
 
+
+//                         _ExpansionIconListItem(icon: Icons.add_box, title: 'Custom Challenge'),
+//                         _ExpansionIconListItem(icon: Icons.book, title: 'Self-Awareness & Self-Reflection'),
+//                         _ExpansionIconListItem(icon: Icons.sports, title: 'Goal Setting & Planning'),
+//                         _ExpansionIconListItem(icon: Icons.group, title: 'Learning & Skill Development'),
+//                         _ExpansionIconListItem(icon: Icons.attach_money, title: 'Health & Well-being'),
+//                         _ExpansionIconListItem(icon: Icons.monitor_heart, title: 'Relationships & Communication'),
+//                         _ExpansionIconListItem(icon: Icons.person, title: 'Time Management & Productivity'),
+//                         _ExpansionIconListItem(icon: Icons.person, title: 'Financial Literacy & Management'),
+//                         _ExpansionIconListItem(icon: Icons.person, title: 'Emotional Intelligence'),
+//                         _ExpansionIconListItem(icon: Icons.person, title: 'Spirituality & Purpose'),
+//                         _ExpansionIconListItem(icon: Icons.person, title: 'Creativity & Self-Expression'),
+//                         _ExpansionIconListItem(icon: Icons.person, title: 'Personal Boundaries & Self-Care'),
+
+
+
 class ChallengeScreen extends StatefulWidget {
   const ChallengeScreen({Key? key}) : super(key: key);
 
@@ -19,11 +35,12 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: Style.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Stack(
           children: [
+            // Top bar
             const TopBar(isCameraPage: false, text: 'Challenge'),
             Positioned(
               top: 100,
@@ -35,45 +52,24 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Stories
                     Style.sectionTitle('Team Stories'),
                     const Stories(),
                     const SizedBox(height: 18),
+                    // Select A Challenge
                     Style.sectionTitle('Select A Challenge'),
                     const SizedBox(height: 18),
 
                     Center(
-                      // ListView with ExpansionTiles wrapping each _IconListItem
                       child: ListView(
                         padding: const EdgeInsets.all(2),
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         children: const <Widget>[
                           _ExpansionIconListItem(icon: Icons.add_box, title: 'Custom Challenge'),
-                          _ExpansionIconListItem(icon: Icons.book, title: 'Self-Awareness & Self-Reflection', subItems: [
-                            'Emotional Awareness',
-                            'Self-Identity',
-                            'Sses',
-                            'Tns',
-                            'Gons',
-                            'fdgdfg',
-                            'MiAwareness',
-                            'Pehers',
-                            'Trins',
-                            'Seing',
-                            'Perrowth',
-                            'Selon',
-
-                          ]),
-                          _ExpansionIconListItem(icon: Icons.sports, title: 'G'),
-                          _ExpansionIconListItem(icon: Icons.group, title: 'L'),
-                          _ExpansionIconListItem(icon: Icons.attach_money, title: 'He'),
-                          _ExpansionIconListItem(icon: Icons.monitor_heart, title: 'R'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Ti'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'F & Management'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Emotiona'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Spiri'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Creat'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Pers'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Self-Awareness & Self-Reflection'),
+                          _ExpansionIconListItem(icon: Icons.person, title: 'Self-Identity'),
+                          // ... (Other _ExpansionIconListItem)
                         ],
                       ),
                     ),
@@ -88,177 +84,110 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
   }
 }
 
-class _ExpansionIconListItem extends StatelessWidget {
+class _ExpansionIconListItem extends StatefulWidget {
   final IconData icon;
   final String title;
-  final List<String>? subItems;
 
-  const _ExpansionIconListItem({required this.icon, required this.title, this.subItems});
+  const _ExpansionIconListItem({required this.icon, required this.title});
+
+  @override
+  _ExpansionIconListItemState createState() => _ExpansionIconListItemState();
+}
+
+class _ExpansionIconListItemState extends State<_ExpansionIconListItem> {
+  bool _isExpanded = false;
+  final List<String> SelfAwarenessSelfReflectionItems = ['Emotional Awareness', 'Self-Identity', 'Strengths and Weaknesses', 'Thought Patterns',
+    'Goals and Aspirations', 'Personal Values', 'Mindfulness and Present Moment Awareness', 'Perceptions of Others',
+    'Triggers and Patterns', 'Self-Care and Well-being', 'Personal History and Growth', 'Self-Compassion']; // Add more items as needed
+
+
+
+
+
+  final List<String> EmotionalAwarenessSubItems = ['Emotion Journaling', 'Emotion Wheel', 'Body Scan Meditation', 'Mindfulness Meditation'];
+  final List<String> SelfIdentitySubItems = ['Values Exploration', 'Strengths Assessment', 'Vision Board', 'Personal Mission Statement'];
+  final List<String> StrengthsAndWeaknessSubItems = ['Feedback Gathering', 'Success Stories', 'Personal Achievements Journal', 'Failure Analysis'];
+
+
+
+
+  final List<String> ListItems = ['work', 'good', 'yes', 'data'];
 
   @override
   Widget build(BuildContext context) {
+    List<String> currentListItems = [];
+    if (widget.title == 'Self-Awareness & Self-Reflection') {
+      currentListItems = SelfAwarenessSelfReflectionItems;
+    } else if (widget.title == 'Self-Identity') {
+      currentListItems = SelfIdentitySubItems;
+    } else if (widget.title == 'Strengths and Weaknesses') {
+      currentListItems = SelfIdentitySubItems;
+    }
+
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.blueGrey, width: 2),
         borderRadius: BorderRadius.circular(5),
       ),
       child: ExpansionTile(
-        leading: Icon(icon),
-        title: Text(title),
+        leading: Icon(widget.icon),
+        title: Text(widget.title),
+        onExpansionChanged: (expanded) {
+          setState(() {
+            _isExpanded = expanded;
+          });
+        },
         children: <Widget>[
-          if (subItems != null)
+          if (_isExpanded)
             Column(
-              children: subItems!.map((item) {
+              children: currentListItems.map((item) {
                 return ListTile(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return Container(
-                          height: 200,
-                          child: ListView(
-                            children: const [
-
-                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Emotional Awareness'),
-                              _SubExpansionIconListItem(icon: Icons.add_box, title: 'Self-Identity'),
-
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(item),
-                      const Icon(Icons.expand_more),
+                      if ((item == 'Emotional Awareness' || item == 'Self-Identity' || item == 'Strengths and Weaknesses'))
+                        GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (BuildContext context) {
+                                List<String> selectedList = item == 'Emotional Awareness'
+                                ? EmotionalAwarenessSubItems
+                                : item == 'Self-Identity'
+                                ? SelfIdentitySubItems
+                                : item == 'Strengths and Weaknesses' ? StrengthsAndWeaknessSubItems
+                                : [];
+
+
+                                return Container(
+                                  height: 200,
+                                  child: ListView(
+                                    children: selectedList.map((sItem) {
+                                      return ListTile(
+                                        title: Text(sItem),
+                                        onTap: () {
+                                          // Handle item selection
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          child: const Icon(Icons.keyboard_arrow_down),
+                        ),
                     ],
                   ),
+                  onTap: () {
+                    // Handle item selection
+                  },
                 );
               }).toList(),
             ),
         ],
       ),
-    );
-  }
-}
-
-class _SubExpansionIconListItem extends StatefulWidget {
-  final IconData icon;
-  final String title;
-
-  const _SubExpansionIconListItem({required this.icon, required this.title});
-
-  @override
-  _SubExpansionIconListItemState createState() =>
-      _SubExpansionIconListItemState();
-}
-
-class _SubExpansionIconListItemState extends State<_SubExpansionIconListItem> {
-  Set<String> selectedItems = Set();
-
-  @override
-  Widget build(BuildContext context) {
-    List<String> emotionalAwarenessItem = [
-      'Emotion Journaling',
-      'Emotion Wheel',
-      'Mindfulness Meditation',
-      'Guided Visualization',
-
-      'Emotion Charades',
-      'Feelings Thermometer',
-      'Art Expression',
-      'Emotion Cards',
-
-      'Role Play',
-      'Emotion Sharing Circles',
-      'Reflective Writing',
-      'Music Exploration',
-
-      'Group Emotion Mapping',
-      'Storytelling',
-      'Emotion-focused Apps',
-
-
-    ];
-
-    List<String> selfIdentityItem = [
-      'Self-Portrait',
-      'Values Exploration',
-      '"I Am" Collage',
-      'Identity Timeline',
-
-      'Personal Statement',
-      'Cultural Exploration',
-      'Letter to Your Younger Self',
-      'Positive Affirmations',
-
-      'Identity Wheel',
-      'Strengths Assessment',
-      'Identity Map',
-      'Name Exploration',
-
-      'Bucket List',
-      'Reflective Writing Prompts',
-      'Identity Interviews',
-
-
-    ];
-
-    List<String> items = widget.title == 'Emotional Awareness'
-        ? emotionalAwarenessItem
-        : widget.title == 'Self-Identity'
-        ? selfIdentityItem
-        : [];
-
-    return Column(
-      children: items.map((item) {
-        bool isSelected = selectedItems.contains(item);
-
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Colors.grey, width: 1),
-            ),
-          ),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      selectedItems.remove(item);
-                    } else {
-                      selectedItems.add(item);
-                    }
-                  });
-                },
-                child: Icon(
-                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  // Navigate to the new app page
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) {
-                        // Replace with the widget you want to display on the new app page
-                        return NewItemScreen(itemName: item);
-                      },
-                    ),
-                  );
-                },
-                child: const Icon(Icons.add_box),
-              ),
-              const SizedBox(width: 4),
-              Text(item),
-            ],
-          ),
-        );
-      }).toList(),
     );
   }
 }
