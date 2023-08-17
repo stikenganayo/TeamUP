@@ -1,0 +1,96 @@
+{
+  "data": [
+    {
+      "challengeType": "awareness",
+      "description": "This is a sample description for the awareness challenge.",
+      "subChallengeTypes": {
+          "a": {
+            "name": "Sub-challenge A",
+            "description": "Description for sub-challenge A under label 1"
+          },
+          "b": {
+            "name": "Sub-challenge B",
+            "description": "Description for sub-challenge B under label 1"
+          },
+          "c": {
+            "name": "Sub-challenge C",
+            "description": "Description for sub-challenge C under label 1"
+          },
+          "d": {
+            "name": "Sub-challenge D",
+            "description": "Description for sub-challenge D under label 1"
+          },
+          "e": {
+            "name": "Sub-challenge E",
+            "description": "Description for sub-challenge E under label 1"
+          }
+      }
+    },
+
+
+
+    {
+      "challengeType": "identity",
+      "description": "This is a sample description for the awareness challenge.",
+      "subChallengeTypes": {
+          "name": "namespace1",
+          "description": "Description for sub-challenge label 1",
+          "a": {
+            "name": "Sub-challenge A",
+            "description": "Description for sub-challenge A under label 1"
+          },
+          "b": {
+            "name": "Sub-challenge B",
+            "description": "Description for sub-challenge B under label 1"
+          },
+          "c": {
+            "name": "Sub-challenge C",
+            "description": "Description for sub-challenge C under label 1"
+          },
+          "d": {
+            "name": "Sub-challenge D",
+            "description": "Description for sub-challenge D under label 1"
+          },
+          "e": {
+            "name": "Sub-challenge E",
+            "description": "Description for sub-challenge E under label 1"
+          }
+      }
+    },
+
+
+
+    {
+      "challengeType": "strengths",
+      "description": "This is a sample description for the awareness challenge.",
+      "subChallengeTypes": {
+          "name": "namespace1",
+          "description": "Description for sub-challenge label 1",
+          "a": {
+            "name": "Sub-challenge A",
+            "description": "Description for sub-challenge A under label 1"
+          },
+          "b": {
+            "name": "Sub-challenge B",
+            "description": "Description for sub-challenge B under label 1"
+          },
+          "c": {
+            "name": "Sub-challenge C",
+            "description": "Description for sub-challenge C under label 1"
+          },
+          "d": {
+            "name": "Sub-challenge D",
+            "description": "Description for sub-challenge D under label 1"
+          },
+          "e": {
+            "name": "Sub-challenge E",
+            "description": "Description for sub-challenge E under label 1"
+          }
+      }
+    }
+
+
+
+
+  ]
+}

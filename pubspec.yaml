@@ -22,8 +22,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/data/challenge_data.json
     - assets/images/bitmojis/
     - assets/images/
+
   # fonts:
   #   - family: Schyler
   #     fonts:

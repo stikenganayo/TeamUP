@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
@@ -21,7 +23,6 @@ import '../widgets/stories.dart';
 //                         _ExpansionIconListItem(icon: Icons.person, title: 'Personal Boundaries & Self-Care'),
 
 
-
 class ChallengeScreen extends StatefulWidget {
   const ChallengeScreen({Key? key}) : super(key: key);
 
@@ -30,9 +31,18 @@ class ChallengeScreen extends StatefulWidget {
 }
 
 class _ChallengeScreenState extends State<ChallengeScreen> {
+
+  Future<List<dynamic>> loadChallengeData() async {
+    final String jsonData = await rootBundle.loadString('assets/images/data/challenge_data.json');
+    final jsonDataMap = json.decode(jsonData);
+    final challengeList = jsonDataMap['data'] as List<dynamic>;
+    return challengeList;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       body: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -59,19 +69,37 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                     // Select A Challenge
                     Style.sectionTitle('Select A Challenge'),
                     const SizedBox(height: 18),
+                    // List of Challenges
+                    FutureBuilder<List<dynamic>>(
+                      future: loadChallengeData(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text('Error loading data'));
+                        } else if (!snapshot.hasData) {
+                          return Center(child: Text('No data available'));
+                        }
 
-                    Center(
-                      child: ListView(
-                        padding: const EdgeInsets.all(2),
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: const <Widget>[
-                          _ExpansionIconListItem(icon: Icons.add_box, title: 'Custom Challenge'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Self-Awareness & Self-Reflection'),
-                          _ExpansionIconListItem(icon: Icons.person, title: 'Self-Identity'),
-                          // ... (Other _ExpansionIconListItem)
-                        ],
-                      ),
+                        final challengeList = snapshot.data!;
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: challengeList.length,
+                          itemBuilder: (context, index) {
+                            final challenge = challengeList[index];
+                            final challengeType = challenge['challengeType'];
+
+                            return Card(
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: ListTile(
+                                title: Text(challengeType),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -84,179 +112,266 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
   }
 }
 
-class _ExpansionIconListItem extends StatefulWidget {
-  final IconData icon;
-  final String title;
-
-  const _ExpansionIconListItem({required this.icon, required this.title});
-
-  @override
-  _ExpansionIconListItemState createState() => _ExpansionIconListItemState();
-}
-
-class _ExpansionIconListItemState extends State<_ExpansionIconListItem> {
-  bool _isExpanded = false;
-  final List<String> SelfAwarenessSelfReflectionItems = ['Emotional Awareness', 'Self-Identity', 'Strengths and Weaknesses', 'Thought Patterns',
-    'Goals and Aspirations', 'Personal Values', 'Mindfulness and Present Moment Awareness', 'Perceptions of Others',
-    'Triggers and Patterns', 'Self-Care and Well-being', 'Personal History and Growth', 'Self-Compassion']; // Add more items as needed
 
 
 
 
 
-  final List<String> EmotionalAwarenessSubItems = ['Emotion Journaling', 'Emotion Wheel', 'Body Scan Meditation', 'Mindfulness Meditation'];
-  final List<String> SelfIdentitySubItems = ['Values Exploration', 'Strengths Assessment', 'Vision Board', 'Personal Mission Statement'];
-  final List<String> StrengthsAndWeaknessSubItems = ['Feedback Gathering', 'Success Stories', 'Personal Achievements Journal', 'Failure Analysis'];
 
 
 
 
-  final List<String> ListItems = ['work', 'good', 'yes', 'data'];
-
-  @override
-  Widget build(BuildContext context) {
-    List<String> currentListItems = [];
-    if (widget.title == 'Self-Awareness & Self-Reflection') {
-      currentListItems = SelfAwarenessSelfReflectionItems;
-    } else if (widget.title == 'Self-Identity') {
-      currentListItems = SelfIdentitySubItems;
-    } else if (widget.title == 'Strengths and Weaknesses') {
-      currentListItems = SelfIdentitySubItems;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.blueGrey, width: 2),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: ExpansionTile(
-        leading: Icon(widget.icon),
-        title: Text(widget.title),
-        onExpansionChanged: (expanded) {
-          setState(() {
-            _isExpanded = expanded;
-          });
-        },
-        children: <Widget>[
-          if (_isExpanded)
-            Column(
-              children: currentListItems.map((item) {
-                return ListTile(
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(item),
-                      if ((item == 'Emotional Awareness' || item == 'Self-Identity' || item == 'Strengths and Weaknesses'))
-                        GestureDetector(
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (BuildContext context) {
-                                List<String> selectedList = item == 'Emotional Awareness'
-                                ? EmotionalAwarenessSubItems
-                                : item == 'Self-Identity'
-                                ? SelfIdentitySubItems
-                                : item == 'Strengths and Weaknesses' ? StrengthsAndWeaknessSubItems
-                                : [];
-
-
-                                return Container(
-                                  height: 200,
-                                  child: ListView(
-                                    children: selectedList.map((sItem) {
-                                      return ListTile(
-                                        title: Text(sItem),
-                                        onTap: () {
-                                          // Handle item selection
-                                        },
-                                      );
-                                    }).toList(),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          child: const Icon(Icons.keyboard_arrow_down),
-                        ),
-                    ],
-                  ),
-                  onTap: () {
-                    // Handle item selection
-                  },
-                );
-              }).toList(),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 
 
-class NewItemScreen extends StatefulWidget {
-  final String itemName;
-
-  const NewItemScreen({Key? key, required this.itemName}) : super(key: key);
-
-  @override
-  _NewItemScreenState createState() => _NewItemScreenState();
-}
-
-class _NewItemScreenState extends State<NewItemScreen> {
-  late TextEditingController _textEditingController;
-  late String updatedItemName;
-
-  @override
-  void initState() {
-    super.initState();
-    _textEditingController = TextEditingController(text: widget.itemName);
-    updatedItemName = widget.itemName;
-  }
-
-  @override
-  void dispose() {
-    _textEditingController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Set Challenge'),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: _textEditingController,
-            decoration: const InputDecoration(
-              labelText: 'Edit Challenge Name',
-            ),
-            onChanged: (newValue) {
-              setState(() {
-                updatedItemName = newValue;
-              });
-            },
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // Perform an action with the updated item name, if needed
-            },
-            child: const Text('Update Item Name'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 
 
+
+
+
+
+
+
+
+
+// class ChallengeScreen extends StatefulWidget {
+//   const ChallengeScreen({Key? key}) : super(key: key);
+//
+//   @override
+//   State<ChallengeScreen> createState() => _ChallengeScreenState();
+// }
+//
+// class _ChallengeScreenState extends State<ChallengeScreen> {
+//
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       body: Container(
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(12),
+//         ),
+//         child: Stack(
+//           children: [
+//             // Top bar
+//             const TopBar(isCameraPage: false, text: 'Challenge'),
+//             Positioned(
+//               top: 100,
+//               left: 0,
+//               right: 0,
+//               height: MediaQuery.of(context).size.height - 100 - (Platform.isIOS ? 90 : 60),
+//               child: SingleChildScrollView(
+//                 physics: const BouncingScrollPhysics(),
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     // Stories
+//                     Style.sectionTitle('Team Stories'),
+//                     const Stories(),
+//                     const SizedBox(height: 18),
+//                     // Select A Challenge
+//                     Style.sectionTitle('Select A Challenge'),
+//                     const SizedBox(height: 18),
+//
+//                     Center(
+//                       child: ListView(
+//                         padding: const EdgeInsets.all(2),
+//                         shrinkWrap: true,
+//                         physics: const NeverScrollableScrollPhysics(),
+//                         children: const <Widget>[
+//                           _ExpansionIconListItem(icon: Icons.add_box, title: 'Custom Challenge'),
+//                           _ExpansionIconListItem(icon: Icons.person, title: 'Self-Awareness & Self-Reflection'),
+//                           _ExpansionIconListItem(icon: Icons.person, title: 'Self-Identity'),
+//                           // ... (Other _ExpansionIconListItem)
+//                         ],
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// class _ExpansionIconListItem extends StatefulWidget {
+//   final IconData icon;
+//   final String title;
+//
+//   const _ExpansionIconListItem({required this.icon, required this.title});
+//
+//   @override
+//   _ExpansionIconListItemState createState() => _ExpansionIconListItemState();
+// }
+//
+// class _ExpansionIconListItemState extends State<_ExpansionIconListItem> {
+//   bool _isExpanded = false;
+//   final List<String> SelfAwarenessSelfReflectionItems = ['Emotional Awareness', 'Self-Identity', 'Strengths and Weaknesses', 'Thought Patterns',
+//     'Goals and Aspirations', 'Personal Values', 'Mindfulness and Present Moment Awareness', 'Perceptions of Others',
+//     'Triggers and Patterns', 'Self-Care and Well-being', 'Personal History and Growth', 'Self-Compassion']; // Add more items as needed
+//
+//
+//
+//
+//
+//   final List<String> EmotionalAwarenessSubItems = ['Emotion Journaling', 'Emotion Wheel', 'Body Scan Meditation', 'Mindfulness Meditation'];
+//   final List<String> SelfIdentitySubItems = ['Values Exploration', 'Strengths Assessment', 'Vision Board', 'Personal Mission Statement'];
+//   final List<String> StrengthsAndWeaknessSubItems = ['Feedback Gathering', 'Success Stories', 'Personal Achievements Journal', 'Failure Analysis'];
+//
+//
+//
+//
+//   final List<String> ListItems = ['work', 'good', 'yes', 'data'];
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     List<String> currentListItems = [];
+//     if (widget.title == 'Self-Awareness & Self-Reflection') {
+//       currentListItems = SelfAwarenessSelfReflectionItems;
+//     } else if (widget.title == 'Self-Identity') {
+//       currentListItems = SelfIdentitySubItems;
+//     } else if (widget.title == 'Strengths and Weaknesses') {
+//       currentListItems = SelfIdentitySubItems;
+//     }
+//
+//     return Container(
+//       decoration: BoxDecoration(
+//         border: Border.all(color: Colors.blueGrey, width: 2),
+//         borderRadius: BorderRadius.circular(5),
+//       ),
+//       child: ExpansionTile(
+//         leading: Icon(widget.icon),
+//         title: Text(widget.title),
+//         onExpansionChanged: (expanded) {
+//           setState(() {
+//             _isExpanded = expanded;
+//           });
+//         },
+//         children: <Widget>[
+//           if (_isExpanded)
+//             Column(
+//               children: currentListItems.map((item) {
+//                 return ListTile(
+//                   title: Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text(item),
+//                       if ((item == 'Emotional Awareness' || item == 'Self-Identity' || item == 'Strengths and Weaknesses'))
+//                         GestureDetector(
+//                           onTap: () {
+//                             showModalBottomSheet(
+//                               context: context,
+//                               builder: (BuildContext context) {
+//                                 List<String> selectedList = item == 'Emotional Awareness'
+//                                 ? EmotionalAwarenessSubItems
+//                                 : item == 'Self-Identity'
+//                                 ? SelfIdentitySubItems
+//                                 : item == 'Strengths and Weaknesses' ? StrengthsAndWeaknessSubItems
+//                                 : [];
+//
+//
+//                                 return Container(
+//                                   height: 200,
+//                                   child: ListView(
+//                                     children: selectedList.map((sItem) {
+//                                       return ListTile(
+//                                         title: Text(sItem),
+//                                         onTap: () {
+//                                           // Handle item selection
+//                                         },
+//                                       );
+//                                     }).toList(),
+//                                   ),
+//                                 );
+//                               },
+//                             );
+//                           },
+//                           child: const Icon(Icons.keyboard_arrow_down),
+//                         ),
+//                     ],
+//                   ),
+//                   onTap: () {
+//                     // Handle item selection
+//                   },
+//                 );
+//               }).toList(),
+//             ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+//
+//
+//
+// class NewItemScreen extends StatefulWidget {
+//   final String itemName;
+//
+//   const NewItemScreen({Key? key, required this.itemName}) : super(key: key);
+//
+//   @override
+//   _NewItemScreenState createState() => _NewItemScreenState();
+// }
+//
+// class _NewItemScreenState extends State<NewItemScreen> {
+//   late TextEditingController _textEditingController;
+//   late String updatedItemName;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _textEditingController = TextEditingController(text: widget.itemName);
+//     updatedItemName = widget.itemName;
+//   }
+//
+//   @override
+//   void dispose() {
+//     _textEditingController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Set Challenge'),
+//       ),
+//       body: Column(
+//         crossAxisAlignment: CrossAxisAlignment.end,
+//         mainAxisAlignment: MainAxisAlignment.start,
+//         children: [
+//           const SizedBox(height: 20),
+//           TextFormField(
+//             controller: _textEditingController,
+//             decoration: const InputDecoration(
+//               labelText: 'Edit Challenge Name',
+//             ),
+//             onChanged: (newValue) {
+//               setState(() {
+//                 updatedItemName = newValue;
+//               });
+//             },
+//           ),
+//           const SizedBox(height: 20),
+//           ElevatedButton(
+//             onPressed: () {
+//               // Perform an action with the updated item name, if needed
+//             },
+//             child: const Text('Update Item Name'),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+//
+//
+//
 
 
 
