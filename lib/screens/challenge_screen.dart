@@ -31,6 +31,8 @@ class ChallengeScreen extends StatefulWidget {
 }
 
 class _ChallengeScreenState extends State<ChallengeScreen> {
+  bool _isChallengeExpanded = false;
+  int _expandedChallengeIndex = -1;
 
   Future<List<dynamic>> loadChallengeData() async {
     final String jsonData = await rootBundle.loadString('assets/images/data/challenge_data.json');
@@ -42,7 +44,6 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -76,7 +77,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator());
                         } else if (snapshot.hasError) {
-                          return Center(child: Text('Error loading data'));
+                          return const Center(child: Text('Error loading data'));
                         } else if (!snapshot.hasData) {
                           return Center(child: Text('No data available'));
                         }
@@ -89,12 +90,50 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                           itemBuilder: (context, index) {
                             final challenge = challengeList[index];
                             final challengeType = challenge['challengeType'];
+                            final subChallengeTypes = challenge['subChallengeTypes'] as Map<String, dynamic>;
+                            final isExpanded = index == _expandedChallengeIndex;
 
-                            return Card(
-                              elevation: 4,
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: ListTile(
-                                title: Text(challengeType),
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _expandedChallengeIndex = isExpanded ? -1 : index;
+                                });
+                              },
+                              child: Card(
+                                elevation: 4,
+                                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16), // Adjust the border radius for the Card
+                                ),
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                      title: Text(challengeType),
+                                    ),
+                                    if (isExpanded)
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: NeverScrollableScrollPhysics(),
+                                        itemCount: subChallengeTypes.length,
+                                        itemBuilder: (context, subIndex) {
+                                          final subChallenge = subChallengeTypes.entries.elementAt(subIndex).value;
+                                          final subChallengeName = subChallenge['name'] as String;
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                            child: Card(
+
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(subChallengeName),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -111,13 +150,6 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
     );
   }
 }
-
-
-
-
-
-
-
 
 
 

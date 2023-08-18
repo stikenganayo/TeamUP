@@ -1,96 +1,58 @@
 {
   "data": [
     {
-      "challengeType": "awareness",
+      "challengeType": "Self-Awareness and Self-Reflection",
       "description": "This is a sample description for the awareness challenge.",
       "subChallengeTypes": {
-          "a": {
-            "name": "Sub-challenge A",
-            "description": "Description for sub-challenge A under label 1"
-          },
-          "b": {
-            "name": "Sub-challenge B",
-            "description": "Description for sub-challenge B under label 1"
-          },
-          "c": {
-            "name": "Sub-challenge C",
-            "description": "Description for sub-challenge C under label 1"
-          },
-          "d": {
-            "name": "Sub-challenge D",
-            "description": "Description for sub-challenge D under label 1"
-          },
-          "e": {
-            "name": "Sub-challenge E",
-            "description": "Description for sub-challenge E under label 1"
-          }
+        "a": {
+          "name": "Emotional Self-Awareness",
+          "description": "Description for sub-challenge A under label 1"
+        },
+        "b": {
+          "name": "Physical Self-Awareness",
+          "description": "Description for sub-challenge B under label 1"
+        },
+        "c": {
+          "name": "Cognitive Self-Awareness",
+          "description": "Description for sub-challenge C under label 1"
+        }
       }
     },
-
-
-
     {
-      "challengeType": "identity",
+      "challengeType": "Goal Setting and Planning",
       "description": "This is a sample description for the awareness challenge.",
       "subChallengeTypes": {
-          "name": "namespace1",
-          "description": "Description for sub-challenge label 1",
-          "a": {
-            "name": "Sub-challenge A",
-            "description": "Description for sub-challenge A under label 1"
-          },
-          "b": {
-            "name": "Sub-challenge B",
-            "description": "Description for sub-challenge B under label 1"
-          },
-          "c": {
-            "name": "Sub-challenge C",
-            "description": "Description for sub-challenge C under label 1"
-          },
-          "d": {
-            "name": "Sub-challenge D",
-            "description": "Description for sub-challenge D under label 1"
-          },
-          "e": {
-            "name": "Sub-challenge E",
-            "description": "Description for sub-challenge E under label 1"
-          }
+        "a": {
+          "name": "Specific Goals",
+          "description": "Description for sub-challenge A under label 2"
+        },
+        "b": {
+          "name": "Actionable Plans",
+          "description": "Description for sub-challenge B under label 2"
+        },
+        "c": {
+          "name": "Adaptability and Flexibility",
+          "description": "Description for sub-challenge C under label 2"
+        }
       }
     },
-
-
-
     {
-      "challengeType": "strengths",
+      "challengeType": "Learning and Skill Development",
       "description": "This is a sample description for the awareness challenge.",
       "subChallengeTypes": {
-          "name": "namespace1",
-          "description": "Description for sub-challenge label 1",
-          "a": {
-            "name": "Sub-challenge A",
-            "description": "Description for sub-challenge A under label 1"
-          },
-          "b": {
-            "name": "Sub-challenge B",
-            "description": "Description for sub-challenge B under label 1"
-          },
-          "c": {
-            "name": "Sub-challenge C",
-            "description": "Description for sub-challenge C under label 1"
-          },
-          "d": {
-            "name": "Sub-challenge D",
-            "description": "Description for sub-challenge D under label 1"
-          },
-          "e": {
-            "name": "Sub-challenge E",
-            "description": "Description for sub-challenge E under label 1"
-          }
+        "a": {
+          "name": "Continuous Learning",
+          "description": "Description for sub-challenge A under label 3"
+        },
+        "b": {
+          "name": "Skill Mastery",
+          "description": "Description for sub-challenge B under label 3"
+        },
+        "c": {
+          "name": "Interdisciplinary Exploration",
+          "description": "Description for sub-challenge C under label 3"
+        }
       }
     }
-
-
-
-
   ]
 }
