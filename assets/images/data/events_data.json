@@ -1,0 +1,148 @@
+{
+  "data": [
+    {
+      "challengeType": "Events",
+      "description": "This is a sample description for the awareness challenge.",
+      "subChallengeTypes": {
+        "a": {
+          "name": "Connection",
+          "description": "Description for sub-challenge A under label 1",
+          "activities": [
+            {
+              "name": "Activity A1",
+              "title": "Title for Activity A1"
+            },
+            {
+              "name": "Activity A2",
+              "title": "Title for Activity A2"
+            }
+          ]
+        },
+        "b": {
+          "name": "Enrichment",
+          "description": "Description for sub-challenge B under label 1",
+          "activities": [
+            {
+              "name": "Activity B1",
+              "title": "Title for Activity B1"
+            },
+            {
+              "name": "Activity B2",
+              "title": "Title for Activity B2"
+            }
+          ]
+        },
+        "c": {
+          "name": "Enjoyment",
+          "description": "Description for sub-challenge C under label 1",
+          "activities": [
+            {
+              "name": "Activity C1",
+              "title": "Title for Activity C1"
+            },
+            {
+              "name": "Activity C2",
+              "title": "Title for Activity C2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "challengeType": "Friends",
+      "description": "This is a sample description for the awareness challenge.",
+      "subChallengeTypes": {
+        "a": {
+          "name": "Connection",
+          "description": "Description for sub-challenge A under label 1",
+          "activities": [
+            {
+              "name": "Activity A1",
+              "title": "Title for Activity A1"
+            },
+            {
+              "name": "Activity A2",
+              "title": "Title for Activity A2"
+            }
+          ]
+        },
+        "b": {
+          "name": "Enrichment",
+          "description": "Description for sub-challenge B under label 1",
+          "activities": [
+            {
+              "name": "Activity B1",
+              "title": "Title for Activity B1"
+            },
+            {
+              "name": "Activity B2",
+              "title": "Title for Activity B2"
+            }
+          ]
+        },
+        "c": {
+          "name": "Enjoyment",
+          "description": "Description for sub-challenge C under label 1",
+          "activities": [
+            {
+              "name": "Activity C1",
+              "title": "Title for Activity C1"
+            },
+            {
+              "name": "Activity C2",
+              "title": "Title for Activity C2"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "challengeType": "Teammates",
+      "description": "This is a sample description for the awareness challenge.",
+      "subChallengeTypes": {
+        "a": {
+          "name": "Connection",
+          "description": "Description for sub-challenge A under label 1",
+          "activities": [
+            {
+              "name": "Activity A1",
+              "title": "Title for Activity A1"
+            },
+            {
+              "name": "Activity A2",
+              "title": "Title for Activity A2"
+            }
+          ]
+        },
+        "b": {
+          "name": "Enrichment",
+          "description": "Description for sub-challenge B under label 1",
+          "activities": [
+            {
+              "name": "Activity B1",
+              "title": "Title for Activity B1"
+            },
+            {
+              "name": "Activity B2",
+              "title": "Title for Activity B2"
+            }
+          ]
+        },
+        "c": {
+          "name": "Enjoyment",
+          "description": "Description for sub-challenge C under label 1",
+          "activities": [
+            {
+              "name": "Activity C1",
+              "title": "Title for Activity C1"
+            },
+            {
+              "name": "Activity C2",
+              "title": "Title for Activity C2"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "data": [
     {
-      "challengeType": "Challengs",
+      "challengeType": "Activities",
       "description": "This is a sample description for the awareness challenge.",
       "subChallengeTypes": {
         "a": {

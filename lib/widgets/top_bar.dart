@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:snapchat_ui_clone/screens/challenge_screen.dart';
 import 'package:snapchat_ui_clone/widgets/custom_icon.dart';
 import 'profile_screen.dart'; // Import the ProfileScreen class
 

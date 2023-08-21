@@ -14,6 +14,7 @@ dependencies:
   camera: ^0.10.5+2
   path_provider: ^2.0.5
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -23,6 +24,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/data/challenge_data.json
+    - assets/images/data/events_data.json
+    - assets/images/data/activities_data.json
     - assets/images/bitmojis/
     - assets/images/
 

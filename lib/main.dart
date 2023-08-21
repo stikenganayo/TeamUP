@@ -5,8 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/screens/authentication_screen.dart';
 import 'package:snapchat_ui_clone/screens/camera_screen.dart';
-import 'package:snapchat_ui_clone/screens/challenge_screen.dart';
 import 'package:snapchat_ui_clone/screens/chat_screen.dart';
+import 'package:snapchat_ui_clone/screens/event_screen.dart';
 import 'package:snapchat_ui_clone/screens/stories_screen.dart';
 import 'package:snapchat_ui_clone/screens/team_screen.dart';
 import 'package:snapchat_ui_clone/screens/temporary_screen.dart';
@@ -119,7 +119,7 @@ class _MainPageState extends State<MainPage> {
           const TeamScreen(),
           CameraScreen(cameraController: _cameraController, initCamera: initCamera),
           // TemporaryScreen(color: _colors[3]),
-          const ChallengeScreen(),
+          const EventsScreen(),
           const StoriesScreen(),
           // TemporaryScreen(color: _colors[4]),
 
