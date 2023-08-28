@@ -1,61 +1,81 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/widgets/custom_icon.dart';
-import 'profile_screen.dart'; // Import the ProfileScreen class
+import 'package:snapchat_ui_clone/screens/search_screen.dart';
+import 'package:snapchat_ui_clone/screens/profile_screen.dart';
 
 import '../screens/add_challenge_screen.dart';
+import '../screens/event_screen.dart';
 import '../style.dart';
 import 'package:snapchat_ui_clone/main.dart';
 
-class TopBar extends StatelessWidget {
-  const TopBar({Key? key, required this.isCameraPage, this.text}) : super(key: key);
+class TopBar extends StatefulWidget {
+  const TopBar({
+    Key? key,
+    required this.isCameraPage,
+    this.text,
+    this.onFlipCamera,
+    this.onToggleFlash,
+  }) : super(key: key);
+
   final bool isCameraPage;
   final String? text;
+  final VoidCallback? onFlipCamera;
+  final VoidCallback? onToggleFlash;
+
+  @override
+  _TopBarState createState() => _TopBarState();
+}
+
+class _TopBarState extends State<TopBar> {
+  Color flashIconColor = Style.cameraPageIconColor;
 
   void _openProfileScreen(BuildContext context) {
-    // Replace 'ProfileScreen' with the actual name of your profile screen widget.
     Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
   }
 
+  void _openSearchScreen(BuildContext context) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
+  }
+
+  void _openChallengeScreen(BuildContext context) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const AddChallenge()));
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    Color color = isCameraPage ? Style.cameraPageIconColor : Style.otherPageIconColor;
+    Color color = widget.isCameraPage ? Style.cameraPageIconColor : Style.otherPageIconColor;
     return Stack(
       alignment: Alignment.center,
       children: [
-
         Positioned(
           top: 40,
           left: 10,
           child: GestureDetector(
-            onTap: () => _openProfileScreen(context), // Add this onTap handler
-            child: CustomIcon(child: Icon(Icons.person, color: color, size: 28), isCameraPage: isCameraPage),
+            onTap: () => _openProfileScreen(context),
+            child: CustomIcon(child: Icon(Icons.person, color: color, size: 28), isCameraPage: widget.isCameraPage),
           ),
         ),
         Positioned(
           top: 40,
           left: 65,
-          child: CustomIcon(child: Icon(Icons.search, color: color, size: 28), isCameraPage: isCameraPage),
+          child: GestureDetector(
+            onTap: () => _openSearchScreen(context),
+            child: CustomIcon(child: Icon(Icons.search, color: color, size: 28), isCameraPage: widget.isCameraPage),
+          ),
         ),
         Positioned(
           top: 40,
           right: 67,
           child: GestureDetector(
-            onTap: () {
-
-
-              },
-
-          child: CustomIcon(
-            child: Icon(Icons.add, color: color, size: 28),
-            isCameraPage: isCameraPage,
+            onTap: () => _openChallengeScreen(context),
+            child: CustomIcon(child: Icon(Icons.add, color: color, size: 28), isCameraPage: widget.isCameraPage),
           ),
-        ),
         ),
         Positioned(
           top: 40,
           right: 12,
-          child: isCameraPage
+          child: widget.isCameraPage
               ? Container(
             width: 47,
             decoration: BoxDecoration(
@@ -65,19 +85,30 @@ class TopBar extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                Icon(Icons.repeat, color: color, size: 28),
+                GestureDetector(
+                  onTap: widget.onFlipCamera, // Trigger the camera flip function here
+                  child: Icon(Icons.repeat, color: color, size: 28),
+                ),
                 const SizedBox(height: 15),
-                Icon(Icons.flash_off, color: color, size: 28),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      flashIconColor = flashIconColor == Style.cameraPageIconColor ? Colors.red : Style.cameraPageIconColor;
+                    });
+                    widget.onToggleFlash?.call();
+                  },
+                  child: Icon(Icons.flash_on, color: flashIconColor, size: 28),
+                ),
                 const SizedBox(height: 15),
               ],
             ),
           )
               : CustomIcon(child: Icon(Icons.more_horiz, color: color, size: 28), isCameraPage: false),
         ),
-        if (text != null)
+        if (widget.text != null)
           Positioned(
             top: 50,
-            child: Style.screenTitle(text!),
+            child: Style.screenTitle(widget.text!),
           )
       ],
     );
