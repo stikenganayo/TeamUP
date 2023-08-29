@@ -23,7 +23,7 @@ class SearchContent extends StatefulWidget {
 
 class _SearchContentState extends State<SearchContent> {
   final TextEditingController _searchController = TextEditingController();
-  List<String> placeholderUsers = ['Hassan', 'Curtis', 'Tsuyog']; // Placeholder usernames
+  List<String> placeholderUsers = ['Hassan', 'Curtis', 'Tsuyog'];
 
   List<String> searchResults = [];
 
