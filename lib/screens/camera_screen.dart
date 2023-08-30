@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import 'image_list_screen.dart';
 class CameraScreen extends StatefulWidget {
   const CameraScreen({Key? key, required this.cameraController, required this.initCamera})
       : super(key: key);
+
   final CameraController? cameraController;
   final Future<void> Function({required bool frontCamera}) initCamera;
 
@@ -22,10 +22,30 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   bool _isFrontCamera = true;
+  final FlashMode _flashMode = FlashMode.off;
+
+  void _toggleFlash() {
+    widget.cameraController!.setFlashMode(_flashMode);
+  }
+
+  void _flipCamera() async {
+    setState(() {
+      _isFrontCamera = !_isFrontCamera;
+    });
+
+    await widget.initCamera(frontCamera: _isFrontCamera);
+  }
 
   Future<void> takePictureAndShow() async {
     try {
+      // Set flash to torch only for capturing the picture
+      widget.cameraController!.setFlashMode(FlashMode.torch);
+
       XFile? image = await widget.cameraController!.takePicture();
+
+      // Reset flash mode to its previous state after capturing the picture
+      widget.cameraController!.setFlashMode(_flashMode);
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -88,7 +108,7 @@ class _CameraScreenState extends State<CameraScreen> {
             );
           }),
         ),
-        const TopBar(isCameraPage: true),
+        TopBar(isCameraPage: true, onFlipCamera: _flipCamera, onToggleFlash: _toggleFlash),
         Positioned(
           bottom: 15,
           child: Row(
