@@ -1,7 +1,7 @@
 {
   "data": [
     {
-      "challengeType": "Events",
+      "challengeType": "Family",
       "description": "This is a sample description for the events challenge.",
       "subChallengeTypes": {
         "a": {

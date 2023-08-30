@@ -1,7 +1,7 @@
 {
   "data": [
     {
-      "challengeType": "Events",
+      "challengeType": "Family",
       "description": "This is a sample description for the events challenge.",
       "subChallengeTypes": {
         "a": {
@@ -9,7 +9,7 @@
           "description": "Description for sub-challenge A under events",
           "activities": [
             {
-              "name": "Activity A1",
+              "name": "Outside Fun",
               "title": "Title for Activity A1",
               "subCategory": {
                 "name": "Subcategory 1",

@@ -24,7 +24,11 @@ class _EventScreenState extends State<EventsScreen> {
       jsonDataFile = 'assets/images/data/activities_data.json';
     } else if (_selectedToggleIndex == 2) {
       jsonDataFile = 'assets/images/data/challenge_data.json';
+    } else if (_selectedToggleIndex == 3) {
+      jsonDataFile = 'assets/images/data/events_data.json';
     }
+
+
 
     final String jsonData = await rootBundle.loadString(jsonDataFile);
     final jsonDataMap = json.decode(jsonData);
@@ -32,18 +36,18 @@ class _EventScreenState extends State<EventsScreen> {
     return challengeList;
   }
 
-  List<bool> isSelected = [true, false, false];
+  List<bool> isSelected = [true, false, false, false];
 
-  String getTitle() {
-    if (_selectedToggleIndex == 0) {
-      return 'Create Events';
-    } else if (_selectedToggleIndex == 1) {
-      return 'Create Activities';
-    } else if (_selectedToggleIndex == 2) {
-      return 'Create Challenges';
-    }
-    return 'Unknown Title';
-  }
+  // String getTitle() {
+  //   if (_selectedToggleIndex == 0) {
+  //     return 'Create Events';
+  //   } else if (_selectedToggleIndex == 1) {
+  //     return 'Create Activities';
+  //   } else if (_selectedToggleIndex == 2) {
+  //     return 'Create Challenges';
+  //   }
+  //   return 'Unknown Title';
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +76,7 @@ class _EventScreenState extends State<EventsScreen> {
                     const Stories(),
                     const SizedBox(height: 18),
                     // Select A Challenge
-                    Style.sectionTitle(getTitle()),
+                    Style.sectionTitle('Create a Post'),
                     const SizedBox(height: 18),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 16),
@@ -80,9 +84,10 @@ class _EventScreenState extends State<EventsScreen> {
                         child: ToggleButtons(
                           isSelected: isSelected,
                           children: const <Widget>[
-                            Text('Events', style: TextStyle(fontSize: 18)),
-                            Text('Activities', style: TextStyle(fontSize: 18)),
-                            Text('Challenges', style: TextStyle(fontSize: 18)),
+                            Text('Event', style: TextStyle(fontSize: 18)),
+                            Text("To-Do", style: TextStyle(fontSize: 18)),
+                            Text('Activity', style: TextStyle(fontSize: 18)),
+                            Text('Challenge', style: TextStyle(fontSize: 18)),
                           ],
                           onPressed: (int newIndex) {
                             setState(() {
