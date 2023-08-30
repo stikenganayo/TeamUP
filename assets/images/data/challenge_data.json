@@ -9,7 +9,7 @@
           "description": "Description for sub-challenge A under events",
           "activities": [
             {
-              "name": "Outside Fun",
+              "name": "Shared Quality Time",
               "title": "Title for Activity A1",
               "subCategory": {
                 "name": "Subcategory 1",

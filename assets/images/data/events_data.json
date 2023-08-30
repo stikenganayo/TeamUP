@@ -1,11 +1,11 @@
 {
   "data": [
     {
-      "challengeType": "Family",
+      "challengeType": "Events Nearby",
       "description": "This is a sample description for the events challenge.",
       "subChallengeTypes": {
         "a": {
-          "name": "Connection",
+          "name": "Family",
           "description": "Description for sub-challenge A under events",
           "activities": [
             {
@@ -27,7 +27,7 @@
           ]
         },
         "b": {
-          "name": "Enrichment",
+          "name": "Friends",
           "description": "Description for sub-challenge B under events",
           "activities": [
             {
@@ -49,7 +49,7 @@
           ]
         },
         "c": {
-          "name": "Enjoyment",
+          "name": "Teammates",
           "description": "Description for sub-challenge C under events",
           "activities": [
             {
@@ -71,150 +71,8 @@
           ]
         }
       }
-    },
-    {
-      "challengeType": "Friends",
-      "description": "This is a sample description for the friends challenge.",
-      "subChallengeTypes": {
-        "a": {
-          "name": "Connection",
-          "description": "Description for sub-challenge A under friends",
-          "activities": [
-            {
-              "name": "Activity A1",
-              "title": "Title for Activity A1",
-              "subCategory": {
-                "name": "Subcategory 1",
-                "title": "Title for Subcategory 1"
-              }
-            },
-            {
-              "name": "Activity A2",
-              "title": "Title for Activity A2",
-              "subCategory": {
-                "name": "Subcategory 2",
-                "title": "Title for Subcategory 2"
-              }
-            }
-          ]
-        },
-        "b": {
-          "name": "Enrichment",
-          "description": "Description for sub-challenge B under friends",
-          "activities": [
-            {
-              "name": "Activity B1",
-              "title": "Title for Activity B1",
-              "subCategory": {
-                "name": "Subcategory 1",
-                "title": "Title for Subcategory 1"
-              }
-            },
-            {
-              "name": "Activity B2",
-              "title": "Title for Activity B2",
-              "subCategory": {
-                "name": "Subcategory 2",
-                "title": "Title for Subcategory 2"
-              }
-            }
-          ]
-        },
-        "c": {
-          "name": "Enjoyment",
-          "description": "Description for sub-challenge C under friends",
-          "activities": [
-            {
-              "name": "Activity C1",
-              "title": "Title for Activity C1",
-              "subCategory": {
-                "name": "Subcategory 1",
-                "title": "Title for Subcategory 1"
-              }
-            },
-            {
-              "name": "Activity C2",
-              "title": "Title for Activity C2",
-              "subCategory": {
-                "name": "Subcategory 2",
-                "title": "Title for Subcategory 2"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "challengeType": "Teammates",
-      "description": "This is a sample description for the teammates challenge.",
-      "subChallengeTypes": {
-        "a": {
-          "name": "Connection",
-          "description": "Description for sub-challenge A under teammates",
-          "activities": [
-            {
-              "name": "Activity A1",
-              "title": "Title for Activity A1",
-              "subCategory": {
-                "name": "Subcategory 1",
-                "title": "Title for Subcategory 1"
-              }
-            },
-            {
-              "name": "Activity A2",
-              "title": "Title for Activity A2",
-              "subCategory": {
-                "name": "Subcategory 2",
-                "title": "Title for Subcategory 2"
-              }
-            }
-          ]
-        },
-        "b": {
-          "name": "Enrichment",
-          "description": "Description for sub-challenge B under teammates",
-          "activities": [
-            {
-              "name": "Activity B1",
-              "title": "Title for Activity B1",
-              "subCategory": {
-                "name": "Subcategory 1",
-                "title": "Title for Subcategory 1"
-              }
-            },
-            {
-              "name": "Activity B2",
-              "title": "Title for Activity B2",
-              "subCategory": {
-                "name": "Subcategory 2",
-                "title": "Title for Subcategory 2"
-              }
-            }
-          ]
-        },
-        "c": {
-          "name": "Enjoyment",
-          "description": "Description for sub-challenge C under teammates",
-          "activities": [
-            {
-              "name": "Activity C1",
-              "title": "Title for Activity C1",
-              "subCategory": {
-                "name": "Subcategory 1",
-                "title": "Title for Subcategory 1"
-              }
-            },
-            {
-              "name": "Activity C2",
-              "title": "Title for Activity C2",
-              "subCategory": {
-                "name": "Subcategory 2",
-                "title": "Title for Subcategory 2"
-              }
-            }
-          ]
-        }
-      }
     }
+
+
   ]
 }

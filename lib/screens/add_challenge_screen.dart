@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class AddChallenge extends StatelessWidget {
-  const AddChallenge({Key? key}) : super(key: key);
+class CreateChallenge extends StatelessWidget {
+  const CreateChallenge({Key? key}) : super(key: key);
 
   @override
 
@@ -24,25 +24,25 @@ class AddChallenge extends StatelessWidget {
 }
 
 
-class CreateTeam extends StatelessWidget {
-  const CreateTeam({Key? key}) : super(key: key);
-
-  @override
-
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Team!'),
-      ),
-      body: const Center(
-        child: Text(
-          'OK Coach, create the Team',
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-
-  }
-}
+// class CreateChallenge extends StatelessWidget {
+//   const CreateChallenge({Key? key}) : super(key: key);
+//
+//   @override
+//
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Create Challenge!'),
+//       ),
+//       body: const Center(
+//         child: Text(
+//           'OK Coach, create the Challenge',
+//           style: TextStyle(fontSize: 20),
+//         ),
+//       ),
+//     );
+//
+//   }
+// }

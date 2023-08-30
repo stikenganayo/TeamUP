@@ -38,7 +38,7 @@ class _TopBarState extends State<TopBar> {
   }
 
   void _openChallengeScreen(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const AddChallenge()));
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateChallenge()));
   }
 
 
