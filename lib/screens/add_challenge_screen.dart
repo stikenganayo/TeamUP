@@ -25,6 +25,20 @@ class _CreateChallengeState extends State<CreateChallenge> {
     // Add more options as needed
   ];
 
+  String selectedTeam = "Giants"; // Default value
+  List<String> frequencySelection = [
+    "Giants",
+    "Bulldogs",
+    "Johnson Beauty's",
+    "Fam",
+    // Add more options as needed
+  ];
+
+  bool areFieldsFilled() {
+    return challengeDataList.isNotEmpty &&
+        challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,6 +58,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
               const SizedBox(height: 20),
               _buildFrequencySection(),
               const SizedBox(height: 20),
+              _buildTeamSelection(),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: areFieldsFilled() ? () => postChallenge() : null,
                 child: Text('Post Challenge'),
@@ -56,33 +72,66 @@ class _CreateChallengeState extends State<CreateChallenge> {
   }
 
   Widget _buildChallengeRow(ChallengeData data) {
-    return Row(
+    int index = challengeDataList.indexOf(data);
+    bool hasMultipleItems = challengeDataList.length > 1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.check_box_outline_blank),
-        const SizedBox(width: 10),
-        Flexible(
-          child: TextField(
-            onChanged: (value) {
-              data.challengeTitle = value;
-            },
-            decoration: const InputDecoration(
-              hintText: 'Challenge',
-              labelStyle: TextStyle(
-                fontWeight: FontWeight.bold,
+        if (index == 0 && hasMultipleItems) // Display the title if index is 0 and there are multiple items
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10.0), // Add spacing below the title
+            child: TextFormField(
+              style: TextStyle(fontSize: 16),
+              onChanged: (value) {
+                // Handle changes to the title if needed
+              },
+              decoration: InputDecoration(
+                hintText: 'Challenge Title',
               ),
             ),
-            controller: data.controller,
           ),
-        ),
-        IconButton(
-          icon: Icon(Icons.add),
-          onPressed: () {
-            setState(() {
-              challengeDataList.add(
-                ChallengeData(challengeTitle: "", controller: TextEditingController()),
-              );
-            });
-          },
+        Row(
+          children: [
+            const Icon(Icons.check_box_outline_blank),
+            const SizedBox(width: 10),
+            Flexible(
+              child: TextFormField(
+                onChanged: (value) {
+                  data.challengeTitle = value;
+                  setState(() {}); // Rebuild the UI when a field changes
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Challenge',
+                  labelStyle: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                controller: data.controller,
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.add),
+              onPressed: () {
+                setState(() {
+                  challengeDataList.add(
+                    ChallengeData(challengeTitle: "", controller: TextEditingController()),
+                  );
+                });
+              },
+            ),
+            if (hasMultipleItems) // Only display the close icon if there are multiple items
+              IconButton(
+                icon: Icon(Icons.close),
+                onPressed: () {
+                  setState(() {
+                    if (index >= 0) {
+                      challengeDataList.removeAt(index);
+                    }
+                  });
+                },
+              ),
+          ],
         ),
       ],
     );
@@ -124,10 +173,40 @@ class _CreateChallengeState extends State<CreateChallenge> {
     );
   }
 
-  bool areFieldsFilled() {
-    return challengeDataList.isNotEmpty &&
-        challengeDataList.every((data) => data.challengeTitle.isNotEmpty) &&
-        selectedFrequency.isNotEmpty;
+  Widget _buildTeamSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Team',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          alignment: Alignment.centerLeft,
+          child: DropdownButton<String>(
+            value: selectedTeam,
+            onChanged: (String? newValue) {
+              setState(() {
+                selectedTeam = newValue!;
+              });
+            },
+            items: frequencySelection.map<DropdownMenuItem<String>>(
+                  (String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              },
+            ).toList(),
+            hint: Text('Select Team'),
+          ),
+        ),
+      ],
+    );
   }
 
   void postChallenge() {
