@@ -1,8 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:snapchat_ui_clone/widgets/discover_view.dart';
 import '../data.dart';
 import '../style.dart';
+import '../screens/chat_list.dart';
 
 class FriendsGrid extends StatelessWidget {
   const FriendsGrid ({Key? key}) : super(key: key);
@@ -19,10 +18,10 @@ class FriendsGrid extends StatelessWidget {
         childAspectRatio: 6,
 
         children: List.generate(Data.chatFriends.length, (index) => ChatView(
-            index: index,
-            name: Data.chatFriends[index].name,
-            status: Data.chatFriends[index].status,
-            time: Data.chatFriends[index].time,
+          index: index,
+          name: Data.chatFriends[index].name,
+          status: Data.chatFriends[index].status,
+          time: Data.chatFriends[index].time,
         )));
   }
 }
@@ -30,29 +29,34 @@ class FriendsGrid extends StatelessWidget {
 
 
 class ChatView extends StatelessWidget {
-  const ChatView({Key? key,
+  const ChatView({
+    Key? key,
     required this.index,
     required this.name,
     required this.status,
-    required this.time
+    required this.time,
+  }) : super(key: key);
 
-    // required this.description
-  })
-      : super(key: key);
   final int index;
   final String name;
   final String status;
   final String time;
-  // final String description;
 
   @override
-  Widget build(BuildContext context){
-    return Container(
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to the ChatScreen when clicked
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(friendName: name),
+          ),
+        );
+      },
+      child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          // color: Style.tempColors[index % Style.tempColors.length],
           color: Colors.lightBlueAccent,
-
         ),
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -67,10 +71,11 @@ class ChatView extends StatelessWidget {
                   const Text(" -> "),
                   Style.statusName(time),
                 ],
-              )
-
+              ),
             ],
           ),
-        ));
+        ),
+      ),
+    );
   }
 }

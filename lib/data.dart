@@ -24,7 +24,7 @@ class Data {
   static List<Chat> chatFriends = [
     Chat('Tom', 'Received', '2m', 178),
     Chat('Lily', 'Sent', '7m', 0),
-    Chat('Cat', 'Sent', '21m', 134),
+    Chat('Cat', 'Sent', '22m', 134),
 
   ];
 
