@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/team_select.dart';
 
 class CreateChallenge extends StatefulWidget {
   const CreateChallenge({Key? key}) : super(key: key);
@@ -25,14 +26,14 @@ class _CreateChallengeState extends State<CreateChallenge> {
     // Add more options as needed
   ];
 
-  String selectedTeam = "Giants"; // Default value
-  List<String> frequencySelection = [
-    "Giants",
-    "Bulldogs",
-    "Johnson Beauty's",
-    "Fam",
-    // Add more options as needed
-  ];
+  // String selectedTeam = "Giants"; // Default value
+  // List<String> frequencySelection = [
+  //   "Giants",
+  //   "Bulldogs",
+  //   "Johnson Beauty's",
+  //   "Fam",
+  //   // Add more options as needed
+  // ];
 
   bool areFieldsFilled() {
     return challengeDataList.isNotEmpty &&
@@ -185,29 +186,23 @@ class _CreateChallengeState extends State<CreateChallenge> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          alignment: Alignment.centerLeft,
-          child: DropdownButton<String>(
-            value: selectedTeam,
-            onChanged: (String? newValue) {
-              setState(() {
-                selectedTeam = newValue!;
-              });
-            },
-            items: frequencySelection.map<DropdownMenuItem<String>>(
-                  (String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
+        ElevatedButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return TeamSelect();
               },
-            ).toList(),
-            hint: Text('Select Team'),
-          ),
+            );
+          },
+          child: Text('Select Team'),
         ),
       ],
     );
   }
+
+
+
 
   void postChallenge() {
     // Implement your logic to post the challenge here
