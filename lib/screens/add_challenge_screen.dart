@@ -13,27 +13,20 @@ class _CreateChallengeState extends State<CreateChallenge> {
     ChallengeData(challengeTitle: "", controller: TextEditingController())
   ];
 
-  String selectedFrequency = "every day"; // Default value
+  String selectedFrequency = "Once"; // Default value
   List<String> frequencyOptions = [
-    "every day",
+    "Once",
+    "every 1 day",
     "every 2 days",
     "every 3 days",
     "every 4 days",
     "every 5 days",
-    "every 6 days",
     "every week",
     "every 2 weeks",
     // Add more options as needed
   ];
 
-  // String selectedTeam = "Giants"; // Default value
-  // List<String> frequencySelection = [
-  //   "Giants",
-  //   "Bulldogs",
-  //   "Johnson Beauty's",
-  //   "Fam",
-  //   // Add more options as needed
-  // ];
+  List<String> selectedTeams = []; // List to store selected teams
 
   bool areFieldsFilled() {
     return challengeDataList.isNotEmpty &&
@@ -44,7 +37,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Challenge!'),
+        title: const Text('Create Activity Template!'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -63,8 +56,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: areFieldsFilled() ? () => postChallenge() : null,
-                child: Text('Post Challenge'),
+                child: Text('Post Activity'),
               ),
+              const SizedBox(height: 20),
+              // Display selected teams below the button
+              _buildSelectedTeamsList(),
             ],
           ),
         ),
@@ -88,7 +84,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                 // Handle changes to the title if needed
               },
               decoration: InputDecoration(
-                hintText: 'Challenge Title',
+                hintText: 'Activity Title',
               ),
             ),
           ),
@@ -103,7 +99,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                   setState(() {}); // Rebuild the UI when a field changes
                 },
                 decoration: const InputDecoration(
-                  hintText: 'Challenge',
+                  hintText: 'Activity',
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
@@ -187,13 +183,18 @@ class _CreateChallengeState extends State<CreateChallenge> {
         ),
         const SizedBox(height: 10),
         ElevatedButton(
-          onPressed: () {
-            showDialog(
+          onPressed: () async {
+            final teams = await showDialog<List<String>>(
               context: context,
               builder: (BuildContext context) {
                 return TeamSelect();
               },
             );
+            if (teams != null) {
+              setState(() {
+                selectedTeams = teams;
+              });
+            }
           },
           child: Text('Select Team'),
         ),
@@ -201,13 +202,37 @@ class _CreateChallengeState extends State<CreateChallenge> {
     );
   }
 
-
-
+  // Function to build the list of selected teams
+  Widget _buildSelectedTeamsList() {
+    return selectedTeams.isNotEmpty
+        ? Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Selected Teams:',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ListView.builder(
+          shrinkWrap: true,
+          itemCount: selectedTeams.length,
+          itemBuilder: (context, index) {
+            return Text(selectedTeams[index]);
+          },
+        ),
+      ],
+    )
+        : Container(); // Return an empty container if no teams are selected
+  }
 
   void postChallenge() {
     // Implement your logic to post the challenge here
     print('Challenges Posted: ${challengeDataList.map((data) => data.challengeTitle).toList()}');
     print('Selected Frequency: $selectedFrequency');
+    print('Selected Teams: $selectedTeams');
   }
 }
 

@@ -45,7 +45,7 @@ class _EventScreenState extends State<EventsScreen> {
     if (_selectedToggleIndex == 0) {
       return 'Create an Event';
     } else if (_selectedToggleIndex == 1) {
-      return 'Create a Challenge';
+      return 'Create an Activity';
     } else if (_selectedToggleIndex == 2) {
       return 'Create Challenges';
     }
@@ -90,7 +90,7 @@ class _EventScreenState extends State<EventsScreen> {
                               isSelected: isSelected,
                               children: const <Widget>[
                                 Text('Events', style: TextStyle(fontSize: 18)),
-                                Text('Challenges', style: TextStyle(fontSize: 18)),
+                                Text('Activities', style: TextStyle(fontSize: 18)),
                               ],
                               onPressed: (int newIndex) {
                                 setState(() {

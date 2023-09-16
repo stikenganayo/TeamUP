@@ -14,11 +14,8 @@ class _TeamSelectState extends State<TeamSelect> {
   int _selectedToggleIndex = 0; // Default to the "Events" toggle
   int _expandedChallengeIndex = -1;
 
-  // Add a variable to store the currently selected index
-  int _selectedTeamIndex = -1;
-
-  // Create a list to keep track of the checked states for each checkbox
-  List<bool> _checkboxStates = [];
+  // Initialize a map to keep track of the checked states for each team's activities
+  Map<String, List<bool>> _teamCheckedStates = {};
 
   Future<List<dynamic>> loadTeamData() async {
     String jsonDataFile = 'assets/images/data/team_data.json'; // Default to events_data.json
@@ -29,19 +26,25 @@ class _TeamSelectState extends State<TeamSelect> {
 
     // Filter the challengeList based on the 'user' field ****** This is where it should automatically pull
     //in the user which is currently logged in
-    final filteredChallengeList = challengeList.where((challenge) => challenge['user'] == 'whiskey').toList();
-
+    final filteredChallengeList = challengeList.where((challenge) => challenge['user'] == 'user2').toList();
+    print(filteredChallengeList);
     return filteredChallengeList;
   }
 
   void _confirmTeam() {
+    List<String> selectedTeams = [];
     // Implement your logic here for confirming the team.
     // You can use the selected data to perform the necessary actions.
     // For now, let's just print a message as a placeholder.
     print('Team confirmed');
-
+    _teamCheckedStates.forEach((teamName, checkedStates) {
+      if (checkedStates.contains(true)) {
+        print('Team checked: $teamName');
+        selectedTeams.add(teamName); // Add checked team to the list
+      }
+    });
     // Close the current screen and return to the previous screen.
-    Navigator.pop(context);
+    Navigator.pop(context, selectedTeams);
   }
 
   @override
@@ -81,6 +84,12 @@ class _TeamSelectState extends State<TeamSelect> {
                         }
 
                         final challengeList = snapshot.data!;
+                        print(challengeList);
+                        print('Team Checked States:');
+                        _teamCheckedStates.forEach((teamName, checkedStates) {
+                          print('Team Name: $teamName');
+                          print('Checked States: $checkedStates');
+                        });
 
                         return ListView.builder(
                           shrinkWrap: true,
@@ -89,7 +98,6 @@ class _TeamSelectState extends State<TeamSelect> {
                             final challenge = challengeList[index];
                             final challengeType = challenge['user'];
                             final subChallengeTypes = challenge['subChallengeTypes'] as Map<String, dynamic>;
-                            final isExpanded = index == _expandedChallengeIndex;
 
                             return Card(
                               elevation: 4,
@@ -100,19 +108,25 @@ class _TeamSelectState extends State<TeamSelect> {
                               child: Column(
                                 children: subChallengeTypes.entries.map((entry) {
                                   final subChallengeData = entry.value as Map<String, dynamic>;
-                                  final subChallengeName = subChallengeData['teamname'] as String?;
+                                  final TeamName = subChallengeData['teamname'] as String?;
                                   final activities = subChallengeData['teammates'] as List<dynamic>;
+                                  print("Team Name: $TeamName");
+                                  print(index);
+
+                                  // Initialize the checked state for this team's activities
+                                  _teamCheckedStates.putIfAbsent(TeamName!, () => List.generate(activities.length, (index) => false));
 
                                   return ExpansionTile(
                                     leading: Checkbox(
-                                      // Add logic here to manage the checked state of the checkbox
-                                      value: false, // Set the initial state (you need to manage this)
+                                      value: _teamCheckedStates[TeamName!]!.contains(true), // Use the checked state from the map
                                       onChanged: (bool? newValue) {
-                                        // Handle the checkbox state change here
-                                        // You can add your logic to manage the state.
+                                        setState(() {
+                                          // Update the checked state when the checkbox is changed
+                                          _teamCheckedStates[TeamName!] = List.generate(activities.length, (index) => newValue ?? false);
+                                        });
                                       },
                                     ),
-                                    title: Text(subChallengeName ?? 'Unknown Team'), // Use null-aware operator and provide a default value
+                                    title: Text(TeamName ?? 'Unknown Team'),
                                     children: [
                                       ListView.builder(
                                         shrinkWrap: true,
@@ -121,14 +135,14 @@ class _TeamSelectState extends State<TeamSelect> {
                                           final activity = activities[activityIndex];
                                           final activityName = activity['name'] as String;
 
-                                          return ListTile(
+                                          return CheckboxListTile(
                                             title: Text(activityName),
-                                              trailing: const Icon(Icons.person),
-                                              onTap: () {
-
-                                              },
-
-                                              // You can add more details about the activity here
+                                            value: _teamCheckedStates[TeamName!]![activityIndex],
+                                            onChanged: (bool? newValue) {
+                                              setState(() {
+                                                _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
+                                              });
+                                            },
                                           );
                                         },
                                       ),
@@ -153,5 +167,6 @@ class _TeamSelectState extends State<TeamSelect> {
         child: Icon(Icons.check),
       ),
     );
+
   }
 }

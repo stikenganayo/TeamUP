@@ -72,7 +72,7 @@ class _CreateEventState extends State<CreateEvent> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Event!'),
+        title: const Text('Create Event Template!'),
       ),
       body: Center(
         child: Padding(

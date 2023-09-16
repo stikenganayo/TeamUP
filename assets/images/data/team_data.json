@@ -31,7 +31,7 @@
           "description": "Description for sub-challenge B under events",
           "teammates": [
             {
-              "name": "Activity B1",
+              "name": "kareeb123",
               "title": "Title for Activity B1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -39,7 +39,7 @@
               }
             },
             {
-              "name": "Activity B2",
+              "name": "wich12",
               "title": "Title for Activity B2",
               "subCategory": {
                 "name": "Subcategory 2",
@@ -53,7 +53,7 @@
           "description": "Description for sub-challenge C under events",
           "teammates": [
             {
-              "name": "Activity C1",
+              "name": "riley.kaszas",
               "title": "Title for Activity C1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -61,7 +61,29 @@
               }
             },
             {
-              "name": "Activity C2",
+              "name": "jenna.jelinski",
+              "title": "Title for Activity C2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "d": {
+          "teamname": "Team D",
+          "description": "Description for sub-challenge C under events",
+          "teammates": [
+            {
+              "name": "miles.kinvig",
+              "title": "Title for Activity C1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "nich.parisian",
               "title": "Title for Activity C2",
               "subCategory": {
                 "name": "Subcategory 2",
@@ -77,7 +99,7 @@
       "description": "This is a sample description for the friends challenge.",
       "subChallengeTypes": {
         "a": {
-          "name": "Connection",
+          "teamname": "Connection",
           "description": "Description for sub-challenge A under friends",
           "teammates": [
             {
@@ -101,7 +123,7 @@
         "b": {
           "teamname": "Team Go",
           "description": "Description for sub-challenge B under friends",
-          "activities": [
+          "teammates": [
             {
               "name": "Activity B1",
               "title": "Title for Activity B1",
@@ -171,7 +193,7 @@
           ]
         },
         "b": {
-          "teamname": "gfdgdhh",
+          "teamname": "Team Go",
           "description": "Description for sub-challenge B under teammates",
           "teammates": [
             {

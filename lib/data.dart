@@ -36,8 +36,8 @@ class Data {
   ];
 
   static List<Article> subscriptions = [
-    Article('The Washington Post',
-        'Opinion | What\'s up with Amnesty International and its moral myopia on Ukraine?'),
+    Article('Regina Folk Festival',
+        'When? | August 21, 22. Book your tickets now'),
     Article(
       'The Telegraph',
       'Teens might have to study maths and English after GCSE.',

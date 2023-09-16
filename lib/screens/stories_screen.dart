@@ -34,16 +34,28 @@ class _StoriesScreenState extends State<StoriesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Style.sectionTitle('Community Coach Stories'),
+                  Style.sectionTitle('Community Stories'),
                   const Stories(),
                   const SizedBox(height: 28),
 
-                  Style.sectionTitle('Community Coaches Available'),
+                  Style.sectionTitle('Community Events'),
                   const Subscriptions(),
                   const SizedBox(height: 20),
 
                   Style.sectionTitle('Community Programs/Products'),
                   const DiscoverGrid(),
+
+                  Style.sectionTitle('Community Projects'),
+                  const Subscriptions(),
+                  const SizedBox(height: 20),
+
+                  Style.sectionTitle('Community Coaches'),
+                  const Subscriptions(),
+                  const SizedBox(height: 20),
+
+                  Style.sectionTitle('Community Volunteering'),
+                  const Subscriptions(),
+                  const SizedBox(height: 20),
                 ],
               ),
             )
