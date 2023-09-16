@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
-import '../widgets/discover_grid.dart';
 import '../widgets/friends.dart';
 import '../widgets/stories.dart';
-import '../widgets/subscriptions.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({Key? key}) : super(key: key);
@@ -24,7 +22,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       child: Stack(
         children:  [
-          const TopBar(isCameraPage: false, text: 'Chat'),
+          const TopBar(isCameraPage: false, text: 'Friends'),
           Positioned(
               top: 100,
               left: 0,
@@ -39,7 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     const Stories(),
                     const SizedBox(height: 28),
 
-                    Style.sectionTitle('Friends/Teams'),
+                    Style.sectionTitle('Friends'),
                     // const Subscriptions(),
                     // const SizedBox(height: 20),
                     //

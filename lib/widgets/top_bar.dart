@@ -1,12 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/widgets/custom_icon.dart';
 import 'package:snapchat_ui_clone/screens/search_screen.dart';
 import 'package:snapchat_ui_clone/screens/profile_screen.dart';
-
-import '../screens/add_challenge_screen.dart';
-import '../screens/event_screen.dart';
+import '../screens/calendar_screen.dart';
 import '../style.dart';
-import 'package:snapchat_ui_clone/main.dart';
 
 class TopBar extends StatefulWidget {
   const TopBar({
@@ -30,16 +28,14 @@ class _TopBarState extends State<TopBar> {
   Color flashIconColor = Style.cameraPageIconColor;
 
   void _openProfileScreen(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
+    Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
   }
 
   void _openSearchScreen(BuildContext context) {
     Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
   }
 
-  void _openChallengeScreen(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateChallenge()));
-  }
+
 
 
   @override
@@ -68,8 +64,14 @@ class _TopBarState extends State<TopBar> {
           top: 40,
           right: 67,
           child: GestureDetector(
-            onTap: () => _openChallengeScreen(context),
-            child: CustomIcon(child: Icon(Icons.add, color: color, size: 28), isCameraPage: widget.isCameraPage),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CalendarScreen()),
+              );
+            },
+            child: CustomIcon(child: Icon(CupertinoIcons.calendar_today, color: color, size: 28), isCameraPage: widget.isCameraPage),
+
           ),
         ),
         Positioned(

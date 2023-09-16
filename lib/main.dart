@@ -47,13 +47,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  static const _colors = [
-    Style.greenNavbar,
-    Style.blueNavbar,
-    Style.yellowNavbar,
-    Style.purpleNavbar,
-    Style.redNavbar,
-  ];
+
   int _currentScreen = 2;
   final PageController _pageController = PageController(initialPage: 2);
 
@@ -138,7 +132,7 @@ class _MainPageState extends State<MainPage> {
           },
           items: const <BottomNavigationBarItem> [
             BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.chat_bubble_text_fill, size: 28),
+                icon: Icon(CupertinoIcons.person_2_fill, size: 28),
                 label: '',
             ),
             BottomNavigationBarItem(
