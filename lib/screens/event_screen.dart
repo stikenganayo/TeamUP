@@ -5,6 +5,8 @@ import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
 import '../widgets/stories.dart';
+import 'add_challenge_screen.dart';
+import 'add_event_screen.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({Key? key}) : super(key: key);
@@ -21,10 +23,15 @@ class _EventScreenState extends State<EventsScreen> {
     String jsonDataFile = 'assets/images/data/events_data.json'; // Default to events_data.json
 
     if (_selectedToggleIndex == 1) {
-      jsonDataFile = 'assets/images/data/activities_data.json';
-    } else if (_selectedToggleIndex == 2) {
       jsonDataFile = 'assets/images/data/challenge_data.json';
     }
+    // else if (_selectedToggleIndex == 2) {
+    //   jsonDataFile = 'assets/images/data/challenge_data.json';
+    // } else if (_selectedToggleIndex == 3) {
+    //   jsonDataFile = 'assets/images/data/events_data.json';
+    // }
+
+
 
     final String jsonData = await rootBundle.loadString(jsonDataFile);
     final jsonDataMap = json.decode(jsonData);
@@ -32,13 +39,13 @@ class _EventScreenState extends State<EventsScreen> {
     return challengeList;
   }
 
-  List<bool> isSelected = [true, false, false];
+  List<bool> isSelected = [true, false];
 
   String getTitle() {
     if (_selectedToggleIndex == 0) {
-      return 'Create Events';
+      return 'Create an Event';
     } else if (_selectedToggleIndex == 1) {
-      return 'Create Activities';
+      return 'Create an Activity';
     } else if (_selectedToggleIndex == 2) {
       return 'Create Challenges';
     }
@@ -56,7 +63,7 @@ class _EventScreenState extends State<EventsScreen> {
         child: Stack(
           children: [
             // Top bar
-            const TopBar(isCameraPage: false, text: 'Unite'),
+            const TopBar(isCameraPage: false, text: 'Hub'),
             Positioned(
               top: 100,
               left: 0,
@@ -72,29 +79,75 @@ class _EventScreenState extends State<EventsScreen> {
                     const Stories(),
                     const SizedBox(height: 18),
                     // Select A Challenge
-                    Style.sectionTitle(getTitle()),
+                    Style.sectionTitle('Create a Post'),
                     const SizedBox(height: 18),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Center(
-                        child: ToggleButtons(
-                          isSelected: isSelected,
-                          children: const <Widget>[
-                            Text('Events', style: TextStyle(fontSize: 18)),
-                            Text('Activities', style: TextStyle(fontSize: 18)),
-                            Text('Challenges', style: TextStyle(fontSize: 18)),
-                          ],
-                          onPressed: (int newIndex) {
-                            setState(() {
-                              for (int i = 0; i < isSelected.length; i++) {
-                                isSelected[i] = i == newIndex;
+                    Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
+                            ToggleButtons(
+                              isSelected: isSelected,
+                              children: const <Widget>[
+                                Text('Events', style: TextStyle(fontSize: 18)),
+                                Text('Activities', style: TextStyle(fontSize: 18)),
+                              ],
+                              onPressed: (int newIndex) {
+                                setState(() {
+                                  for (int i = 0; i < isSelected.length; i++) {
+                                    isSelected[i] = i == newIndex;
+                                  }
+                                  _selectedToggleIndex = newIndex;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 16), // Add spacing
+                            GestureDetector(
+                              onTap: () {
+                                if (_selectedToggleIndex == 0) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const CreateEvent()),
+                                  );
+                              } else if (_selectedToggleIndex == 1) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const CreateChallenge()),
+                                  );
+
+                                // Navigate to a different page for index 1
+                                // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => AnotherPage()));
                               }
-                              _selectedToggleIndex = newIndex; // Update the selected toggle index
-                            });
-                          },
+                              },
+                              child: Column(
+                                children: [
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.blue,
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.add,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8), // Add spacing
+                                  Text(
+                                    getTitle(),
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+
                     // List of Challenges
                     FutureBuilder<List<dynamic>>(
                       future: loadChallengeData(),

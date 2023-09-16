@@ -43,7 +43,7 @@ class _TeamScreenState extends State<TeamScreen> {
                             onTap: (){
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const CreateTeam()),
+                                MaterialPageRoute(builder: (context) => const CreateChallenge()),
                               );
                             },
                             child: Container(

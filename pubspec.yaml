@@ -16,6 +16,7 @@ dependencies:
   intl: ^0.17.0
 
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -24,6 +25,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/data/team_data.json
     - assets/images/data/challenge_data.json
     - assets/images/data/events_data.json
     - assets/images/data/activities_data.json
