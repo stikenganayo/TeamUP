@@ -131,7 +131,7 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
               const SizedBox(width: 18),
               const CustomIcon(
-                child: Icon(CupertinoIcons.calendar, color: Style.white, size: 28),
+                child: Icon(CupertinoIcons.gear, color: Style.white, size: 28),
                 isCameraPage: true,
               ),
             ],

@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'add_event_screen.dart';
+import 'add_challenge_screen.dart'; // Import the CreateChallenge screen
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({Key? key}) : super(key: key);
@@ -12,6 +15,59 @@ class CalendarScreen extends StatelessWidget {
         title: const Text('Upcoming'),
       ),
       body: const CalendarWithActivities(),
+      floatingActionButton: Align(
+        alignment: Alignment.bottomCenter,
+        child: FloatingActionButton(
+          onPressed: () {
+            // You can use a _menuSelected variable to track the selected menu item.
+            String? _menuSelected;
+            showModalBottomSheet(
+              context: context,
+              builder: (BuildContext context) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: const Icon(CupertinoIcons.stopwatch),
+                      title: const Text('Add Challenge'),
+                      onTap: () {
+                        _menuSelected = 'Challenge';
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CreateChallenge()), // Navigate to CreateChallenge screen
+                        );
+                      },
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        _menuSelected = 'Event';
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CreateEvent()), // Navigate to CreateEvent screen
+                        );
+                      },
+                      child: const ListTile(
+                        leading: Icon(CupertinoIcons.globe),
+                        title: Text('Add Event'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ).then((value) {
+              // Handle the selected option (_menuSelected)
+              if (_menuSelected == 'Challenge') {
+                // Handle Challenge option
+              } else if (_menuSelected == 'Event') {
+                // Handle Event option
+              }
+            });
+          },
+          child: const Icon(Icons.add, size: 36.0), // Large add icon
+        ),
+      ),
     );
   }
 }
@@ -26,12 +82,12 @@ class CalendarWithActivities extends StatefulWidget {
 class _CalendarWithActivitiesState extends State<CalendarWithActivities> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay; // Initialize as nullable
+  DateTime? _selectedDay;
 
   final Map<DateTime, List<String>> _events = {
     DateTime(DateTime.now().year, DateTime.now().month, 10): ['Event 1', 'Event 2'],
     DateTime(DateTime.now().year, DateTime.now().month, 15): ['Event 3'],
-    DateTime(2023, 9, 18): ['100 Push-ups'], // Placeholder activity for Monday, September 18, 2023
+    DateTime(2023, 9, 18): ['100 Push-ups'],
   };
 
   @override
@@ -63,28 +119,27 @@ class _CalendarWithActivitiesState extends State<CalendarWithActivities> {
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.red, // Red circle background for selected date
+                  color: Colors.red,
                 ),
                 child: Text(
                   date.day.toString(),
                   style: const TextStyle(
-                    color: Colors.white, // White text color for selected date
+                    color: Colors.white,
                   ),
                 ),
               );
             },
             todayBuilder: (context, date, _) {
-              // Add visual indication for today's date (you can customize this)
               return Container(
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.blue, // Blue circle background for today's date
+                  color: Colors.blue,
                 ),
                 child: Text(
                   date.day.toString(),
                   style: const TextStyle(
-                    color: Colors.white, // White text color for today's date
+                    color: Colors.white,
                   ),
                 ),
               );
@@ -100,20 +155,20 @@ class _CalendarWithActivitiesState extends State<CalendarWithActivities> {
                 Text(
                   DateFormat('EEEE').format(_selectedDay!),
                   style: const TextStyle(
-                    fontSize: 24, // Increase font size
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _events[_selectedDay!]?.join(', ') ?? 'No activities', // Use the null-aware operator to handle null
+                  _events[_selectedDay!]?.join(', ') ?? 'No activities',
                   style: const TextStyle(
                     fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 8), // Add spacing
+                const SizedBox(height: 8),
                 const Text(
-                  'No events', // Additional line for "No events"
+                  'No events',
                   style: TextStyle(
                     fontSize: 16,
                   ),
