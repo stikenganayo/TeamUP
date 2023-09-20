@@ -3,7 +3,7 @@
     {
       "user": "whiskey",
       "description": "This is a sample description for the events challenge.",
-      "subChallengeTypes": {
+      "UserTeams": {
         "a": {
           "teamname": "Team A",
           "description": "Description for sub-challenge A under events",
@@ -97,13 +97,13 @@
     {
       "user": "user2",
       "description": "This is a sample description for the friends challenge.",
-      "subChallengeTypes": {
+      "UserTeams": {
         "a": {
-          "teamname": "Connection",
+          "teamname": "GroceryTeam",
           "description": "Description for sub-challenge A under friends",
           "teammates": [
             {
-              "name": "Activity A1",
+              "name": "elle17",
               "title": "Title for Activity A1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -111,7 +111,7 @@
               }
             },
             {
-              "name": "Activity A2",
+              "name": "magicmike11",
               "title": "Title for Activity A2",
               "subCategory": {
                 "name": "Subcategory 2",
@@ -121,11 +121,11 @@
           ]
         },
         "b": {
-          "teamname": "Team Go",
+          "teamname": "Pizza Delivery",
           "description": "Description for sub-challenge B under friends",
           "teammates": [
             {
-              "name": "Activity B1",
+              "name": "jon33",
               "title": "Title for Activity B1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -133,7 +133,7 @@
               }
             },
             {
-              "name": "Activity B2",
+              "name": "jamie13",
               "title": "Title for Activity B2",
               "subCategory": {
                 "name": "Subcategory 2",
@@ -143,11 +143,11 @@
           ]
         },
         "c": {
-          "teamname": "Team Oh",
+          "teamname": "TheBestTeamEver",
           "description": "Description for sub-challenge C under friends",
           "teammates": [
             {
-              "name": "Activity C1",
+              "name": "Jesse45",
               "title": "Title for Activity C1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -169,13 +169,13 @@
     {
       "user": "user3",
       "description": "This is a sample description for the teammates challenge.",
-      "subChallengeTypes": {
-        "Teams": {
-          "teamname": "Team hello",
+      "UserTeams": {
+        "a": {
+          "teamname": "GorocketGo",
           "description": "Description for sub-challenge A under teammates",
           "teammates": [
             {
-              "name": "Activity A1",
+              "name": "rosy12",
               "title": "Title for Activity A1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -183,7 +183,7 @@
               }
             },
             {
-              "name": "Activity A2",
+              "name": "beetleA2",
               "title": "Title for Activity A2",
               "subCategory": {
                 "name": "Subcategory 2",
@@ -197,7 +197,7 @@
           "description": "Description for sub-challenge B under teammates",
           "teammates": [
             {
-              "name": "Activity B1",
+              "name": "GrowB1",
               "title": "Title for Activity B1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -205,7 +205,7 @@
               }
             },
             {
-              "name": "Activity B2",
+              "name": "Awesome123",
               "title": "Title for Activity B2",
               "subCategory": {
                 "name": "Subcategory 2",
@@ -215,11 +215,11 @@
           ]
         },
         "c": {
-          "teamname": "xyzzz",
+          "teamname": "jzpartayy",
           "description": "Description for sub-challenge C under teammates",
           "teammates": [
             {
-              "name": "Activity C1",
+              "name": "rockey3",
               "title": "Title for Activity C1",
               "subCategory": {
                 "name": "Subcategory 1",
@@ -227,7 +227,7 @@
               }
             },
             {
-              "name": "Activity C2",
+              "name": "stalloneee",
               "title": "Title for Activity C2",
               "subCategory": {
                 "name": "Subcategory 2",

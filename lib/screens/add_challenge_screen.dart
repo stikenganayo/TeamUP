@@ -41,7 +41,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
 
     // Filter the challengeList based on the 'user' field ****** This is where it should automatically pull
     //in the user which is currently logged in
-    final filteredChallengeList = challengeList.where((challenge) => challenge['user'] == 'user2').toList();
+    final filteredChallengeList = challengeList.where((challenge) => challenge['user'] == 'whiskey').toList();
     print(filteredChallengeList);
     return filteredChallengeList;
   }
@@ -221,7 +221,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             const SizedBox(height: 10),
             ...challengeList.map<Widget>((challenge) {
               final challengeType = challenge['user'];
-              final subChallengeTypes = challenge['subChallengeTypes'] as Map<String, dynamic>;
+              final subChallengeTypes = challenge['UserTeams'] as Map<String, dynamic>;
 
               return Column(
                 children: subChallengeTypes.entries.map<Widget>((entry) {
