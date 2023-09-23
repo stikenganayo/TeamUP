@@ -40,7 +40,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
     final challengeList = jsonDataMap['data'] as List<dynamic>;
 
     // Filter the challengeList based on the 'user' field ****** This is where it should automatically pull
-    //in the user which is currently logged in
+    // in the user which is currently logged in
     final filteredChallengeList = challengeList.where((challenge) => challenge['user'] == 'whiskey').toList();
     print(filteredChallengeList);
     return filteredChallengeList;
@@ -123,6 +123,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                 controller: data.controller,
               ),
             ),
+
             IconButton(
               icon: Icon(Icons.add),
               onPressed: () {
@@ -242,12 +243,17 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ExpansionTile(
-                      leading: Checkbox(
-                        value: _teamCheckedStates[TeamName!]!.contains(true),
-                        onChanged: (bool? newValue) {
-                          setState(() {
-                            _teamCheckedStates[TeamName!] = List.generate(activities.length, (index) => newValue ?? false);
-                          });
+                      leading: StatefulBuilder(
+                        builder: (context, setState) {
+                          return Checkbox(
+                            value: _teamCheckedStates[TeamName!]!.contains(true),
+                            onChanged: (bool? newValue) {
+                              setState(() {
+                                _teamCheckedStates[TeamName!] =
+                                    List.generate(activities.length, (index) => newValue ?? false);
+                              });
+                            },
+                          );
                         },
                       ),
                       title: Text(TeamName ?? 'Unknown Team'),
@@ -259,14 +265,48 @@ class _CreateChallengeState extends State<CreateChallenge> {
                             final activity = activities[activityIndex];
                             final activityName = activity['name'] as String;
 
-                            return CheckboxListTile(
-                              title: Text(activityName),
-                              value: _teamCheckedStates[TeamName!]![activityIndex],
-                              onChanged: (bool? newValue) {
-                                setState(() {
-                                  _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
-                                });
-                              },
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: Text(activityName),
+                                ),
+                                StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return Checkbox(
+                                      value: _teamCheckedStates[TeamName!]![activityIndex],
+                                      onChanged: (bool? newValue) {
+                                        setState(() {
+                                          _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                                StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return Checkbox(
+                                      value: _teamCheckedStates[TeamName!]![activityIndex],
+                                      onChanged: (bool? newValue) {
+                                        setState(() {
+                                          _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                                StatefulBuilder(
+                                  builder: (context, setState) {
+                                    return Checkbox(
+                                      value: _teamCheckedStates[TeamName!]![activityIndex],
+                                      onChanged: (bool? newValue) {
+                                        setState(() {
+                                          _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
                             );
                           },
                         ),
