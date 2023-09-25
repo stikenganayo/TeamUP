@@ -1,12 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:snapchat_ui_clone/screens/team_select.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
 import '../widgets/stories.dart';
+import '../widgets/subscriptions.dart'; // Import the Subscriptions widget
 import 'add_challenge_screen.dart';
 import 'add_event_screen.dart';
+import 'calendar_screen.dart';
+import 'events_filter_page.dart';
+
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({Key? key}) : super(key: key);
@@ -25,13 +30,6 @@ class _EventScreenState extends State<EventsScreen> {
     if (_selectedToggleIndex == 1) {
       jsonDataFile = 'assets/images/data/challenge_data.json';
     }
-    // else if (_selectedToggleIndex == 2) {
-    //   jsonDataFile = 'assets/images/data/challenge_data.json';
-    // } else if (_selectedToggleIndex == 3) {
-    //   jsonDataFile = 'assets/images/data/events_data.json';
-    // }
-
-
 
     final String jsonData = await rootBundle.loadString(jsonDataFile);
     final jsonDataMap = json.decode(jsonData);
@@ -63,7 +61,7 @@ class _EventScreenState extends State<EventsScreen> {
         child: Stack(
           children: [
             // Top bar
-            const TopBar(isCameraPage: false, text: 'Hub'),
+            const TopBar(isCameraPage: false, text: 'TeamUPLift'),
             Positioned(
               top: 100,
               left: 0,
@@ -109,15 +107,12 @@ class _EventScreenState extends State<EventsScreen> {
                                     context,
                                     MaterialPageRoute(builder: (context) => const CreateEvent()),
                                   );
-                              } else if (_selectedToggleIndex == 1) {
+                                } else if (_selectedToggleIndex == 1) {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (context) => const CreateChallenge()),
                                   );
-
-                                // Navigate to a different page for index 1
-                                // Example: Navigator.push(context, MaterialPageRoute(builder: (context) => AnotherPage()));
-                              }
+                                }
                               },
                               child: Column(
                                 children: [
@@ -143,12 +138,51 @@ class _EventScreenState extends State<EventsScreen> {
                                 ],
                               ),
                             ),
+                            // Display Subscriptions only when Events are selected
+                            if (_selectedToggleIndex == 0)
+                              Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 20.0, bottom: 0),
+                                    child: Style.sectionTitle('Community Events'),
+                                  ),
+                                  const Subscriptions(),
+                                  Center(
+                                    child: Container(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(height: 20.0), // Padding above both title and button
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (context) => EventsFilter(),
+                                                    ),
+                                                  );
+                                                },
+                                                child: Text('Events Filter'),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
                     ),
 
-                    // List of Challenges
+
+
+  // List of Challenges
                     FutureBuilder<List<dynamic>>(
                       future: loadChallengeData(),
                       builder: (context, snapshot) {
@@ -236,15 +270,10 @@ class _EventScreenState extends State<EventsScreen> {
                                 ],
                               ),
                             );
-
                           },
                         );
                       },
                     ),
-
-
-
-
                   ],
                 ),
               ),

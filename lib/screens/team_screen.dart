@@ -6,6 +6,7 @@ import '../widgets/discover_grid.dart';
 import '../widgets/stories.dart';
 import '../widgets/subscriptions.dart';
 import 'add_challenge_screen.dart';
+import 'create_team_page.dart';
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({Key? key}) : super(key: key);
@@ -43,7 +44,7 @@ class _TeamScreenState extends State<TeamScreen> {
                             onTap: (){
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const CreateChallenge()),
+                                MaterialPageRoute(builder: (context) => const CreateTeam()),
                               );
                             },
                             child: Container(
