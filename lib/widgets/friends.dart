@@ -1,32 +1,62 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../data.dart';
+import 'package:flutter/services.dart'; // Import this for rootBundle
 import '../style.dart';
 import '../screens/chat_list.dart';
 
 class FriendsGrid extends StatelessWidget {
-  const FriendsGrid ({Key? key}) : super(key: key);
+  const FriendsGrid({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context){
-    return GridView.count(
-        padding: const EdgeInsets.all(10),
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisCount: 1,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 6,
+  Widget build(BuildContext context) {
+    // Load JSON data from the file
+    Future<String> loadJsonData() async {
+      return await rootBundle.loadString('assets/images/data/team_data.json');
+    }
 
-        children: List.generate(Data.chatFriends.length, (index) => ChatView(
-          index: index,
-          name: Data.chatFriends[index].name,
-          status: Data.chatFriends[index].status,
-          time: Data.chatFriends[index].time,
-        )));
+    return FutureBuilder(
+      future: loadJsonData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          final jsonData = jsonDecode(snapshot.data.toString());
+          final List<String> friendNames = [];
+
+          for (final team in jsonData['data']) {
+            for (final subTeam in team['UserTeams'].values) {
+              for (final teammate in subTeam['teammates']) {
+                friendNames.add(teammate['name']);
+              }
+            }
+          }
+
+          return GridView.count(
+            padding: const EdgeInsets.all(10),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 1,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 6,
+            children: List.generate(friendNames.length, (index) {
+              final name = friendNames[index];
+              // You can get the status and time from Data.chatFriends or from the JSON file as needed
+              const status = ''; // Replace with actual status from Data or JSON
+              const time = ''; // Replace with actual time from Data or JSON
+              return ChatView(
+                index: index,
+                name: name,
+                status: status,
+                time: time,
+              );
+            }),
+          );
+        } else {
+          return const CircularProgressIndicator();
+        }
+      },
+    );
   }
 }
-
-
 
 class ChatView extends StatelessWidget {
   const ChatView({
