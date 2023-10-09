@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../style.dart';
 import '../widgets/friends.dart';
 import '../widgets/top_bar.dart';
+import '../widgets/team_stories.dart';
 import 'add_challenge_screen.dart';
 
 class TeamScreen extends StatefulWidget {
@@ -52,6 +53,8 @@ class _TeamScreenState extends State<TeamScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Style.sectionTitle('Team Stories'),
+                  const Stories(), // Add the Stories widget here
                   Style.sectionTitle('Teams'),
                   FutureBuilder(
                     future: loadJsonData(),
@@ -75,8 +78,8 @@ class _TeamScreenState extends State<TeamScreen> {
                               index: index,
                               name: teamName,
                               // Assuming these properties are relevant to your use case
-                              status: 'Online',
-                              time: 'Now',
+                              status: '',
+                              time: '',
                             );
                           },
                         );
