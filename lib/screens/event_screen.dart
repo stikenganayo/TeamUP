@@ -61,7 +61,7 @@ class _EventScreenState extends State<EventsScreen> {
         child: Stack(
           children: [
             // Top bar
-            const TopBar(isCameraPage: false, text: 'TeamUPLift'),
+            const TopBar(isCameraPage: false, text: 'Engagements'),
             Positioned(
               top: 100,
               left: 0,

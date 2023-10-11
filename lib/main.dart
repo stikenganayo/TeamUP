@@ -144,11 +144,11 @@ class _MainPageState extends State<MainPage> {
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.rocket_fill, size: 28),
+              icon: Icon(Icons.diversity_2_rounded, size: 28),
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.book_fill, size: 28),
+              icon: Icon(Icons.home_filled, size: 28),
               label: '',
             ),
           ],

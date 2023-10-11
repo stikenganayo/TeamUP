@@ -189,6 +189,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
     );
   }
 
+  // Create a set to store the selected teams
+  Set<String> _selectedTeams = {};
+
   Widget _buildTeamSelection() {
     return FutureBuilder<List<dynamic>>(
       future: loadTeamData(),
@@ -251,6 +254,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
                               setState(() {
                                 _teamCheckedStates[TeamName!] =
                                     List.generate(activities.length, (index) => newValue ?? false);
+                                if (newValue == true) {
+                                  _selectedTeams.add(TeamName!);
+                                } else {
+                                  _selectedTeams.remove(TeamName!);
+                                }
                               });
                             },
                           );
@@ -270,18 +278,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                                 Expanded(
                                   child: Text(activityName),
                                 ),
-                                StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Checkbox(
-                                      value: _teamCheckedStates[TeamName!]![activityIndex],
-                                      onChanged: (bool? newValue) {
-                                        setState(() {
-                                          _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
+
                                 StatefulBuilder(
                                   builder: (context, setState) {
                                     return Checkbox(
