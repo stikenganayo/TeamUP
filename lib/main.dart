@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/Stage%201/authentication_screen.dart';
 import 'package:snapchat_ui_clone/screens/camera_screen.dart';
 import 'package:snapchat_ui_clone/screens/chat_screen.dart';
 import 'package:snapchat_ui_clone/screens/event_screen.dart';
+import 'package:snapchat_ui_clone/screens/Stage%201/signup_screen.dart';
 import 'package:snapchat_ui_clone/screens/stories_screen.dart';
 import 'package:snapchat_ui_clone/screens/team_screen.dart';
 import 'package:snapchat_ui_clone/style.dart';
@@ -15,6 +17,9 @@ late List<CameraDescription> _cameras;
 List<CameraDescription> getCameras() {
   return _cameras;
 }
+
+bool showSignUpScreen = true; // Set this flag to true to show the SignUpScreen initially
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -33,8 +38,8 @@ class MyApp extends StatelessWidget {
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
       ),
-      home: const MainPage(),
-      //home: AuthenticationScreen(),
+      // home: const MainPage(),
+      home: AuthenticationScreen(),
     );
   }
 }
@@ -105,6 +110,7 @@ class _MainPageState extends State<MainPage> {
           });
         },
         children: <Widget> [
+          // showSignUpScreen ? SignUpScreen() : Container(), // Display SignUpScreen conditionally
           // TemporaryScreen(color: _colors[0]),
           const ChatScreen(),
           // TemporaryScreen(color: _colors[1]),

@@ -2,7 +2,7 @@
   "data": [
     {
       "user": "whiskey",
-      "description": "This is a sample description for the events challenge.",
+      "description": "1234567",
       "UserTeams": {
         "a": {
           "teamname": "Team A",
@@ -103,7 +103,7 @@
 
     {
       "user": "user2",
-      "description": "This is a sample description for the friends challenge.",
+      "description": "abcdefg",
       "UserTeams": {
         "a": {
           "teamname": "GroceryTeam",
@@ -175,7 +175,7 @@
     },
     {
       "user": "user3",
-      "description": "This is a sample description for the teammates challenge.",
+      "description": "hello123",
       "UserTeams": {
         "a": {
           "teamname": "GorocketGo",

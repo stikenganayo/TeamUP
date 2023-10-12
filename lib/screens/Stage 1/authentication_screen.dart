@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:snapchat_ui_clone/screens/login_screen.dart';
-import 'package:snapchat_ui_clone/screens/signup_screen.dart';
+import 'package:snapchat_ui_clone/screens/Stage%201/login_screen.dart';
+import 'package:snapchat_ui_clone/screens/Stage%201/signup_screen.dart';
 
-import '../widgets/auth_button.dart';
+import '../../widgets/auth_button.dart';
 
 class AuthenticationScreen extends StatefulWidget {
   @override

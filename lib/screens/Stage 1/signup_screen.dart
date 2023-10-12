@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/screens/forgot_password.dart';
 import 'package:snapchat_ui_clone/widgets/txt_field.dart';
 
-import '../widgets/login_signup_button.dart';
+import '../../widgets/login_signup_button.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
