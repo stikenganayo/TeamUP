@@ -3,7 +3,7 @@ import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
 import '../widgets/discover_grid.dart';
-import '../widgets/stories.dart';
+import '../widgets/team_stories.dart';
 import '../widgets/subscriptions.dart';
 import 'events_filter_page.dart'; // Import your EventsFilter screen
 
