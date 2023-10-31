@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "149033180747",
+    "project_id": "teamuptest-331a4",
+    "storage_bucket": "teamuptest-331a4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149033180747:android:411eefc3acb656937cb7ce",
+        "android_client_info": {
+          "package_name": "com.example.snapchat_ui_clone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwaBK3vlI8Y39eJU4BdqR4FsUj4znaVBE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

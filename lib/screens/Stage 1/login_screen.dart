@@ -1,9 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:snapchat_ui_clone/screens/Stage%201/signup_screen.dart';
 
 import '../../main.dart';
-import '../../widgets/login_signup_button.dart';
-import '../forgot_password.dart';
+//firebase credentials
+//curtis.ficor@gmail.com
+//ficorc28
+
+
+
+
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -15,31 +22,98 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  String? enteredEmail;
-  String? enteredPassword;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<Map<String, dynamic>>? userData;
-
-  Future<void> loadUserData() async {
-    final jsonData =
-    await DefaultAssetBundle.of(context).loadString('assets/images/data/team_data.json');
-    final data = json.decode(jsonData);
-
-    final dataList = data['data'];
-    userData = dataList
-        .map<Map<String, dynamic>>(
-          (user) => {
-        'user': user['user'],
-        'description': user['description'],
-      },
-    )
-        .toList();
+  _signinWithGoogle() async {
+    try {
+      final googleSignIn = GoogleSignIn();
+      var user = await googleSignIn.signIn();
+      if (user != null) {
+        print('User name: ${user.displayName}');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
+      } else {
+        print('Sign in failed');
+      }
+    } catch (e) {
+      print('Google Sign-In Error: $e');
+    }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    loadUserData();
+
+
+
+
+
+  Future<void> _signin() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: emailController.text,
+          password: passwordController.text,
+        );
+
+        User? user = userCredential.user;
+
+        if (user != null) {
+          // Sign-in successful, you can navigate to the next screen
+          print('Login Successful');
+          // Replace 'MainPage' with the actual screen you want to navigate to
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        } else {
+          // Handle unsuccessful sign-in
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text("Login Failed"),
+                content: Text("Invalid username or password"),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("OK"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      } catch (e) {
+        // Handle any errors that occurred during the sign-in process
+        print("Firebase Sign-In Error: $e");
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+                title: Text("Login Failed"),
+                content: Text("An error occurred during login."),
+                actions: <Widget>[
+                TextButton(
+                onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text("OK"),
+                )],
+            );
+          },
+        );
+      }
+    }
+  }
+
+  void _navigateToSignUpScreen() {
+    // Navigate to the SignUpScreen
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SignUpScreen()),
+    );
   }
 
   @override
@@ -71,86 +145,47 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(
-                      height: 80,
+                      height: 20, // Reduced the height
                     ),
                     Container(
                       child: Column(
                         children: [
-                          fieldsOnScreen(),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              Container(
-                child: Column(
-                  children: [
-                    FutureBuilder(
-                      future: loadUserData(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.done) {
-                          return LoginAndSignUpButton(
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20), // Added spacing
+                            child: fieldsOnScreen(),
+                          ),
+                          LoginAndSignUpButton( // Moved the Login button here
                             color: Colors.blue,
                             text: "Log In",
-                            onPress: () {
-                              if (_formKey.currentState!.validate()) {
-                                // Capture entered email and password
-                                enteredEmail = emailController.text;
-                                enteredPassword = passwordController.text;
+                            onPress: _signin,
+                          ),
+                          SizedBox(height: 10), // Added spacing
 
-                                // Check if the user exists and password matches
-                                bool validUser = false;
-                                bool validPassword = false;
-
-                                for (final user in userData!) {
-                                  if (user['user'] == enteredEmail) {
-                                    validUser = true;
-                                    if (user['description'] == enteredPassword) {
-                                      validPassword = true;
-                                      break; // No need to check further
-                                    }
-                                  }
-                                }
-
-                                if (validUser && validPassword) {
-                                  // Set login successful and navigate
-                                  // You can navigate to the MainPage here
-
-                                  print('Login Successful');
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => MainPage()),
-                                  );
-
-                                } else {
-                                  // Display an error message
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        title: Text("Login Failed"),
-                                        content: Text("Invalid username or password"),
-                                        actions: <Widget>[
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: Text("OK"),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                }
-                              }
-                            },
-                          );
-                        } else {
-                          // Display a loading indicator
-                          return CircularProgressIndicator();
-                        }
-                      },
+                          GestureDetector(
+                            onTap: _navigateToSignUpScreen,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Don't have an account? ",
+                                  style: TextStyle(color: Colors.black87),
+                                ),
+                                Text(
+                                  "Sign Up",
+                                  style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 50), // Added spacing
+                          LoginAndSignUpButton( // Moved the Login button here
+                            color: Colors.blue,
+                            text: "Sign In with Google",
+                            onPress: _signinWithGoogle,
+                          ),
+                          const SizedBox(height: 10), // Added spacing
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -177,8 +212,9 @@ class _LoginScreenState extends State<LoginScreen> {
           TextFormField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: InputDecoration(labelText: "Username"),
-            validator: (val) => val!.isEmpty ? "Enter a valid username" : null,
+            decoration: InputDecoration(labelText: "Email"),
+            validator: (val) =>
+            val!.isEmpty ? "Enter a valid email" : null,
           ),
           const SizedBox(
             height: 10,
@@ -190,25 +226,32 @@ class _LoginScreenState extends State<LoginScreen> {
             validator: (val) =>
             val!.length < 6 ? "Password must be at least 6 characters" : null,
           ),
-          const SizedBox(
-            height: 20,
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ForgotPasswordScreen(),
-                ),
-              );
-            },
-            child: Text(
-              "Forgot your password?",
-              style: TextStyle(color: Colors.blue[800]),
-            ),
-          ),
         ],
       ),
     );
   }
+}
+
+class LoginAndSignUpButton extends StatelessWidget {
+  final Color color;
+  final String text;
+  final VoidCallback onPress;
+
+  const LoginAndSignUpButton({
+  required this.color,
+  required this.text,
+  required this.onPress,
+});
+
+@override
+Widget build(BuildContext context) {
+  return ElevatedButton(
+    style: ElevatedButton.styleFrom(primary: color),
+    onPressed: onPress,
+    child: Text(
+      text,
+      style: TextStyle(color: Colors.white),
+    ),
+  );
+}
 }

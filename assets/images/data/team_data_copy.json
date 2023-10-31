@@ -1,0 +1,249 @@
+{
+  "data": [
+    {
+      "user": "whiskey",
+      "description": "1234567",
+      "UserTeams": {
+        "a": {
+          "teamname": "Team A",
+          "description": "Description for sub-challenge A under events",
+          "teammates": [
+            {
+              "name": "cjf646",
+              "title": "Title for Activity A1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "shamarke123",
+              "title": "Title for Activity A2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "b": {
+          "teamname": "Team B",
+          "description": "Description for sub-challenge B under events",
+          "teammates": [
+            {
+              "name": "kareeb123",
+              "title": "Title for Activity B1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "wich12",
+              "title": "Title for Activity B2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "c": {
+          "teamname": "Team C",
+          "description": "Description for sub-challenge C under events",
+          "teammates": [
+            {
+              "name": "riley.kaszas",
+              "title": "Title for Activity C1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "jenna.jelinski",
+              "title": "Title for Activity C2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "d": {
+          "teamname": "Team D",
+          "description": "Description for sub-challenge C under events",
+          "teammates": [
+            {
+              "name": "miles.kinvig",
+              "title": "Title for Activity C1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "nich.parisian",
+              "title": "Title for Activity C2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        }
+      }
+    },
+
+
+
+
+
+
+
+    {
+      "user": "user2",
+      "description": "abcdefg",
+      "UserTeams": {
+        "a": {
+          "teamname": "GroceryTeam",
+          "description": "Description for sub-challenge A under friends",
+          "teammates": [
+            {
+              "name": "elle17",
+              "title": "Title for Activity A1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "magicmike11",
+              "title": "Title for Activity A2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "b": {
+          "teamname": "Pizza Delivery",
+          "description": "Description for sub-challenge B under friends",
+          "teammates": [
+            {
+              "name": "jon33",
+              "title": "Title for Activity B1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "jamie13",
+              "title": "Title for Activity B2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "c": {
+          "teamname": "TheBestTeamEver",
+          "description": "Description for sub-challenge C under friends",
+          "teammates": [
+            {
+              "name": "Jesse45",
+              "title": "Title for Activity C1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "Activity C2",
+              "title": "Title for Activity C2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "user": "user3",
+      "description": "hello123",
+      "UserTeams": {
+        "a": {
+          "teamname": "GorocketGo",
+          "description": "Description for sub-challenge A under teammates",
+          "teammates": [
+            {
+              "name": "rosy12",
+              "title": "Title for Activity A1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "beetleA2",
+              "title": "Title for Activity A2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "b": {
+          "teamname": "Team Go",
+          "description": "Description for sub-challenge B under teammates",
+          "teammates": [
+            {
+              "name": "GrowB1",
+              "title": "Title for Activity B1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "Awesome123",
+              "title": "Title for Activity B2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "c": {
+          "teamname": "jzpartayy",
+          "description": "Description for sub-challenge C under teammates",
+          "teammates": [
+            {
+              "name": "rockey3",
+              "title": "Title for Activity C1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "stalloneee",
+              "title": "Title for Activity C2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
