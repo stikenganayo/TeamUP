@@ -12,7 +12,20 @@
           "package_name": "com.example.snapchat_ui_clone"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "149033180747-623lfrcup26heoql8p8fo9rdligtoho2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.snapchat_ui_clone",
+            "certificate_hash": "01226a9e9f43350d7d1359a622557fed431d3255"
+          }
+        },
+        {
+          "client_id": "149033180747-jehkfbikmjropieca1qgtivv9ajk61j4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBwaBK3vlI8Y39eJU4BdqR4FsUj4znaVBE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "149033180747-jehkfbikmjropieca1qgtivv9ajk61j4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
