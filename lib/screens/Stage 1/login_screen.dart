@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 
 import '../../main.dart';
+import '../../widgets/friends.dart';
 import '../../widgets/login_signup_button.dart';
 import '../forgot_password.dart';
 
@@ -120,7 +121,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   print('Login Successful');
                                   Navigator.pushReplacement(
                                     context,
-                                    MaterialPageRoute(builder: (context) => MainPage()),
+                                    MaterialPageRoute(builder: (context) => MainPage(),
+                                    ),
                                   );
 
                                 } else {

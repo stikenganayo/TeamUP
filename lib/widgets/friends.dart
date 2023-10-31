@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+
 import '../style.dart';
 import '../screens/chat_list.dart';
 import '../screens/search_screen.dart';
 
 class FriendsGrid extends StatelessWidget {
-  const FriendsGrid({Key? key}) : super(key: key);
+
+  const FriendsGrid({Key? key,}) : super(key: key);
 
   Future<String> loadJsonData() async {
     return await rootBundle.loadString('assets/images/data/team_data.json');
