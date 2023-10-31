@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/screens/Stage%201/authentication_screen.dart';
@@ -22,6 +23,7 @@ bool showSignUpScreen = true; // Set this flag to true to show the SignUpScreen 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
 
   _cameras = await availableCameras();
   runApp(const MyApp());
