@@ -1,16 +1,13 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:snapchat_ui_clone/screens/Stage%201/signup_screen.dart';
 
 import '../../main.dart';
-//firebase credentials
-//curtis.ficor@gmail.com
-//ficorc28
-
-
-
-
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -41,6 +38,29 @@ class _LoginScreenState extends State<LoginScreen> {
       print('Google Sign-In Error: $e');
     }
   }
+
+  void _signInWithFacebook() async {
+    try {
+      final LoginResult result = await FacebookAuth.instance.login();
+      final token = result.accessToken!.token;
+      print('Facebook token userID: ${result.accessToken!.grantedPermissions}');
+
+      // final graphResponse = await http.get(Uri.parse('https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,email&access_token=$token'));
+      //
+      // if (graphResponse.statusCode == 200) {
+      //   final profile = jsonDecode(graphResponse.body);
+      //   print("Profile is equal to $profile");
+      //
+      //   // Continue processing the user data here.
+      // } else {
+      //   print('Failed to fetch user data: ${graphResponse.reasonPhrase}');
+      // }
+    } catch (e) {
+      print('Facebook Sign-in Error: $e');
+    }
+  }
+
+
 
 
 
@@ -182,6 +202,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Colors.blue,
                             text: "Sign In with Google",
                             onPress: _signinWithGoogle,
+                          ),
+                          const SizedBox(height: 10), // Added spacing
+
+                          const SizedBox(height: 50), // Added spacing
+                          LoginAndSignUpButton( // Moved the Login button here
+                            color: Colors.blue,
+                            text: "Sign In with Facebook",
+                            onPress: _signInWithFacebook,
                           ),
                           const SizedBox(height: 10), // Added spacing
                         ],

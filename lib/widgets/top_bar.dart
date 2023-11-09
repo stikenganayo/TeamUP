@@ -57,7 +57,7 @@ class _TopBarState extends State<TopBar> {
           left: 65,
           child: GestureDetector(
             onTap: () => _openSearchScreen(context),
-            child: CustomIcon(child: Icon(Icons.search, color: color, size: 28), isCameraPage: widget.isCameraPage),
+            child: CustomIcon(child: Icon(Icons.add, color: color, size: 28), isCameraPage: widget.isCameraPage),
           ),
         ),
         Positioned(

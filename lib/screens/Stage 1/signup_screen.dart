@@ -45,6 +45,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
           'name': username,
           'email': email,
           'password': password,
+          'friends_requested': [],
+          'friends': [],
         }).then((value) {
           if (value != null) {
             print(value);

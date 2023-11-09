@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TeamUP</string>
+    <string name="facebook_app_id">228379673588547</string>
+    <string name="fb_login_protocol_scheme">fb228379673588547</string>
+    <string name="facebook_client_token">a58c29600fed7fda3e72f0639c3d3459</string>
+</resources>
+
+
+
