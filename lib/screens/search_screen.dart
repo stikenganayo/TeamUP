@@ -2,16 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'create_team_page.dart';
+
 class SearchScreen extends StatelessWidget {
   const SearchScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Friends'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Add Friends'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Add Friends'),
+              Tab(text: 'Create Team'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            SearchContent(),
+            CreateTeam(), // Placeholder for the "Create Team" tab, no content displayed
+          ],
+        ),
       ),
-      body: const SearchContent(),
     );
   }
 }
@@ -95,9 +111,6 @@ class _SearchContentState extends State<SearchContent> {
     }
   }
 
-
-
-
   Future<String?> getReceiverUid(String receiverName) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -110,9 +123,6 @@ class _SearchContentState extends State<SearchContent> {
 
     return null; // If user with the provided name is not found
   }
-
-
-
 
   Widget _buildFriendRequestsSection() {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -212,7 +222,6 @@ class _SearchContentState extends State<SearchContent> {
                               ],
                             ),
                           );
-
                         } else {
                           return Text('Name not found for this user');
                         }
@@ -231,7 +240,6 @@ class _SearchContentState extends State<SearchContent> {
       },
     );
   }
-
 
   void acceptFriendRequestAndAddToFriends(String senderEmail, int indexToRemove) {
     User? currentUser = FirebaseAuth.instance.currentUser;
@@ -283,7 +291,6 @@ class _SearchContentState extends State<SearchContent> {
     }
   }
 
-
   void deleteFriendRequest(String senderEmail, int indexToRemove) {
     User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -329,23 +336,6 @@ class _SearchContentState extends State<SearchContent> {
       });
     }
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   @override
   Widget build(BuildContext context) {

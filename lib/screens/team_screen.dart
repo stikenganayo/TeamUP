@@ -56,6 +56,41 @@ class _TeamScreenState extends State<TeamScreen> {
                   Style.sectionTitle('Team Stories'),
                   const Stories(), // Add the Stories widget here
                   Style.sectionTitle('Teams'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const SizedBox(width: 4),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Handle the "Create a team" button tap
+                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
+                            },
+                            child: Text('Create a team'),
+                          ),
+                          const SizedBox(width: 4),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Handle the "Create an event/activity" button tap
+                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
+                            },
+                            child: Text('Create an Event'),
+                          ),
+                          const SizedBox(width: 4),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Handle the "Create a team" button tap
+                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
+                            },
+                            child: Text('Create an Activity'),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
+                    ],
+                  ),
+
                   FutureBuilder(
                     future: loadJsonData(),
                     builder: (context, snapshot) {
