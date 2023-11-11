@@ -126,43 +126,43 @@ class _MainPageState extends State<MainPage> {
         ],
       ),
       bottomNavigationBar: SizedBox(
-        height: Platform.isIOS ? 90 : 60,
-        child: BottomNavigationBar(
-          selectedItemColor: Colors.red,
-          unselectedItemColor: Colors.black,
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          currentIndex: _currentScreen,
-          onTap: (int index) {
-            _pageController.jumpToPage(index);
-          },
-          items: const <BottomNavigationBarItem> [
-            BottomNavigationBarItem(
+          height: Platform.isIOS ? 90 : 60,
+          child: BottomNavigationBar(
+            selectedItemColor: Colors.red,
+            unselectedItemColor: Colors.black,
+            backgroundColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            currentIndex: _currentScreen,
+            onTap: (int index) {
+              _pageController.jumpToPage(index);
+            },
+            items: const <BottomNavigationBarItem> [
+              BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.person_2_fill, size: 28),
                 label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person_3_fill, size: 28),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.camera_fill, size: 28),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.diversity_2_rounded, size: 28),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_filled, size: 28),
-              label: '',
-            ),
-          ],
-          //currentIndex: 0,
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.person_3_fill, size: 28),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.camera_fill, size: 28),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.diversity_2_rounded, size: 28),
+                label: '',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_filled, size: 28),
+                label: '',
+              ),
+            ],
+            //currentIndex: 0,
 
-        )
+          )
 
       ),
     );

@@ -31,8 +31,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>{
                   text: "LOG IN",
                   onPress: () {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()));
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()));
                   },
                 ),
                 AuthButton(
@@ -53,5 +53,3 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>{
 
   }
 }
-
-
