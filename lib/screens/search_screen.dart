@@ -5,15 +5,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'create_team_page.dart';
 
 class SearchScreen extends StatelessWidget {
-  const SearchScreen({Key? key}) : super(key: key);
+  final int initialTabIndex;
+
+  const SearchScreen({Key? key, this.initialTabIndex = 0}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
+      initialIndex: initialTabIndex,
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Add Friends'),
+          title: const Text('Search Screen'),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Add Friends'),
@@ -24,13 +27,15 @@ class SearchScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             SearchContent(),
-            CreateTeam(), // Placeholder for the "Create Team" tab, no content displayed
+            CreateTeam(),
           ],
         ),
       ),
     );
   }
 }
+
+
 
 class SearchContent extends StatefulWidget {
   const SearchContent({Key? key}) : super(key: key);

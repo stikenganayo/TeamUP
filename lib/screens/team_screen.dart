@@ -1,12 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:snapchat_ui_clone/screens/event_screen.dart';
+import 'package:snapchat_ui_clone/screens/search_screen.dart';
 import '../style.dart';
 import '../widgets/friends.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/team_stories.dart';
 import 'add_challenge_screen.dart';
+import 'add_event_screen.dart';
+import 'create_team_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({Key? key}) : super(key: key);
@@ -16,19 +22,112 @@ class TeamScreen extends StatefulWidget {
 }
 
 class _TeamScreenState extends State<TeamScreen> {
-  Future<List<String>> loadJsonData() async {
-    String jsonString =
-    await rootBundle.loadString('assets/images/data/team_data.json');
-    final jsonData = jsonDecode(jsonString);
-    List<String> teamNames = [];
+  late User? currentUser;
 
-    for (final team in jsonData['data']) {
-      for (final subTeam in team['UserTeams'].values) {
-        teamNames.add(subTeam['teamname']); // Use 'teamname' instead of 'user'
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('Current User Email: ${currentUser!.email}');
+
+      try {
+        // Fetch the user document based on the current user's email
+        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser!.email)
+            .limit(1)
+            .get();
+
+        if (userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+          // Print all data inside the current user's document
+          print('User Data: $userData');
+
+          // Check for team_ids in the user data
+          if (userData.containsKey('team_ids')) {
+            setState(() {});
+          } else {
+            print('Team_ids field not found in user document');
+          }
+        } else {
+          print('User document not found for the current user');
+        }
+      } catch (e) {
+        print('Error loading user document: $e');
       }
     }
+  }
 
-    return teamNames;
+  Future<List<String>> _getTeamIds() async {
+    try {
+      // Fetch the user document based on the current user's email
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUser!.email)
+          .limit(1)
+          .get();
+
+      if (userQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+        // Print all data inside the current user's document
+        print('User Data: $userData');
+
+        // Check for team_ids in the user data
+        if (userData.containsKey('team_ids')) {
+          List<String> teamIds = List.from(userData['team_ids']);
+          // Print the array of team IDs to the console
+          print('Team IDs: $teamIds');
+          return teamIds;
+        } else {
+          print('Team_ids field not found in user document');
+        }
+      } else {
+        print('User document not found for the current user');
+      }
+    } catch (e) {
+      print('Error loading user document: $e');
+    }
+
+    return [];
+  }
+
+  Future<List<String>> _getTeamUsers(String teamId) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Check for the 'users' field in the team data
+        if (teamData.containsKey('users')) {
+          List<String> teamUsers = List.from(teamData['users']);
+          // Print the array of team users to the console
+          print('Team Users for $teamId: $teamUsers');
+          return teamUsers;
+        } else {
+          print('Users field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+    }
+
+    return [];
   }
 
   @override
@@ -64,14 +163,25 @@ class _TeamScreenState extends State<TeamScreen> {
                           const SizedBox(width: 4),
                           ElevatedButton(
                             onPressed: () {
-                              // Handle the "Create a team" button tap
-                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                  const SearchScreen(initialTabIndex: 1),
+                                ),
+                              );
                             },
                             child: Text('Create a team'),
                           ),
                           const SizedBox(width: 4),
                           ElevatedButton(
                             onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CreateEvent(),
+                                ),
+                              );
                               // Handle the "Create an event/activity" button tap
                               // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
                             },
@@ -80,6 +190,12 @@ class _TeamScreenState extends State<TeamScreen> {
                           const SizedBox(width: 4),
                           ElevatedButton(
                             onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CreateChallenge(),
+                                ),
+                              );
                               // Handle the "Create a team" button tap
                               // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
                             },
@@ -91,38 +207,6 @@ class _TeamScreenState extends State<TeamScreen> {
                     ],
                   ),
 
-                  FutureBuilder(
-                    future: loadJsonData(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.done) {
-                        List<String> teamNames = snapshot.data as List<String>;
-                        return GridView.builder(
-                          gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 3,
-                          ),
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: teamNames.length,
-                          itemBuilder: (context, index) {
-                            final teamName = teamNames[index];
-                            return ChatView(
-                              index: index,
-                              name: teamName,
-                              // Assuming these properties are relevant to your use case
-                              status: '',
-                              time: '',
-                            );
-                          },
-                        );
-                      } else {
-                        return const CircularProgressIndicator();
-                      }
-                    },
-                  ),
                   const SizedBox(height: 28),
                   Center(
                     child: GestureDetector(
@@ -147,6 +231,78 @@ class _TeamScreenState extends State<TeamScreen> {
                         ),
                       ),
                     ),
+                  ),
+
+                  // Display the current list of friends IDs
+                  const SizedBox(height: 10),
+
+                  // Display the current list of team IDs
+
+                  FutureBuilder<List<String>>(
+                    future: _getTeamIds(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        if (snapshot.hasError || snapshot.data == null) {
+                          return ListTile(
+                            title: Text('Error loading team IDs'),
+                          );
+                        } else {
+                          // Display team IDs and users in a dropdown
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: snapshot.data!.map((teamId) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FutureBuilder<List<String>>(
+                                    future: _getTeamUsers(teamId),
+                                    builder: (context, userSnapshot) {
+                                      if (userSnapshot.connectionState ==
+                                          ConnectionState.done) {
+                                        if (userSnapshot.hasError ||
+                                            userSnapshot.data == null) {
+                                          return ListTile(
+                                            title:
+                                            Text('Error loading team users'),
+                                          );
+                                        } else {
+                                          // Display users in an ExpansionTile
+                                          return ExpansionTile(
+                                            title: Text('$teamId'), // <-- Display Team ID
+                                            children: userSnapshot.data!
+                                                .map((String user) {
+                                              return ListTile(
+                                                title: Text(user),
+                                                onTap: () {
+                                                  // Handle selected user
+                                                  Navigator.pop(
+                                                      context); // Close the dropdown
+                                                },
+                                              );
+                                            }).toList(),
+                                          );
+                                        }
+                                      } else {
+                                        // Display loading indicator while fetching data
+                                        return ListTile(
+                                          title: CircularProgressIndicator(),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+                                ],
+                              );
+                            }).toList(),
+                          );
+                        }
+                      } else {
+                        // Display loading indicator while fetching data
+                        return ListTile(
+                          title: CircularProgressIndicator(),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),
