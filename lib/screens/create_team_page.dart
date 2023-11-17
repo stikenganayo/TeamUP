@@ -14,10 +14,9 @@ class _CreateTeamState extends State<CreateTeam> {
   List<String> friendsList = [];
   List<String> filteredFriendsList = [];
   List<String> selectedFriends = [];
-
   Map<String, String> friendNameMap = {};
-
   TextEditingController _searchController = TextEditingController();
+  TextEditingController _teamNameController = TextEditingController();
 
   @override
   void initState() {
@@ -126,6 +125,35 @@ class _CreateTeamState extends State<CreateTeam> {
     });
   }
 
+  Future<void> _showTeamNameDialog() async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Type Team name"),
+          content: TextField(
+            controller: _teamNameController,
+            decoration: InputDecoration(
+              labelText: 'Team Name',
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                _createTeam(); // Create the team after closing the dialog
+              },
+              child: Text('Confirm Team'),
+              style: ElevatedButton.styleFrom(
+                primary: Colors.green,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _createTeam() async {
     try {
       // Fetch the current user's email UID
@@ -144,6 +172,7 @@ class _CreateTeamState extends State<CreateTeam> {
 
         // Create a new document in the 'teams' collection
         DocumentReference teamRef = await FirebaseFirestore.instance.collection('teams').add({
+          'team_name': _teamNameController.text, // Add the team name
           'users': [...selectedFriends, currentUserName], // Add the current user's name to the 'users' array
           // Add any additional information you want to store for the team
         });
@@ -185,14 +214,10 @@ class _CreateTeamState extends State<CreateTeam> {
       } else {
         print('User document not found for the current user');
       }
-
     } catch (e) {
       print('Error creating team: $e');
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -260,7 +285,7 @@ class _CreateTeamState extends State<CreateTeam> {
           Center(
             child: selectedFriends.isNotEmpty
                 ? ElevatedButton(
-              onPressed: _createTeam,
+              onPressed: _showTeamNameDialog,
               child: Text('Create Team'),
               style: ElevatedButton.styleFrom(
                 primary: Colors.green,

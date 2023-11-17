@@ -111,14 +111,18 @@ class _TeamScreenState extends State<TeamScreen> {
       if (teamSnapshot.exists) {
         Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
 
-        // Check for the 'users' field in the team data
-        if (teamData.containsKey('users')) {
+        // Check for the 'users' field and 'team_name' field in the team data
+        if (teamData.containsKey('users') && teamData.containsKey('team_name')) {
           List<String> teamUsers = List.from(teamData['users']);
-          // Print the array of team users to the console
+          String teamName = teamData['team_name'];
+
+          // Print the array of team users and the team name to the console
           print('Team Users for $teamId: $teamUsers');
-          return teamUsers;
+          print('Team Name for $teamId: $teamName');
+
+          return [teamName];
         } else {
-          print('Users field not found in team document');
+          print('Users or Team name field not found in team document');
         }
       } else {
         print('Team document not found for $teamId');
@@ -237,7 +241,6 @@ class _TeamScreenState extends State<TeamScreen> {
                   const SizedBox(height: 10),
 
                   // Display the current list of team IDs
-
                   FutureBuilder<List<String>>(
                     future: _getTeamIds(),
                     builder: (context, snapshot) {
@@ -247,48 +250,49 @@ class _TeamScreenState extends State<TeamScreen> {
                             title: Text('Error loading team IDs'),
                           );
                         } else {
-                          // Display team IDs and users in a dropdown
+                          // Display team IDs and users
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: snapshot.data!.map((teamId) {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  FutureBuilder<List<String>>(
-                                    future: _getTeamUsers(teamId),
-                                    builder: (context, userSnapshot) {
-                                      if (userSnapshot.connectionState ==
-                                          ConnectionState.done) {
-                                        if (userSnapshot.hasError ||
-                                            userSnapshot.data == null) {
-                                          return ListTile(
-                                            title:
-                                            Text('Error loading team users'),
-                                          );
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey[300]!),
+                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                      // Add any padding or margin as needed
+                                      // padding: EdgeInsets.all(8),
+                                      // margin: EdgeInsets.all(8),
+                                    ),
+                                    child: FutureBuilder<List<String>>(
+                                      future: _getTeamUsers(teamId),
+                                      builder: (context, userSnapshot) {
+                                        if (userSnapshot.connectionState ==
+                                            ConnectionState.done) {
+                                          if (userSnapshot.hasError ||
+                                              userSnapshot.data == null) {
+                                            return ListTile(
+                                              title: Text('Error loading team users for $teamId'),
+                                            );
+                                          } else {
+                                            // Display team name and team ID
+                                            return ListTile(
+                                              title: Text('${userSnapshot.data![0]}'),
+                                              onTap: () {
+                                                // Handle selected team
+                                                Navigator.pop(context); // Close the dropdown
+                                              },
+                                            );
+                                          }
                                         } else {
-                                          // Display users in an ExpansionTile
-                                          return ExpansionTile(
-                                            title: Text('$teamId'), // <-- Display Team ID
-                                            children: userSnapshot.data!
-                                                .map((String user) {
-                                              return ListTile(
-                                                title: Text(user),
-                                                onTap: () {
-                                                  // Handle selected user
-                                                  Navigator.pop(
-                                                      context); // Close the dropdown
-                                                },
-                                              );
-                                            }).toList(),
+                                          // Display loading indicator while fetching data
+                                          return ListTile(
+                                            title: CircularProgressIndicator(),
                                           );
                                         }
-                                      } else {
-                                        // Display loading indicator while fetching data
-                                        return ListTile(
-                                          title: CircularProgressIndicator(),
-                                        );
-                                      }
-                                    },
+                                      },
+                                    ),
                                   ),
                                   const SizedBox(height: 20),
                                 ],
@@ -304,6 +308,9 @@ class _TeamScreenState extends State<TeamScreen> {
                       }
                     },
                   ),
+
+
+
                 ],
               ),
             ),
