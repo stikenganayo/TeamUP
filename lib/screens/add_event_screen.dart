@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/selection_screen.dart';
 
 class CreateEvent extends StatefulWidget {
   const CreateEvent({Key? key}) : super(key: key);
@@ -191,11 +192,23 @@ class _CreateEventState extends State<CreateEvent> {
                 ),
                 const SizedBox(height: 20),
 
-
                 ElevatedButton(
-                  onPressed: canPostEvent ? postEvent : null,
-                  child: const Text('Post Event'),
+                  onPressed: canPostEvent
+                      ? () {
+                    postEvent();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SelectionScreen()),
+                    );
+                  }
+                      : null,
+                  child: const Text('Create Event'),
                 ),
+
+                // ElevatedButton(
+                //   onPressed: canPostEvent ? postEvent : null,
+                //   child: const Text('Create Event'),
+                // ),
               ],
             ),
           ),
