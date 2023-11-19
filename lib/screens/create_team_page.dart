@@ -140,8 +140,21 @@ class _CreateTeamState extends State<CreateTeam> {
           actions: [
             ElevatedButton(
               onPressed: () {
+
                 Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 _createTeam(); // Create the team after closing the dialog
+                // Display a pop-up message at the bottom for 2 seconds
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Your team has successfully been created in the "Team Page"'),
+                    duration: Duration(seconds: 4),
+                    behavior: SnackBarBehavior.floating, // Set behavior to floating
+                  ),
+                );
+
+
+
               },
               child: Text('Confirm Team'),
               style: ElevatedButton.styleFrom(

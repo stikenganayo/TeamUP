@@ -84,9 +84,11 @@ class _TeamScreenState extends State<TeamScreen> {
         // Check for team_ids in the user data
         if (userData.containsKey('team_ids')) {
           List<String> teamIds = List.from(userData['team_ids']);
+          // Reverse the order of team IDs
+          List<String> reversedTeamIds = List.from(teamIds.reversed);
           // Print the array of team IDs to the console
-          print('Team IDs: $teamIds');
-          return teamIds;
+          print('Team IDs: $reversedTeamIds');
+          return reversedTeamIds;
         } else {
           print('Team_ids field not found in user document');
         }
@@ -99,6 +101,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
     return [];
   }
+
 
   Future<List<String>> _getTeamUsers(String teamId) async {
     try {
@@ -158,7 +161,7 @@ class _TeamScreenState extends State<TeamScreen> {
                 children: [
                   Style.sectionTitle('Team Stories'),
                   const Stories(), // Add the Stories widget here
-                  Style.sectionTitle('Teams'),
+                  const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -166,17 +169,37 @@ class _TeamScreenState extends State<TeamScreen> {
                         children: [
                           const SizedBox(width: 4),
                           ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              // Show a loading indicator while creating a team
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (BuildContext context) {
+                                  return Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                },
+                              );
+
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                  const SearchScreen(initialTabIndex: 1),
+                                  builder: (context) => const SearchScreen(initialTabIndex: 1),
                                 ),
                               );
+
+                              // Introduce a delay of 1 second before reloading the team list
+                              await Future.delayed(Duration(seconds: 4));
+
+                              // After creating a team and the delay, reload the team list
+                              _loadCurrentUser();
+
+                              // Close the loading indicator dialog
+                              Navigator.pop(context);
                             },
                             child: Text('Create a team'),
                           ),
+
                           const SizedBox(width: 4),
                           ElevatedButton(
                             onPressed: () {
@@ -210,35 +233,10 @@ class _TeamScreenState extends State<TeamScreen> {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 28),
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CreateChallenge(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.blue,
-                        ),
-                        child: const Icon(
-                          Icons.add,
-                          size: 32,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Display the current list of friends IDs
+                  const SizedBox(height: 30),
+                  Style.sectionTitle('Teams'),
                   const SizedBox(height: 10),
+                  // Display the current list of friends IDs
 
                   // Display the current list of team IDs
                   FutureBuilder<List<String>>(
@@ -308,13 +306,10 @@ class _TeamScreenState extends State<TeamScreen> {
                       }
                     },
                   ),
-
-
-
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );
