@@ -15,14 +15,10 @@ class _SelectionScreenState extends State<SelectionScreen> {
   List<String> filteredFriendsList = [];
   List<String> selectedFriends = [];
   Map<String, String> friendNameMap = {};
+  List<String> teamIds = [];
+  List<String> selectedTeams = [];
+  Map<String, String> teamNameMap = {};
   TextEditingController _searchController = TextEditingController();
-  TextEditingController _teamNameController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrentUser();
-  }
 
   Future<void> _loadCurrentUser() async {
     currentUser = FirebaseAuth.instance.currentUser;
@@ -30,7 +26,6 @@ class _SelectionScreenState extends State<SelectionScreen> {
       print('Current User Email: ${currentUser!.email}');
 
       try {
-        // Fetch the user document based on the current user's email
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUser!.email)
@@ -41,7 +36,6 @@ class _SelectionScreenState extends State<SelectionScreen> {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
           Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
-          // Print all data inside the current user's document
           print('User Data: $userData');
 
           if (userData.containsKey('friends')) {
@@ -50,10 +44,17 @@ class _SelectionScreenState extends State<SelectionScreen> {
               filteredFriendsList = List.from(friendsList);
             });
 
-            // Print the array of friends to the console
             print('Friends List: $friendsList');
           } else {
             print('Friends field not found in user document');
+          }
+
+          if (userData.containsKey('team_ids')) {
+            setState(() {
+              teamIds = List.from(userData['team_ids']);
+            });
+          } else {
+            print('Team_ids field not found in user document');
           }
         } else {
           print('User document not found for the current user');
@@ -66,7 +67,6 @@ class _SelectionScreenState extends State<SelectionScreen> {
 
   Future<String?> _getFriendName(String friendEmail) async {
     try {
-      // Fetch the friend's document based on the email
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: friendEmail)
@@ -78,10 +78,7 @@ class _SelectionScreenState extends State<SelectionScreen> {
         if (friendSnapshot.exists) {
           Map<String, dynamic> friendData = friendSnapshot.data() as Map<String, dynamic>;
           if (friendData.containsKey('name')) {
-            // Print the friend's UID to the console
             print('Friend UID: ${friendSnapshot.id}');
-
-            // Return the friend's name
             return friendData['name'];
           }
         }
@@ -90,9 +87,30 @@ class _SelectionScreenState extends State<SelectionScreen> {
       print('Error loading friend document: $e');
     }
 
-    // Return null if friend's name is not found
     return null;
   }
+
+  Future<String?> _getTeamName(String teamId) async {
+    try {
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        if (teamData.containsKey('team_name')) {
+          return teamData['team_name'];
+        }
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+    }
+
+    return null;
+  }
+
 
   void _searchUsers(String query) {
     setState(() {
@@ -126,108 +144,81 @@ class _SelectionScreenState extends State<SelectionScreen> {
       selectedFriends.remove(friendName);
     });
   }
-
-  Future<void> _showTeamNameDialog() async {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Type Team name"),
-          content: TextField(
-            controller: _teamNameController,
-            decoration: InputDecoration(
-              labelText: 'Team Name',
-            ),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                Navigator.of(context).pop();
-                _createTeam(); // Create the team after closing the dialog
-                // Display a pop-up message at the bottom for 2 seconds
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Your team has successfully been created in the "Team Page"'),
-                    duration: Duration(seconds: 4),
-                    behavior: SnackBarBehavior.floating, // Set behavior to floating
-                  ),
-                );
-              },
-              child: Text('Confirm Team'),
-              style: ElevatedButton.styleFrom(
-                primary: Colors.green,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _createTeam() async {
+  Future<List<String>> _getTeamIds() async {
     try {
-      // Fetch the current user's email UID
-      String currentUserEmailUid = currentUser != null ? currentUser!.email ?? "" : "";
-
-      // Fetch the user document based on the current user's email UID
-      QuerySnapshot currentUserQuerySnapshot = await FirebaseFirestore.instance
+      // Fetch the user document based on the current user's email
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('email', isEqualTo: currentUserEmailUid)
+          .where('email', isEqualTo: currentUser!.email)
           .limit(1)
           .get();
 
-      if (currentUserQuerySnapshot.docs.isNotEmpty) {
-        DocumentSnapshot currentUserSnapshot = currentUserQuerySnapshot.docs.first;
-        String currentUserName = currentUserSnapshot['name'];
+      if (userQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
-        // Create a new document in the 'teams' collection
-        DocumentReference teamRef = await FirebaseFirestore.instance.collection('teams').add({
-          'team_name': _teamNameController.text, // Add the team name
-          'users': [...selectedFriends, currentUserName], // Add the current user's name to the 'users' array
-          // Add any additional information you want to store for the team
-        });
+        // Print all data inside the current user's document
+        print('User Data: $userData');
 
-        // Access the ID of the newly created team document
-        String teamId = teamRef.id;
-
-        // Update each user's 'team_ids' field with the new team ID if their name is present
-        for (String friendName in selectedFriends) {
-          // Fetch the user document based on the friend's name
-          QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .where('name', isEqualTo: friendName)
-              .limit(1)
-              .get();
-
-          if (userQuerySnapshot.docs.isNotEmpty) {
-            DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-            String userId = userSnapshot.id;
-
-            // Update the user's 'team_ids' field with the new team ID
-            await FirebaseFirestore.instance.collection('users').doc(userId).update({
-              'team_ids': FieldValue.arrayUnion([teamId]),
-            });
-          }
+        // Check for team_ids in the user data
+        if (userData.containsKey('team_ids')) {
+          List<String> teamIds = List.from(userData['team_ids']);
+          // Reverse the order of team IDs
+          List<String> reversedTeamIds = List.from(teamIds.reversed);
+          // Print the array of team IDs to the console
+          print('Team IDs: $reversedTeamIds');
+          return reversedTeamIds;
+        } else {
+          print('Team_ids field not found in user document');
         }
-
-        // Update the current user's 'team_ids' field with the new team ID
-        await FirebaseFirestore.instance.collection('users').doc(currentUserSnapshot.id).update({
-          'team_ids': FieldValue.arrayUnion([teamId]),
-        });
-
-        print('Team created successfully with ID: $teamId');
-
-        // Clear the selectedFriends list after creating the team
-        setState(() {
-          selectedFriends.clear();
-        });
       } else {
         print('User document not found for the current user');
       }
     } catch (e) {
-      print('Error creating team: $e');
+      print('Error loading user document: $e');
     }
+
+    return [];
+  }
+
+  void _searchTeams(String query) {
+    setState(() {
+      // Filter teams based on the team name
+      teamIds = teamIds
+          .where((teamId) => teamNameMap.containsKey(teamId) && teamNameMap[teamId]!.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  void _toggleTeam(String teamId) async {
+    try {
+      String? teamName = await _getTeamName(teamId);
+
+      if (teamName != null) {
+        setState(() {
+          if (selectedTeams.contains(teamName)) {
+            selectedTeams.remove(teamName);
+          } else {
+            selectedTeams.add(teamName);
+          }
+          teamNameMap[teamId] = teamName;
+        });
+      }
+    } catch (e) {
+      print('Error toggling team: $e');
+    }
+  }
+
+  void _removeTeam(String teamName) {
+    setState(() {
+      selectedTeams.remove(teamName);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
   }
 
   @override
@@ -242,16 +233,101 @@ class _SelectionScreenState extends State<SelectionScreen> {
           },
         ),
       ),
+
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Teams Section Title
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Teams:',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          FutureBuilder<List<String>>(
+            future: _getTeamIds(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (snapshot.hasError || snapshot.data == null) {
+                  return ListTile(
+                    title: Text('Error loading team IDs'),
+                  );
+                } else {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: snapshot.data!.map((teamId) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.all(Radius.circular(8)),
+                            ),
+                            child: ListTile(
+                              title: FutureBuilder<String?>(
+                                future: _getTeamName(teamId),
+                                builder: (context, teamNameSnapshot) {
+                                  if (teamNameSnapshot.connectionState ==
+                                      ConnectionState.done) {
+                                    if (teamNameSnapshot.hasError ||
+                                        teamNameSnapshot.data == null) {
+                                      return ListTile(
+                                        title: Text('Error loading team name for $teamId'),
+                                      );
+                                    } else {
+                                      return Text('${teamNameSnapshot.data}');
+                                    }
+                                  } else {
+                                    return CircularProgressIndicator();
+                                  }
+                                },
+                              ),
+                              onTap: () {
+                                _toggleTeam(teamId);
+                              },
+                              trailing: Checkbox(
+                                value: selectedTeams.contains(teamNameMap[teamId]),
+                                onChanged: (value) {
+                                  _toggleTeam(teamId);
+                                },
+                                activeColor: Colors.blue,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    }).toList(),
+                  );
+                }
+              } else {
+                return ListTile(
+                  title: CircularProgressIndicator(),
+                );
+              }
+            },
+          ),
+
+          // Friends Section
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Friends:',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               controller: _searchController,
-              onChanged: (query) => _searchUsers(query),
+              onChanged: (query) {
+                _searchUsers(query);
+                _searchTeams(query);
+              },
               decoration: const InputDecoration(
-                labelText: 'Search for friends',
+                labelText: 'Search for friends or teams',
                 suffixIcon: Icon(Icons.search),
               ),
             ),
@@ -268,7 +344,6 @@ class _SelectionScreenState extends State<SelectionScreen> {
                           title: Text('Error loading friend name'),
                         );
                       } else {
-                        // Display friend's name on the screen
                         return ListTile(
                           title: Row(
                             children: [
@@ -278,14 +353,13 @@ class _SelectionScreenState extends State<SelectionScreen> {
                               Checkbox(
                                 value: selectedFriends.contains(snapshot.data),
                                 onChanged: (value) => _toggleUser(friendEmail),
-                                activeColor: Colors.blue, // Set the active color to blue
+                                activeColor: Colors.blue,
                               ),
                             ],
                           ),
                         );
                       }
                     } else {
-                      // Display loading indicator while fetching data
                       return ListTile(
                         title: CircularProgressIndicator(),
                       );
@@ -297,49 +371,43 @@ class _SelectionScreenState extends State<SelectionScreen> {
           ),
           SizedBox(height: 20),
           Center(
-            child: selectedFriends.isNotEmpty
-                ? ElevatedButton(
-              onPressed: _showTeamNameDialog,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {'friends': selectedFriends, 'teams': selectedTeams});
+              },
               child: Text('Post Request'),
               style: ElevatedButton.styleFrom(
                 primary: Colors.green,
               ),
-            )
-                : SizedBox.shrink(),
+            ),
           ),
           SizedBox(height: 20),
-          Text('Selected Friends:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+          Text('Selected Friends and Teams:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           Wrap(
             alignment: WrapAlignment.center,
-            children: selectedFriends.map((friendName) {
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Stack(
-                  children: [
-                    Chip(
-                      label: Text(friendName),
-                      backgroundColor: Colors.grey,
-                    ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: () => _removeUser(friendName),
-                        child: CircleAvatar(
-                          radius: 12,
-                          backgroundColor: Colors.red,
-                          child: Icon(
-                            Icons.close,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+            children: [
+              ...selectedFriends.map((friendName) {
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Chip(
+                    label: Text(friendName),
+                    onDeleted: () => _removeUser(friendName),
+                    backgroundColor: Colors.grey,
+                  ),
+                );
+              }),
+              ...selectedTeams.map((teamName) {
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Chip(
+                    label: Text(teamName),
+                    onDeleted: () => _removeTeam(teamName),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              }),
+            ],
           ),
         ],
       ),
