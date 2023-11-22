@@ -111,7 +111,8 @@ class _CreateEventState extends State<CreateEvent> {
                   onChanged: (value) {
                     setState(() {
                       eventTitle = value;
-                      canPostEvent = eventTitle.isNotEmpty && eventLocation.isNotEmpty;
+                      canPostEvent =
+                          eventTitle.isNotEmpty && eventLocation.isNotEmpty;
                     });
                   },
                   decoration: const InputDecoration(labelText: 'Event Title'),
@@ -204,10 +205,12 @@ class _CreateEventState extends State<CreateEvent> {
                   onChanged: (value) {
                     setState(() {
                       eventLocation = value;
-                      canPostEvent = eventTitle.isNotEmpty && eventLocation.isNotEmpty;
+                      canPostEvent =
+                          eventTitle.isNotEmpty && eventLocation.isNotEmpty;
                     });
                   },
-                  decoration: const InputDecoration(labelText: 'Event Location'),
+                  decoration: const InputDecoration(
+                      labelText: 'Event Location'),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
@@ -221,19 +224,22 @@ class _CreateEventState extends State<CreateEvent> {
                       if (result != null && result is Map<String, dynamic>) {
                         setState(() {
                           selectedFriends.clear();
-                          if (result.containsKey('friends') && result['friends'] is List<String>) {
+                          if (result.containsKey('friends') &&
+                              result['friends'] is List<String>) {
                             selectedFriends.addAll(result['friends']);
                           }
 
                           selectedTeams.clear();
-                          if (result.containsKey('teams') && result['teams'] is List<String>) {
+                          if (result.containsKey('teams') &&
+                              result['teams'] is List<String>) {
                             selectedTeams.addAll(result['teams']);
                           }
 
                           // Update canPostEvent based on selectedFriends and selectedTeams
                           canPostEvent = eventTitle.isNotEmpty &&
                               eventLocation.isNotEmpty &&
-                              (selectedFriends.isNotEmpty || selectedTeams.isNotEmpty);
+                              (selectedFriends.isNotEmpty ||
+                                  selectedTeams.isNotEmpty);
                         });
                       }
                     });
@@ -249,28 +255,32 @@ class _CreateEventState extends State<CreateEvent> {
                     children: [
                       Text(
                         'Posting to:',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Wrap(
                         alignment: WrapAlignment.center,
                         children: [
                           ...selectedFriends.map(
-                                (friendName) => Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Chip(
-                                label: Text(friendName),
-                                backgroundColor: Colors.grey,
-                              ),
-                            ),
+                                (friendName) =>
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Chip(
+                                    label: Text(friendName),
+                                    backgroundColor: Colors.grey,
+                                  ),
+                                ),
                           ),
                           ...selectedTeams.map(
-                                (teamName) => Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Chip(
-                                label: Text(teamName),
-                                backgroundColor: Colors.blue, // Choose the color for teams
-                              ),
-                            ),
+                                (teamName) =>
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Chip(
+                                    label: Text(teamName),
+                                    backgroundColor: Colors
+                                        .blue, // Choose the color for teams
+                                  ),
+                                ),
                           ),
                         ],
                       ),
@@ -281,12 +291,14 @@ class _CreateEventState extends State<CreateEvent> {
 
                 ElevatedButton(
                   onPressed: canPostEvent
-                      ? () async {
+                      ? () {
                     postEvent();
+                    Navigator.pop(context); // Close the screen
                   }
                       : null,
                   child: const Text('Create Event'),
                 ),
+
               ],
             ),
           ),
@@ -316,7 +328,8 @@ class _CreateEventState extends State<CreateEvent> {
           userDocument = userQuerySnapshot.docs.first.reference;
         } else {
           // If the user document doesn't exist, create a new document reference
-          userDocument = FirebaseFirestore.instance.collection('users').doc(currentUser!.uid);
+          userDocument = FirebaseFirestore.instance.collection('users').doc(
+              currentUser!.uid);
         }
 
         // Get the existing user data or create an empty map if it doesn't exist
@@ -325,8 +338,10 @@ class _CreateEventState extends State<CreateEvent> {
             : {};
 
         // Get the existing user_events or create an empty list if it doesn't exist
-        List<Map<String, dynamic>> userEvents = userData.containsKey('user_events')
-            ? (userData['user_events'] as List<dynamic>).cast<Map<String, dynamic>>()
+        List<Map<String, dynamic>> userEvents = userData.containsKey(
+            'user_events')
+            ? (userData['user_events'] as List<dynamic>).cast<
+            Map<String, dynamic>>()
             : [];
 
         // Add the event data to the user_events list
@@ -338,10 +353,13 @@ class _CreateEventState extends State<CreateEvent> {
           'endTime': endTime.format(context),
           'eventLocation': eventLocation,
           'eventDescription': eventDescription,
+          'selectedFriends': selectedFriends,
+          'selectedTeams': selectedTeams,
         });
 
         // Update the user document with the modified user_events list
-        await userDocument.set({'user_events': userEvents}, SetOptions(merge: true));
+        await userDocument.set(
+            {'user_events': userEvents}, SetOptions(merge: true));
 
         print('Event Posted:');
         print('Event Title: $eventTitle');
@@ -351,6 +369,8 @@ class _CreateEventState extends State<CreateEvent> {
         print('End Time: ${endTime.format(context)}');
         print('Event Location: $eventLocation');
         print('Event Description: $eventDescription');
+        print('Selected Friends: $selectedFriends');
+        print('Selected Teams: $selectedTeams');
       } else {
         print('Current User is null');
       }
