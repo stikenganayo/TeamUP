@@ -27,6 +27,14 @@ class _CreateEventState extends State<CreateEvent> {
   List<String> selectedFriends = [];
   List<String> selectedTeams = [];
 
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -291,14 +299,22 @@ class _CreateEventState extends State<CreateEvent> {
 
                 ElevatedButton(
                   onPressed: canPostEvent
-                      ? () {
-                    postEvent();
-                    Navigator.pop(context); // Close the screen
+                      ? () async {
+                    if (_isDisposed) return; // Check if the widget is disposed
+                    try {
+                      await postEvent();
+                      if (!_isDisposed) {
+                        Navigator.pop(context); // Close the screen if not disposed
+                      }
+                    } catch (e) {
+                      if (!_isDisposed) {
+                        print('Error posting event: $e');
+                      }
+                    }
                   }
                       : null,
                   child: const Text('Create Event'),
                 ),
-
               ],
             ),
           ),
@@ -307,75 +323,158 @@ class _CreateEventState extends State<CreateEvent> {
     );
   }
 
-  void postEvent() async {
+  Future<void> postEvent() async {
     try {
       currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser != null) {
         print('Current User Email: ${currentUser!.email}');
 
-        // Fetch the user document based on the current user's email
+        // Fetch user data based on the provided email
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUser!.email)
             .limit(1)
             .get();
 
-        DocumentReference userDocument;
+        if (mounted && userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
-        if (userQuerySnapshot.docs.isNotEmpty) {
-          // If the user document exists, use the existing document reference
-          userDocument = userQuerySnapshot.docs.first.reference;
+          // Create a reference to the 'events' collection
+          CollectionReference eventsCollection = FirebaseFirestore.instance.collection('events');
+
+          if (mounted) {
+            // Add the event data as a new document in the 'events' collection
+            DocumentReference eventDocRef = await eventsCollection.add({
+              'CurrentUserEmail': currentUser!.email,
+              'CurrentUserName': userData['name'], // Store the user's name
+              'eventTitle': eventTitle,
+              'startDate': startDate,
+              'startTime': startTime.format(context),
+              'endDate': endDate,
+              'endTime': endTime.format(context),
+              'eventLocation': eventLocation,
+              'eventDescription': eventDescription,
+              'selectedFriends': selectedFriends,
+              'selectedTeams': selectedTeams,
+            });
+
+            print('Event Posted:');
+            print('Event Title: $eventTitle');
+            print('Start Date: $startDate');
+            print('Start Time: ${startTime.format(context)}');
+            print('End Date: $endDate');
+            print('End Time: ${endTime.format(context)}');
+            print('Event Location: $eventLocation');
+            print('Event Description: $eventDescription');
+            print('Selected Friends: $selectedFriends');
+            print('Selected Teams: $selectedTeams');
+
+            // Iterate through selectedFriends and update user's events
+            for (String friendName in selectedFriends) {
+              // Find friend's ID in the 'users' collection
+              QuerySnapshot friendQuerySnapshot = await FirebaseFirestore.instance
+                  .collection('users')
+                  .where('name', isEqualTo: friendName)
+                  .limit(1)
+                  .get();
+
+              if (mounted && friendQuerySnapshot.docs.isNotEmpty) {
+                DocumentSnapshot friendSnapshot = friendQuerySnapshot.docs.first;
+                String friendId = friendSnapshot.id;
+
+                // Update the user's document with the event data
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(friendId)
+                    .update({
+                  'user_events': FieldValue.arrayUnion([
+                    {
+                      'eventTitle': eventTitle,
+                      'eventDocRef': eventDocRef.id, // Store a reference to the event document
+                      'status': 'pending',
+                    }
+                  ])
+                });
+              }
+            }
+
+            // Iterate through selectedTeams and update team's events
+            for (String teamName in selectedTeams) {
+              // Find team's document in the 'teams' collection
+              QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
+                  .collection('teams')
+                  .where('team_name', isEqualTo: teamName)
+                  .limit(1)
+                  .get();
+
+              if (mounted && teamQuerySnapshot.docs.isNotEmpty) {
+                DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
+                String teamId = teamSnapshot.id;
+
+                // Get the current user_events array or create a new one
+                List<dynamic> currentEvents = teamSnapshot['user_events'] ?? [];
+
+                // Check if the event is already in the array
+                bool eventExists = currentEvents.any((event) =>
+                event['eventTitle'] == eventTitle &&
+                    event['eventDocRef'] == eventDocRef.id);
+
+                if (!eventExists) {
+                  // Add the new event data to the array
+                  currentEvents.add({
+                    'eventTitle': eventTitle,
+                    'eventDocRef': eventDocRef.id, // Store a reference to the event document
+                    'status': 'pending',
+                  });
+
+                  // Update the team's document with the updated user_events array
+                  await FirebaseFirestore.instance
+                      .collection('teams')
+                      .doc(teamId)
+                      .set(
+                    {
+                      'user_events': currentEvents,
+                    },
+                    SetOptions(merge: true), // Merge with existing data if the field exists
+                  );
+                }
+              } else {
+                // The team document doesn't exist, create a new one with the user_events array
+                await FirebaseFirestore.instance.collection('teams').add({
+                  'team_name': teamName,
+                  'user_events': [
+                    {
+                      'eventTitle': eventTitle,
+                      'eventDocRef': eventDocRef.id, // Store a reference to the event document
+                      'status': 'pending',
+                    }
+                  ],
+                });
+              }
+            }
+          }
         } else {
-          // If the user document doesn't exist, create a new document reference
-          userDocument = FirebaseFirestore.instance.collection('users').doc(
-              currentUser!.uid);
+          if (!_isDisposed) {
+            print('User document not found for the current user');
+          }
         }
-
-        // Get the existing user data or create an empty map if it doesn't exist
-        Map<String, dynamic> userData = userQuerySnapshot.docs.isNotEmpty
-            ? (userQuerySnapshot.docs.first.data() as Map<String, dynamic>)
-            : {};
-
-        // Get the existing user_events or create an empty list if it doesn't exist
-        List<Map<String, dynamic>> userEvents = userData.containsKey(
-            'user_events')
-            ? (userData['user_events'] as List<dynamic>).cast<
-            Map<String, dynamic>>()
-            : [];
-
-        // Add the event data to the user_events list
-        userEvents.add({
-          'eventTitle': eventTitle,
-          'startDate': startDate,
-          'startTime': startTime.format(context),
-          'endDate': endDate,
-          'endTime': endTime.format(context),
-          'eventLocation': eventLocation,
-          'eventDescription': eventDescription,
-          'selectedFriends': selectedFriends,
-          'selectedTeams': selectedTeams,
-        });
-
-        // Update the user document with the modified user_events list
-        await userDocument.set(
-            {'user_events': userEvents}, SetOptions(merge: true));
-
-        print('Event Posted:');
-        print('Event Title: $eventTitle');
-        print('Start Date: $startDate');
-        print('Start Time: ${startTime.format(context)}');
-        print('End Date: $endDate');
-        print('End Time: ${endTime.format(context)}');
-        print('Event Location: $eventLocation');
-        print('Event Description: $eventDescription');
-        print('Selected Friends: $selectedFriends');
-        print('Selected Teams: $selectedTeams');
       } else {
-        print('Current User is null');
+        if (!_isDisposed) {
+          print('Current User is null');
+        }
       }
-    } catch (e) {
-      print('Error posting event: $e');
+    } catch (e, stackTrace) {
+      if (!_isDisposed) {
+        print('Error posting event: $e');
+        print('StackTrace: $stackTrace');
+      }
     }
   }
+
+
+
+
+
 }

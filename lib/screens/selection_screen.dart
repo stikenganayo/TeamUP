@@ -19,11 +19,13 @@ class _SelectionScreenState extends State<SelectionScreen> {
   List<String> selectedTeams = [];
   Map<String, String> teamNameMap = {};
   TextEditingController _searchController = TextEditingController();
+  Map<String, dynamic> userData = {}; // Declare userData at the class level
 
   Future<void> _loadCurrentUser() async {
     currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       print('Current User Email: ${currentUser!.email}');
+
 
       try {
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
@@ -37,7 +39,7 @@ class _SelectionScreenState extends State<SelectionScreen> {
           Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
           print('User Data: $userData');
-
+          print(userData['name']);
           if (userData.containsKey('friends')) {
             setState(() {
               friendsList = List.from(userData['friends']);
@@ -138,6 +140,8 @@ class _SelectionScreenState extends State<SelectionScreen> {
       print('Error toggling user: $e');
     }
   }
+
+
 
   void _removeUser(String friendName) {
     setState(() {
@@ -381,6 +385,7 @@ class _SelectionScreenState extends State<SelectionScreen> {
               ),
             ),
           ),
+
           SizedBox(height: 20),
 
           Text('Selected Friends and Teams:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
