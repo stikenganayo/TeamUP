@@ -399,10 +399,9 @@ class _CreateEventState extends State<CreateEvent> {
                 });
               }
             }
-
-            // Iterate through selectedTeams and update team's events
+            // Iterate through selectedFriends and update user's events
             for (String teamName in selectedTeams) {
-              // Find team's document in the 'teams' collection
+              // Find friend's ID in the 'users' collection
               QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
                   .collection('teams')
                   .where('team_name', isEqualTo: teamName)
@@ -410,47 +409,21 @@ class _CreateEventState extends State<CreateEvent> {
                   .get();
 
               if (mounted && teamQuerySnapshot.docs.isNotEmpty) {
-                DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
-                String teamId = teamSnapshot.id;
+                DocumentSnapshot friendSnapshot = teamQuerySnapshot.docs.first;
+                String teamId = friendSnapshot.id;
 
-                // Get the current user_events array or create a new one
-                List<dynamic> currentEvents = teamSnapshot['user_events'] ?? [];
-
-                // Check if the event is already in the array
-                bool eventExists = currentEvents.any((event) =>
-                event['eventTitle'] == eventTitle &&
-                    event['eventDocRef'] == eventDocRef.id);
-
-                if (!eventExists) {
-                  // Add the new event data to the array
-                  currentEvents.add({
-                    'eventTitle': eventTitle,
-                    'eventDocRef': eventDocRef.id, // Store a reference to the event document
-                    'status': 'pending',
-                  });
-
-                  // Update the team's document with the updated user_events array
-                  await FirebaseFirestore.instance
-                      .collection('teams')
-                      .doc(teamId)
-                      .set(
-                    {
-                      'user_events': currentEvents,
-                    },
-                    SetOptions(merge: true), // Merge with existing data if the field exists
-                  );
-                }
-              } else {
-                // The team document doesn't exist, create a new one with the user_events array
-                await FirebaseFirestore.instance.collection('teams').add({
-                  'team_name': teamName,
-                  'user_events': [
+                // Update the user's document with the event data
+                await FirebaseFirestore.instance
+                    .collection('teams')
+                    .doc(teamId)
+                    .update({
+                  'user_events': FieldValue.arrayUnion([
                     {
                       'eventTitle': eventTitle,
                       'eventDocRef': eventDocRef.id, // Store a reference to the event document
                       'status': 'pending',
                     }
-                  ],
+                  ])
                 });
               }
             }
