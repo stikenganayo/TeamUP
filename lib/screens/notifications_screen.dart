@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -11,23 +12,22 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late User? currentUser;
-  List<String> friendsList = [];
-  List<String> filteredFriendsList = [];
-  List<String> selectedFriends = [];
-  Map<String, String> friendNameMap = {};
   List<String> teamIds = [];
-  List<String> selectedTeams = [];
-  Map<String, String> teamNameMap = {};
-  TextEditingController _searchController = TextEditingController();
-  Map<String, dynamic> userData = {}; // Declare userData at the class level
+  List<Map<String, dynamic>> eventDetails = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
 
   Future<void> _loadCurrentUser() async {
-    currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      print('Current User Email: ${currentUser!.email}');
+    try {
+      currentUser = FirebaseAuth.instance.currentUser;
 
+      if (currentUser != null) {
+        print('Current User Email: ${currentUser!.email}');
 
-      try {
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUser!.email)
@@ -39,16 +39,47 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
           print('User Data: $userData');
-          print(userData['name']);
-          if (userData.containsKey('friends')) {
-            setState(() {
-              friendsList = List.from(userData['friends']);
-              filteredFriendsList = List.from(friendsList);
-            });
+          print("Are you working?");
+          print(userData['team_events']);
 
-            print('Friends List: $friendsList');
+          // Clear the eventDetails list before adding new events
+          eventDetails.clear();
+
+          // Fetch and print details for each event in team_events
+          if (userData.containsKey('team_events')) {
+            List<dynamic> teamEvents = userData['team_events'];
+            for (Map<String, dynamic> event in teamEvents) {
+              String eventDocRef = event['eventDocRef'];
+
+              DocumentSnapshot eventSnapshot = await FirebaseFirestore.instance
+                  .collection('events')
+                  .doc(eventDocRef)
+                  .get();
+
+              if (eventSnapshot.exists) {
+                Map<String, dynamic> eventData = eventSnapshot.data() as Map<String, dynamic>;
+                print('Event Details:');
+                print('Event Title: ${eventData['eventTitle']}');
+                print('Start Date: ${eventData['startDate']}');
+                print('Start Time: ${eventData['startTime']}');
+                print('Event Location: ${eventData['eventLocation']}');
+                print('Status: ${eventData['status']}');
+
+                // Handle potential null values for 'startTime' and 'eventLocation'
+                eventDetails.add({
+                  'title': eventData['eventTitle'],
+                  'startDate': eventData['startDate'],
+                  'startTime': eventData['startTime'] ?? '',
+                  'eventLocation': eventData['eventLocation'] ?? '',
+                  'status': eventData['status'] ?? '', // Added status field
+                  'eventDocRef': eventDocRef,
+                });
+              } else {
+                print('Event document not found for eventDocRef: $eventDocRef');
+              }
+            }
           } else {
-            print('Friends field not found in user document');
+            print('team_events field not found in user document');
           }
 
           if (userData.containsKey('team_ids')) {
@@ -61,96 +92,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         } else {
           print('User document not found for the current user');
         }
-      } catch (e) {
-        print('Error loading user document: $e');
-      }
-    }
-  }
-
-  Future<String?> _getFriendName(String friendEmail) async {
-    try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: friendEmail)
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        DocumentSnapshot friendSnapshot = querySnapshot.docs.first;
-        if (friendSnapshot.exists) {
-          Map<String, dynamic> friendData = friendSnapshot.data() as Map<String, dynamic>;
-          if (friendData.containsKey('name')) {
-            print('Friend UID: ${friendSnapshot.id}');
-            return friendData['name'];
-          }
-        }
       }
     } catch (e) {
-      print('Error loading friend document: $e');
-    }
-
-    return null;
-  }
-
-  Future<String?> _getTeamName(String teamId) async {
-    try {
-      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
-          .collection('teams')
-          .doc(teamId)
-          .get();
-
-      if (teamSnapshot.exists) {
-        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
-
-        if (teamData.containsKey('team_name')) {
-          return teamData['team_name'];
-        }
-      }
-    } catch (e) {
-      print('Error loading team document: $e');
-    }
-
-    return null;
-  }
-
-
-  void _searchUsers(String query) {
-    setState(() {
-      filteredFriendsList = friendsList
-          .where((friendEmail) => friendEmail.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
-  void _toggleUser(String friendEmail) async {
-    try {
-      String? friendName = await _getFriendName(friendEmail);
-
-      if (friendName != null) {
-        setState(() {
-          if (selectedFriends.contains(friendName)) {
-            selectedFriends.remove(friendName);
-          } else {
-            selectedFriends.add(friendName);
-          }
-          friendNameMap[friendEmail] = friendName;
-        });
-      }
-    } catch (e) {
-      print('Error toggling user: $e');
+      print('Error loading user document: $e');
     }
   }
 
-
-
-  void _removeUser(String friendName) {
-    setState(() {
-      selectedFriends.remove(friendName);
-    });
-  }
-  Future<List<String>> _getTeamIds() async {
+  Future<void> _updateStatus(String eventDocRef, String status) async {
     try {
-      // Fetch the user document based on the current user's email
       QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('email', isEqualTo: currentUser!.email)
@@ -159,71 +108,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       if (userQuerySnapshot.docs.isNotEmpty) {
         DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
-        // Print all data inside the current user's document
-        print('User Data: $userData');
+        // Update the team_events field in the current user's document
+        List<dynamic> teamEvents = List.from(userSnapshot['team_events']);
+        for (int i = 0; i < teamEvents.length; i++) {
+          if (teamEvents[i]['eventDocRef'] == eventDocRef) {
+            teamEvents[i]['status'] = status;
+            break; // Stop iterating once the correct event is found and updated
+          }
+        }
 
-        // Check for team_ids in the user data
-        if (userData.containsKey('team_ids')) {
-          List<String> teamIds = List.from(userData['team_ids']);
-          // Reverse the order of team IDs
-          List<String> reversedTeamIds = List.from(teamIds.reversed);
-          // Print the array of team IDs to the console
-          print('Team IDs: $reversedTeamIds');
-          return reversedTeamIds;
+        // Update the user's document with the modified team_events
+        await userSnapshot.reference.update({'team_events': teamEvents});
+
+        // Reload the current user's data
+        await _loadCurrentUser();
+
+        // Find the updated event in eventDetails and update its status
+        int eventIndex = eventDetails.indexWhere((event) => event['eventDocRef'] == eventDocRef);
+        if (eventIndex != -1) {
+          setState(() {
+            eventDetails[eventIndex]['status'] = status;
+          });
         } else {
-          print('Team_ids field not found in user document');
+          print('Event not found in eventDetails: $eventDocRef');
         }
       } else {
         print('User document not found for the current user');
       }
     } catch (e) {
-      print('Error loading user document: $e');
-    }
-
-    return [];
-  }
-
-  void _searchTeams(String query) {
-    setState(() {
-      // Filter teams based on the team name
-      teamIds = teamIds
-          .where((teamId) => teamNameMap.containsKey(teamId) && teamNameMap[teamId]!.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
-  void _toggleTeam(String teamId) async {
-    try {
-      String? teamName = await _getTeamName(teamId);
-
-      if (teamName != null) {
-        setState(() {
-          if (selectedTeams.contains(teamName)) {
-            selectedTeams.remove(teamName);
-          } else {
-            selectedTeams.add(teamName);
-          }
-          teamNameMap[teamId] = teamName;
-        });
-      }
-    } catch (e) {
-      print('Error toggling team: $e');
+      print('Error updating status: $e');
     }
   }
 
-  void _removeTeam(String teamName) {
-    setState(() {
-      selectedTeams.remove(teamName);
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrentUser();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,114 +154,72 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           },
         ),
       ),
-
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          FutureBuilder<List<String>>(
-            future: _getTeamIds(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasError || snapshot.data == null) {
-                  return ListTile(
-                    title: Text('Error loading team IDs'),
-                  );
-                } else {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: snapshot.data!.map((teamId) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
-                            ),
-                            child: ListTile(
-                              title: FutureBuilder<String?>(
-                                future: _getTeamName(teamId),
-                                builder: (context, teamNameSnapshot) {
-                                  if (teamNameSnapshot.connectionState ==
-                                      ConnectionState.done) {
-                                    if (teamNameSnapshot.hasError ||
-                                        teamNameSnapshot.data == null) {
-                                      return ListTile(
-                                        title: Text('Error loading team name for $teamId'),
-                                      );
-                                    } else {
-                                      return Text('${teamNameSnapshot.data}');
-                                    }
-                                  } else {
-                                    return CircularProgressIndicator();
-                                  }
-                                },
-                              ),
-                              onTap: () {
-                                _toggleTeam(teamId);
-                              },
-                              trailing: Checkbox(
-                                value: selectedTeams.contains(teamNameMap[teamId]),
-                                onChanged: (value) {
-                                  _toggleTeam(teamId);
-                                },
-                                activeColor: Colors.blue,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      );
-                    }).toList(),
-                  );
-                }
-              } else {
-                return ListTile(
-                  title: CircularProgressIndicator(),
-                );
-              }
-            },
-          ),
-
+          const SizedBox(height: 20),
           Expanded(
-            child: ListView(
-              children: filteredFriendsList.map((friendEmail) {
-                return FutureBuilder(
-                  future: _getFriendName(friendEmail),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.done) {
-                      if (snapshot.hasError || snapshot.data == null) {
-                        return ListTile(
-                          title: Text('Error loading friend name'),
-                        );
-                      } else {
-                        return ListTile(
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text('${snapshot.data}'),
+            child: ListView.builder(
+              itemCount: eventDetails.length,
+              itemBuilder: (context, index) {
+                DateTime startDate = eventDetails[index]['startDate'].toDate();
+                String formattedDate = DateFormat('yyyy-MM-dd').format(startDate);
+
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                  ),
+                  child: ListTile(
+                    title: Text('Event Title: ${eventDetails[index]['title']}'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Start Date: $formattedDate'),
+                        Text('Start Time: ${eventDetails[index]['startTime']}'),
+                        Text('Event Location: ${eventDetails[index]['eventLocation']}'),
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                _updateStatus(eventDetails[index]['eventDocRef'], 'Going');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                primary: eventDetails[index]['status'] == 'Going' ? Colors.green : null,
                               ),
-                              Checkbox(
-                                value: selectedFriends.contains(snapshot.data),
-                                onChanged: (value) => _toggleUser(friendEmail),
-                                activeColor: Colors.blue,
+                              child: Text('Going'),
+                            ),
+
+                            SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                _updateStatus(eventDetails[index]['eventDocRef'], 'Not Going');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                primary: eventDetails[index]['status'] == 'Not Going' ? Colors.green : null,
                               ),
-                            ],
-                          ),
-                        );
-                      }
-                    } else {
-                      return ListTile(
-                        title: CircularProgressIndicator(),
-                      );
-                    }
-                  },
+                              child: Text('Not Going'),
+                            ),
+                            SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                _updateStatus(eventDetails[index]['eventDocRef'], 'Maybe');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                primary: eventDetails[index]['status'] == 'Maybe' ? Colors.green : null,
+                              ),
+                              child: Text('Maybe'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 );
-              }).toList(),
+              },
             ),
           ),
-
         ],
       ),
     );

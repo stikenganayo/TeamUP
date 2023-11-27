@@ -399,9 +399,9 @@ class _CreateEventState extends State<CreateEvent> {
                 });
               }
             }
-            // Iterate through selectedFriends and update user's events
+            // Iterate through selectedTeams and update users' events
             for (String teamName in selectedTeams) {
-              // Find friend's ID in the 'users' collection
+              // Find team's ID in the 'teams' collection
               QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
                   .collection('teams')
                   .where('team_name', isEqualTo: teamName)
@@ -409,10 +409,19 @@ class _CreateEventState extends State<CreateEvent> {
                   .get();
 
               if (mounted && teamQuerySnapshot.docs.isNotEmpty) {
-                DocumentSnapshot friendSnapshot = teamQuerySnapshot.docs.first;
-                String teamId = friendSnapshot.id;
+                DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
+                String teamId = teamSnapshot.id;
 
-                // Update the user's document with the event data
+                // Get the list of users in the selected team
+                List<String> teamMembers = List<String>.from(teamSnapshot['users'] ?? []);
+
+                // Print the users in the selected team
+                print('Users in $teamName:');
+                for (String teamMember in teamMembers) {
+                  print('- $teamMember');
+                }
+
+                // Update the team's document with the event data
                 await FirebaseFirestore.instance
                     .collection('teams')
                     .doc(teamId)
@@ -425,6 +434,35 @@ class _CreateEventState extends State<CreateEvent> {
                     }
                   ])
                 });
+
+                // Iterate through each user and update their 'team_events'
+                for (String teamMember in teamMembers) {
+                  // Find the user's ID in the 'users' collection
+                  QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+                      .collection('users')
+                      .where('name', isEqualTo: teamMember)
+                      .limit(1)
+                      .get();
+
+                  if (userQuerySnapshot.docs.isNotEmpty) {
+                    DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+                    String userId = userSnapshot.id;
+
+                    // Update the user's document with the event data
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(userId)
+                        .update({
+                      'team_events': FieldValue.arrayUnion([
+                        {
+                          'eventTitle': eventTitle,
+                          'eventDocRef': eventDocRef.id, // Store a reference to the event document
+                          'status': 'pending',
+                        }
+                      ])
+                    });
+                  }
+                }
               }
             }
           }
