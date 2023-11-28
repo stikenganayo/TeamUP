@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class CreateTeam extends StatefulWidget {
-  const CreateTeam({Key? key}) : super(key: key);
+class allFriendsScreen extends StatefulWidget {
+  const allFriendsScreen({Key? key}) : super(key: key);
 
   @override
-  _CreateTeamState createState() => _CreateTeamState();
+  _allFriendsScreenState createState() => _allFriendsScreenState();
 }
 
-class _CreateTeamState extends State<CreateTeam> {
+class _allFriendsScreenState extends State<allFriendsScreen> {
   late User? currentUser;
   List<String> friendsList = [];
   List<String> filteredFriendsList = [];
