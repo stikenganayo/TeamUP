@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'image_list_screen.dart'; // Import the ImageListScreen
 
 class ChatScreen extends StatefulWidget {
@@ -12,7 +15,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [];
   late FocusNode _focusNode;
 
   @override
@@ -29,17 +31,26 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _openImageListScreen() {
-    // Navigate to the ImageListScreen when the camera icon is clicked
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const ImageListScreen(),
-      ),
-    );
+  String getConversationId(String userId, String friendId) {
+    List<String> ids = [userId, friendId];
+    ids.sort(); // Sort IDs to ensure consistency
+    return ids.join('_'); // Concatenate sorted IDs with underscore
   }
 
   @override
   Widget build(BuildContext context) {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      // Redirect to login screen if the user is not logged in
+      return CircularProgressIndicator();
+    }
+
+    final String userId = currentUser.uid;
+    final String friendId = widget.friendName; // Replace with the actual friend's ID
+
+    final String conversationId = getConversationId(userId, friendId);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.friendName),
@@ -47,13 +58,35 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: _messages.length,
-              itemBuilder: (BuildContext context, int index) {
-                final message = _messages[index];
-                return MessageItem(
-                  text: message['text'],
-                  isMe: message['isMe'],
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('conversations')
+                  .doc(conversationId)
+                  .collection('messages')
+                  .orderBy('dateTime')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                }
+
+                if (!snapshot.hasData ||
+                    snapshot.data == null ||
+                    snapshot.data!.docs.isEmpty) {
+                  return Text('No messages found');
+                }
+
+                final messages = snapshot.data!.docs;
+
+                return ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final message = messages[index].data() as Map<String, dynamic>;
+                    return MessageItem(
+                      text: message['text'],
+                      isMe: message['isMe'],
+                    );
+                  },
                 );
               },
             ),
@@ -63,16 +96,16 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: _openImageListScreen, // Call the function when the camera icon is clicked
+                  onTap: _openImageListScreen,
                   child: const Padding(
                     padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.camera_alt), // Camera icon
+                    child: Icon(Icons.camera_alt),
                   ),
                 ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    focusNode: _focusNode, // Set the focus node
+                    focusNode: _focusNode,
                     decoration: const InputDecoration(
                       hintText: 'Type a message...',
                     ),
@@ -81,7 +114,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(width: 8.0),
                 ElevatedButton(
                   onPressed: () {
-                    _sendMessage();
+                    _sendMessage(userId, friendId, conversationId);
                   },
                   child: const Text('Send'),
                 ),
@@ -93,19 +126,49 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _sendMessage() {
+  void _sendMessage(String userId, String friendId, String conversationId) {
     final messageText = _messageController.text;
     if (messageText.isNotEmpty) {
+      final now = DateTime.now();
+
+      FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .add({
+        'text': messageText,
+        'isMe': true,
+        'dateTime': now,
+      });
+
+      // If you want to notify the other user, you can send a push notification or update their conversation
+      // FirebaseFirestore.instance.collection('conversations').doc(conversationId).update({
+      //   'hasUnreadMessages': true,
+      // });
+
+      // Add the message to the recipient's conversation as well
+      FirebaseFirestore.instance
+          .collection('conversations')
+          .doc(getConversationId(friendId, userId))
+          .collection('messages')
+          .add({
+        'text': messageText,
+        'isMe': false,
+        'dateTime': now,
+      });
+
       setState(() {
-        final now = DateTime.now();
-        _messages.add({
-          'text': messageText,
-          'isMe': true,
-          'dateTime': now,
-        });
         _messageController.clear();
       });
     }
+  }
+
+  void _openImageListScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ImageListScreen(images: [],),
+      ),
+    );
   }
 }
 
@@ -125,24 +188,16 @@ class MessageItem extends StatelessWidget {
       title: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          if (isMe)
-            const Text(
-              'Me',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.blue, // Customize text color for "Me"
-              ),
-            ),
           Container(
             decoration: BoxDecoration(
-              color: isMe ? Colors.blue : Colors.grey[300], // Blue for "Me," Grey for others
-              borderRadius: BorderRadius.circular(8.0), // Rounded corners
+              color: isMe ? Colors.blue : Colors.grey[300],
+              borderRadius: BorderRadius.circular(8.0),
             ),
             padding: const EdgeInsets.all(8.0),
             child: Text(
               text,
               style: TextStyle(
-                color: isMe ? Colors.white : Colors.black, // Customize text color
+                color: isMe ? Colors.white : Colors.black,
               ),
             ),
           ),
@@ -151,3 +206,4 @@ class MessageItem extends StatelessWidget {
     );
   }
 }
+

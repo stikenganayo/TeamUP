@@ -23,6 +23,7 @@ dependencies:
   font_awesome_flutter: ^9.0.0
   flutter_signin_button: ^2.0.0
   http: ^0.13.4
+  firebase_storage: ^11.0.1
 
 
 

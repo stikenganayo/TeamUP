@@ -1,91 +1,82 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Add this import
 
 import '../style.dart';
 import '../screens/chat_list.dart';
 import '../screens/search_screen.dart';
 
 class FriendsGrid extends StatelessWidget {
-
-  const FriendsGrid({Key? key,}) : super(key: key);
-
-  Future<String> loadJsonData() async {
-    return await rootBundle.loadString('assets/images/data/team_data.json');
-  }
+  const FriendsGrid({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: loadJsonData(),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          final jsonData = jsonDecode(snapshot.data.toString());
-          final List<String> friendNames = [];
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
 
-          for (final team in jsonData['data']) {
-            for (final subTeam in team['UserTeams'].values) {
-              for (final teammate in subTeam['teammates']) {
-                friendNames.add(teammate['name']);
-              }
-            }
-          }
+        if (!snapshot.hasData || snapshot.data == null || snapshot.data!.docs.isEmpty) {
+          return const Text('No user data found');
+        }
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.blue,
+        final friendNames = snapshot.data!.docs
+            .map((doc) => doc['name'] as String)
+            .toList();
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SearchScreen(),
                       ),
-                      child: const Icon(
-                        Icons.add,
-                        size: 32,
-                        color: Colors.white,
-                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.blue,
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      size: 32,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                GridView.count(
-                  padding: const EdgeInsets.all(10),
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 3,
-                  children: List.generate(friendNames.length, (index) {
-                    final name = friendNames[index];
-                    const status = ''; // Replace with actual status from Data or JSON
-                    const time = ''; // Replace with actual time from Data or JSON
-                    return ChatView(
-                      index: index,
-                      name: name,
-                      status: status,
-                      time: time,
-                    );
-                  }),
-                ),
-              ],
-            ),
-          );
-        } else {
-          return const CircularProgressIndicator();
-        }
+              ),
+              const SizedBox(height: 16),
+              GridView.count(
+                padding: const EdgeInsets.all(10),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 3,
+                children: List.generate(friendNames.length, (index) {
+                  final name = friendNames[index];
+                  const status = ''; // Replace with actual status from Data or JSON
+                  const time = ''; // Replace with actual time from Data or JSON
+                  return ChatView(
+                    index: index,
+                    name: name,
+                    status: status,
+                    time: time,
+                  );
+                }),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
