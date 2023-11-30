@@ -3,6 +3,43 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+class StatusButton extends StatefulWidget {
+  final String buttonText;
+  final String eventDocRef;
+  final String currentStatus;
+  final Function(String) onPressed;
+
+  const StatusButton({
+    Key? key,
+    required this.buttonText,
+    required this.eventDocRef,
+    required this.currentStatus,
+    required this.onPressed,
+  }) : super(key: key);
+
+  @override
+  _StatusButtonState createState() => _StatusButtonState();
+}
+
+class _StatusButtonState extends State<StatusButton> {
+  @override
+  Widget build(BuildContext context) {
+    // Check if the button text matches the current status text in Firebase
+    bool isButtonActive = widget.currentStatus == widget.buttonText;
+
+    return ElevatedButton(
+      onPressed: () {
+        widget.onPressed(widget.buttonText);
+      },
+      style: ElevatedButton.styleFrom(
+        primary: isButtonActive ? Colors.green : null,
+        onPrimary: Colors.white,
+      ),
+      child: Text(widget.buttonText),
+    );
+  }
+}
+
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
 
@@ -63,7 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 print('Start Date: ${eventData['startDate']}');
                 print('Start Time: ${eventData['startTime']}');
                 print('Event Location: ${eventData['eventLocation']}');
-                print('Status: ${eventData['status']}');
+                print('Status: ${event['status']}'); // Fetch status from the event data
 
                 // Handle potential null values for 'startTime' and 'eventLocation'
                 eventDetails.add({
@@ -71,7 +108,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   'startDate': eventData['startDate'],
                   'startTime': eventData['startTime'] ?? '',
                   'eventLocation': eventData['eventLocation'] ?? '',
-                  'status': eventData['status'] ?? '', // Added status field
+                  'status': event['status'] ?? '', // Fetch status from the event data
                   'eventDocRef': eventDocRef,
                 });
               } else {
@@ -120,19 +157,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
         // Update the user's document with the modified team_events
         await userSnapshot.reference.update({'team_events': teamEvents});
-
-        // Reload the current user's data
-        await _loadCurrentUser();
-
-        // Find the updated event in eventDetails and update its status
-        int eventIndex = eventDetails.indexWhere((event) => event['eventDocRef'] == eventDocRef);
-        if (eventIndex != -1) {
-          setState(() {
-            eventDetails[eventIndex]['status'] = status;
-          });
-        } else {
-          print('Event not found in eventDetails: $eventDocRef');
-        }
       } else {
         print('User document not found for the current user');
       }
@@ -141,9 +165,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
+    // Sort events by status, placing "Pending" events at the top
+    eventDetails.sort((a, b) {
+      if (a['status'] == 'pending' && b['status'] != 'pending') {
+        return -1;
+      } else if (a['status'] != 'pending' && b['status'] == 'pending') {
+        return 1;
+      } else {
+        // For non-pending events, sort by start date
+        return a['startDate'].compareTo(b['startDate']);
+      }
+    });
+
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Choose where to post!'),
@@ -163,7 +199,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               itemCount: eventDetails.length,
               itemBuilder: (context, index) {
                 DateTime startDate = eventDetails[index]['startDate'].toDate();
-                String formattedDate = DateFormat('yyyy-MM-dd').format(startDate);
+                String formattedDate = DateFormat('MMMM d, y').format(startDate); // Updated date format
 
                 return Container(
                   decoration: BoxDecoration(
@@ -178,38 +214,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         Text('Start Time: ${eventDetails[index]['startTime']}'),
                         Text('Event Location: ${eventDetails[index]['eventLocation']}'),
                         SizedBox(height: 8),
+                        Text(
+                          'Your Current Status: ${eventDetails[index]['status']}',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ), // Added section to display current status
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                _updateStatus(eventDetails[index]['eventDocRef'], 'Going');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                primary: eventDetails[index]['status'] == 'Going' ? Colors.green : null,
+                            Expanded(
+                              child: StatusButton(
+                                buttonText: 'Going',
+                                eventDocRef: eventDetails[index]['eventDocRef'],
+                                currentStatus: eventDetails[index]['status'],
+                                onPressed: (status) {
+                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
+                                  // Update the local eventDetails list with the new status
+                                  setState(() {
+                                    eventDetails[index]['status'] = status;
+                                  });
+                                },
                               ),
-                              child: Text('Going'),
-                            ),
-
-                            SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                _updateStatus(eventDetails[index]['eventDocRef'], 'Not Going');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                primary: eventDetails[index]['status'] == 'Not Going' ? Colors.green : null,
-                              ),
-                              child: Text('Not Going'),
                             ),
                             SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                _updateStatus(eventDetails[index]['eventDocRef'], 'Maybe');
-                              },
-                              style: ElevatedButton.styleFrom(
-                                primary: eventDetails[index]['status'] == 'Maybe' ? Colors.green : null,
+                            Expanded(
+                              child: StatusButton(
+                                buttonText: 'Not Going',
+                                eventDocRef: eventDetails[index]['eventDocRef'],
+                                currentStatus: eventDetails[index]['status'],
+                                onPressed: (status) {
+                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
+                                  // Update the local eventDetails list with the new status
+                                  setState(() {
+                                    eventDetails[index]['status'] = status;
+                                  });
+                                },
                               ),
-                              child: Text('Maybe'),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: StatusButton(
+                                buttonText: 'Maybe',
+                                eventDocRef: eventDetails[index]['eventDocRef'],
+                                currentStatus: eventDetails[index]['status'],
+                                onPressed: (status) {
+                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
+                                  // Update the local eventDetails list with the new status
+                                  setState(() {
+                                    eventDetails[index]['status'] = status;
+                                  });
+                                },
+                              ),
                             ),
                           ],
                         ),
