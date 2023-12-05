@@ -50,7 +50,7 @@ class _ListScreenScreenState extends State<ListScreen> {
   late User? currentUser;
   List<String> teamIds = [];
   List<Map<String, dynamic>> eventDetails = [];
-  String selectedFilter = 'All';
+  String dateFilter = 'Upcoming Events';
 
   @override
   void initState() {
@@ -100,23 +100,32 @@ class _ListScreenScreenState extends State<ListScreen> {
                 print('Event Location: ${eventData['eventLocation']}');
                 print('Status: ${event['status']}');
 
-                if (selectedFilter == 'All' || event['status'] == selectedFilter) {
+                DateTime startDate = eventData['startDate'].toDate();
+
+                bool isEventInPast = startDate.isBefore(DateTime.now());
+                bool isEventOnCurrentDay = _isSameDay(startDate, DateTime.now());
+
+                if (dateFilter == 'Upcoming & Past Events' ||
+                    (dateFilter == 'Upcoming Events' && startDate.isAfter(DateTime.now())) ||
+                    (dateFilter == 'Past Events' && (isEventInPast && !isEventOnCurrentDay)) ||
+                    (dateFilter == 'Upcoming Events' && (isEventOnCurrentDay || startDate.isAfter(DateTime.now())))) {
                   filteredEvents.add({
                     'title': eventData['eventTitle'],
-                    'startDate': eventData['startDate'],
+                    'startDate': startDate,
                     'startTime': eventData['startTime'] ?? '',
                     'eventLocation': eventData['eventLocation'] ?? '',
                     'status': event['status'] ?? '',
                     'eventDocRef': eventDocRef,
                   });
                 }
+
               } else {
                 print('Event document not found for eventDocRef: $eventDocRef');
               }
             }
 
             // Sort and filter events based on the start date
-            filteredEvents = _filterEvents(selectedFilter, filteredEvents);
+            filteredEvents.sort((a, b) => a['startDate'].compareTo(b['startDate']));
           } else {
             print('team_events field not found in user document');
           }
@@ -166,25 +175,8 @@ class _ListScreenScreenState extends State<ListScreen> {
     }
   }
 
-  List<Map<String, dynamic>> _filterEvents(String filter, List<Map<String, dynamic>> events) {
-    DateTime currentDate = DateTime.now();
-
-    List<Map<String, dynamic>> upcomingEvents = events
-        .where((event) =>
-    (filter == 'All' || event['status'] == filter) &&
-        event['startDate'].toDate().isAfter(currentDate))
-        .toList();
-
-    List<Map<String, dynamic>> pastEvents = events
-        .where((event) =>
-    (filter == 'All' || event['status'] == filter) &&
-        event['startDate'].toDate().isBefore(currentDate))
-        .toList();
-
-    upcomingEvents.sort((a, b) => a['startDate'].compareTo(b['startDate']));
-    pastEvents.sort((a, b) => b['startDate'].compareTo(a['startDate']));
-
-    return [...upcomingEvents, ...pastEvents];
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
   }
 
   @override
@@ -194,33 +186,40 @@ class _ListScreenScreenState extends State<ListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
-          Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: DropdownButton<String>(
-                value: selectedFilter,
-                items: ['All', 'Going', 'Not Going', 'Maybe', 'Pending']
-                    .map((filter) => DropdownMenuItem<String>(
-                  value: filter,
-                  child: Text(filter),
-                ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedFilter = value!;
-                    _loadCurrentUser();
-                  });
-                },
-              ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: DropdownButton<String>(
+              value: dateFilter,
+              items: ['Upcoming & Past Events', 'Upcoming Events', 'Past Events']
+                  .map((filter) => DropdownMenuItem<String>(
+                value: filter,
+                child: Text(filter),
+              ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  dateFilter = value!;
+                  _loadCurrentUser();
+                });
+              },
             ),
           ),
           Expanded(
             child: ListView.builder(
               itemCount: eventDetails.length,
               itemBuilder: (context, index) {
-                DateTime startDate = eventDetails[index]['startDate'].toDate();
+                DateTime startDate = eventDetails[index]['startDate'];
                 String formattedDate = DateFormat('MMMM d, y').format(startDate);
+
+                bool isEventInPast = startDate.isBefore(DateTime.now());
+                bool isEventOnCurrentDay = _isSameDay(startDate, DateTime.now());
+
+                String attendanceStatus = (isEventInPast && !isEventOnCurrentDay)
+                    ? (eventDetails[index]['status'] == 'Going' ? 'Attended' : 'Not Attended')
+                    : (isEventOnCurrentDay)
+                    ? 'Your Current Status: ${eventDetails[index]['status']}'
+                    : 'Your Current Status: ${eventDetails[index]['status']}';
+
 
                 return Container(
                   decoration: BoxDecoration(
@@ -236,55 +235,56 @@ class _ListScreenScreenState extends State<ListScreen> {
                         Text('Event Location: ${eventDetails[index]['eventLocation']}'),
                         SizedBox(height: 8),
                         Text(
-                          'Your Current Status: ${eventDetails[index]['status']}',
+                          attendanceStatus,
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Expanded(
-                              child: StatusButton(
-                                buttonText: 'Going',
-                                eventDocRef: eventDetails[index]['eventDocRef'],
-                                currentStatus: eventDetails[index]['status'],
-                                onPressed: (status) {
-                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
-                                  setState(() {
-                                    eventDetails[index]['status'] = status;
-                                  });
-                                },
+                        if (!isEventInPast || isEventOnCurrentDay) // Show buttons for future events
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Going',
+                                  eventDocRef: eventDetails[index]['eventDocRef'],
+                                  currentStatus: eventDetails[index]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(eventDetails[index]['eventDocRef'], status);
+                                    setState(() {
+                                      eventDetails[index]['status'] = status;
+                                    });
+                                  },
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: StatusButton(
-                                buttonText: 'Not Going',
-                                eventDocRef: eventDetails[index]['eventDocRef'],
-                                currentStatus: eventDetails[index]['status'],
-                                onPressed: (status) {
-                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
-                                  setState(() {
-                                    eventDetails[index]['status'] = status;
-                                  });
-                                },
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Not Going',
+                                  eventDocRef: eventDetails[index]['eventDocRef'],
+                                  currentStatus: eventDetails[index]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(eventDetails[index]['eventDocRef'], status);
+                                    setState(() {
+                                      eventDetails[index]['status'] = status;
+                                    });
+                                  },
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: StatusButton(
-                                buttonText: 'Maybe',
-                                eventDocRef: eventDetails[index]['eventDocRef'],
-                                currentStatus: eventDetails[index]['status'],
-                                onPressed: (status) {
-                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
-                                  setState(() {
-                                    eventDetails[index]['status'] = status;
-                                  });
-                                },
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Maybe',
+                                  eventDocRef: eventDetails[index]['eventDocRef'],
+                                  currentStatus: eventDetails[index]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(eventDetails[index]['eventDocRef'], status);
+                                    setState(() {
+                                      eventDetails[index]['status'] = status;
+                                    });
+                                  },
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
                       ],
                     ),
                   ),

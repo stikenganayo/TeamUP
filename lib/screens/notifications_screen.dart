@@ -182,7 +182,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Choose where to post!'),
+        title: Text('All Notifications'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
