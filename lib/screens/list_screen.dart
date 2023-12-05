@@ -78,9 +78,11 @@ class _ListScreenScreenState extends State<ListScreen> {
           print('User Data: $userData');
           print("Are you working?");
           print(userData['team_events']);
+          print(userData['user_events']); // Debugging
 
           List<Map<String, dynamic>> filteredEvents = [];
 
+          // Fetch and process team events
           if (userData.containsKey('team_events')) {
             List<dynamic> teamEvents = userData['team_events'];
             for (Map<String, dynamic> event in teamEvents) {
@@ -91,44 +93,31 @@ class _ListScreenScreenState extends State<ListScreen> {
                   .doc(eventDocRef)
                   .get();
 
-              if (eventSnapshot.exists) {
-                Map<String, dynamic> eventData = eventSnapshot.data() as Map<String, dynamic>;
-                print('Event Details:');
-                print('Event Title: ${eventData['eventTitle']}');
-                print('Start Date: ${eventData['startDate']}');
-                print('Start Time: ${eventData['startTime']}');
-                print('Event Location: ${eventData['eventLocation']}');
-                print('Status: ${event['status']}');
-
-                DateTime startDate = eventData['startDate'].toDate();
-
-                bool isEventInPast = startDate.isBefore(DateTime.now());
-                bool isEventOnCurrentDay = _isSameDay(startDate, DateTime.now());
-
-                if (dateFilter == 'Upcoming & Past Events' ||
-                    (dateFilter == 'Upcoming Events' && startDate.isAfter(DateTime.now())) ||
-                    (dateFilter == 'Past Events' && (isEventInPast && !isEventOnCurrentDay)) ||
-                    (dateFilter == 'Upcoming Events' && (isEventOnCurrentDay || startDate.isAfter(DateTime.now())))) {
-                  filteredEvents.add({
-                    'title': eventData['eventTitle'],
-                    'startDate': startDate,
-                    'startTime': eventData['startTime'] ?? '',
-                    'eventLocation': eventData['eventLocation'] ?? '',
-                    'status': event['status'] ?? '',
-                    'eventDocRef': eventDocRef,
-                  });
-                }
-
-              } else {
-                print('Event document not found for eventDocRef: $eventDocRef');
-              }
+              _processEvent(filteredEvents, event, eventDocRef, eventSnapshot);
             }
-
-            // Sort and filter events based on the start date
-            filteredEvents.sort((a, b) => a['startDate'].compareTo(b['startDate']));
           } else {
             print('team_events field not found in user document');
           }
+
+          // Fetch and process user events
+          if (userData.containsKey('user_events')) {
+            List<dynamic> userEvents = userData['user_events'];
+            for (Map<String, dynamic> event in userEvents) {
+              String eventDocRef = event['eventDocRef'];
+
+              DocumentSnapshot eventSnapshot = await FirebaseFirestore.instance
+                  .collection('events')
+                  .doc(eventDocRef)
+                  .get();
+
+              _processEvent(filteredEvents, event, eventDocRef, eventSnapshot);
+            }
+          } else {
+            print('user_events field not found in user document');
+          }
+
+          // Sort and filter events based on the start date
+          filteredEvents.sort((a, b) => a['startDate'].compareTo(b['startDate']));
 
           if (userData.containsKey('team_ids')) {
             setState(() {
@@ -144,6 +133,50 @@ class _ListScreenScreenState extends State<ListScreen> {
       }
     } catch (e) {
       print('Error loading user document: $e');
+    }
+  }
+
+  void _processEvent(List<Map<String, dynamic>> filteredEvents, Map<String, dynamic> event, String eventDocRef, DocumentSnapshot eventSnapshot) {
+    if (eventSnapshot.exists) {
+      Map<String, dynamic> eventData = eventSnapshot.data() as Map<String, dynamic>;
+      print('Event Details:');
+      print('Event Title: ${eventData['eventTitle']}');
+      print('Start Date: ${eventData['startDate']}');
+      print('Start Time: ${eventData['startTime']}');
+      print('Event Location: ${eventData['eventLocation']}');
+      print('Status: ${event['status']}');
+
+      DateTime startDate = eventData['startDate'].toDate();
+
+      bool isEventInPast = startDate.isBefore(DateTime.now());
+      bool isEventOnCurrentDay = _isSameDay(startDate, DateTime.now());
+
+      if (dateFilter == 'Upcoming & Past Events' ||
+          (dateFilter == 'Upcoming Events' && startDate.isAfter(DateTime.now())) ||
+          (dateFilter == 'Past Events' && (isEventInPast && !isEventOnCurrentDay)) ||
+          (dateFilter == 'Upcoming Events' && (isEventOnCurrentDay || startDate.isAfter(DateTime.now())))) {
+        filteredEvents.add({
+          'title': eventData['eventTitle'],
+          'startDate': startDate,
+          'startTime': eventData['startTime'] ?? '',
+          'eventLocation': eventData['eventLocation'] ?? '',
+          'status': event['status'] ?? '',
+          'eventDocRef': eventDocRef,
+        });
+      } else if (dateFilter == 'Events Created by me' &&
+          (currentUser!.email == eventData['CurrentUserEmail'] || event['createdBy'] == currentUser!.email)) {
+        // Add only if the event is created by the current user
+        filteredEvents.add({
+          'title': eventData['eventTitle'],
+          'startDate': startDate,
+          'startTime': eventData['startTime'] ?? '',
+          'eventLocation': eventData['eventLocation'] ?? '',
+          'status': event['status'] ?? '',
+          'eventDocRef': eventDocRef,
+        });
+      }
+    } else {
+      print('Event document not found for eventDocRef: $eventDocRef');
     }
   }
 
@@ -190,7 +223,7 @@ class _ListScreenScreenState extends State<ListScreen> {
             padding: const EdgeInsets.all(8.0),
             child: DropdownButton<String>(
               value: dateFilter,
-              items: ['Upcoming & Past Events', 'Upcoming Events', 'Past Events']
+              items: ['Upcoming & Past Events', 'Upcoming Events', 'Past Events', 'Events Created by me']
                   .map((filter) => DropdownMenuItem<String>(
                 value: filter,
                 child: Text(filter),
@@ -219,7 +252,6 @@ class _ListScreenScreenState extends State<ListScreen> {
                     : (isEventOnCurrentDay)
                     ? 'Your Current Status: ${eventDetails[index]['status']}'
                     : 'Your Current Status: ${eventDetails[index]['status']}';
-
 
                 return Container(
                   decoration: BoxDecoration(

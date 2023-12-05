@@ -78,6 +78,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           print('User Data: $userData');
           print("Are you working?");
           print(userData['team_events']);
+          print(userData['user_events']); // New: Print user_events
 
           // Clear the eventDetails list before adding new events
           eventDetails.clear();
@@ -86,37 +87,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (userData.containsKey('team_events')) {
             List<dynamic> teamEvents = userData['team_events'];
             for (Map<String, dynamic> event in teamEvents) {
-              String eventDocRef = event['eventDocRef'];
-
-              DocumentSnapshot eventSnapshot = await FirebaseFirestore.instance
-                  .collection('events')
-                  .doc(eventDocRef)
-                  .get();
-
-              if (eventSnapshot.exists) {
-                Map<String, dynamic> eventData = eventSnapshot.data() as Map<String, dynamic>;
-                print('Event Details:');
-                print('Event Title: ${eventData['eventTitle']}');
-                print('Start Date: ${eventData['startDate']}');
-                print('Start Time: ${eventData['startTime']}');
-                print('Event Location: ${eventData['eventLocation']}');
-                print('Status: ${event['status']}'); // Fetch status from the event data
-
-                // Handle potential null values for 'startTime' and 'eventLocation'
-                eventDetails.add({
-                  'title': eventData['eventTitle'],
-                  'startDate': eventData['startDate'],
-                  'startTime': eventData['startTime'] ?? '',
-                  'eventLocation': eventData['eventLocation'] ?? '',
-                  'status': event['status'] ?? '', // Fetch status from the event data
-                  'eventDocRef': eventDocRef,
-                });
-              } else {
-                print('Event document not found for eventDocRef: $eventDocRef');
-              }
+              await _addEventDetails(event);
             }
           } else {
             print('team_events field not found in user document');
+          }
+
+          // Fetch and print details for each event in user_events
+          if (userData.containsKey('user_events')) {
+            List<dynamic> userEvents = userData['user_events'];
+            for (Map<String, dynamic> event in userEvents) {
+              await _addEventDetails(event);
+            }
+          } else {
+            print('user_events field not found in user document');
           }
 
           if (userData.containsKey('team_ids')) {
@@ -132,6 +116,38 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     } catch (e) {
       print('Error loading user document: $e');
+    }
+  }
+
+  // Helper method to add event details to the eventDetails list
+  Future<void> _addEventDetails(Map<String, dynamic> event) async {
+    String eventDocRef = event['eventDocRef'];
+
+    DocumentSnapshot eventSnapshot = await FirebaseFirestore.instance
+        .collection('events')
+        .doc(eventDocRef)
+        .get();
+
+    if (eventSnapshot.exists) {
+      Map<String, dynamic> eventData = eventSnapshot.data() as Map<String, dynamic>;
+      print('Event Details:');
+      print('Event Title: ${eventData['eventTitle']}');
+      print('Start Date: ${eventData['startDate']}');
+      print('Start Time: ${eventData['startTime']}');
+      print('Event Location: ${eventData['eventLocation']}');
+      print('Status: ${event['status']}'); // Fetch status from the event data
+
+      // Handle potential null values for 'startTime' and 'eventLocation'
+      eventDetails.add({
+        'title': eventData['eventTitle'],
+        'startDate': eventData['startDate'],
+        'startTime': eventData['startTime'] ?? '',
+        'eventLocation': eventData['eventLocation'] ?? '',
+        'status': event['status'] ?? '', // Fetch status from the event data
+        'eventDocRef': eventDocRef,
+      });
+    } else {
+      print('Event document not found for eventDocRef: $eventDocRef');
     }
   }
 
@@ -178,7 +194,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return a['startDate'].compareTo(b['startDate']);
       }
     });
-
 
     return Scaffold(
       appBar: AppBar(
