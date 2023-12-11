@@ -5,14 +5,16 @@ import 'package:intl/intl.dart';
 
 class StatusButton extends StatefulWidget {
   final String buttonText;
-  final String eventDocRef;
+  final String docRef;
+  final String collection;
   final String currentStatus;
   final Function(String) onPressed;
 
   const StatusButton({
     Key? key,
     required this.buttonText,
-    required this.eventDocRef,
+    required this.docRef,
+    required this.collection,
     required this.currentStatus,
     required this.onPressed,
   }) : super(key: key);
@@ -24,7 +26,6 @@ class StatusButton extends StatefulWidget {
 class _StatusButtonState extends State<StatusButton> {
   @override
   Widget build(BuildContext context) {
-    // Check if the button text matches the current status text in Firebase
     bool isButtonActive = widget.currentStatus == widget.buttonText;
 
     return ElevatedButton(
@@ -51,6 +52,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   late User? currentUser;
   List<String> teamIds = [];
   List<Map<String, dynamic>> eventDetails = [];
+  List<Map<String, dynamic>> challengeDetails = [];
+
+  // Set to keep track of added event IDs
+  Set<String> _addedEventIds = Set();
 
   @override
   void initState() {
@@ -73,43 +78,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
         if (userQuerySnapshot.docs.isNotEmpty) {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-
-          print('User Data: $userData');
-          print("Are you working?");
-          print(userData['team_events']);
-          print(userData['user_events']); // New: Print user_events
-
-          // Clear the eventDetails list before adding new events
-          eventDetails.clear();
-
-          // Fetch and print details for each event in team_events
-          if (userData.containsKey('team_events')) {
-            List<dynamic> teamEvents = userData['team_events'];
-            for (Map<String, dynamic> event in teamEvents) {
-              await _addEventDetails(event);
-            }
-          } else {
-            print('team_events field not found in user document');
-          }
-
-          // Fetch and print details for each event in user_events
-          if (userData.containsKey('user_events')) {
-            List<dynamic> userEvents = userData['user_events'];
-            for (Map<String, dynamic> event in userEvents) {
-              await _addEventDetails(event);
-            }
-          } else {
-            print('user_events field not found in user document');
-          }
-
-          if (userData.containsKey('team_ids')) {
-            setState(() {
-              teamIds = List.from(userData['team_ids']);
-            });
-          } else {
-            print('Team_ids field not found in user document');
-          }
+          await _addUserDetails(userSnapshot);
         } else {
           print('User document not found for the current user');
         }
@@ -119,9 +88,61 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  // Helper method to add event details to the eventDetails list
+  Future<void> _addUserDetails(DocumentSnapshot userSnapshot) async {
+    Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+    print('User Data: $userData');
+    print("Are you working?");
+    print(userData['team_events']);
+    print(userData['user_events']); // New: Print user_events
+    print(userData['team_challenges']); // New: Print team_challenges
+
+    eventDetails.clear();
+    challengeDetails.clear();
+
+    if (userData.containsKey('team_events')) {
+      List<dynamic> teamEvents = userData['team_events'];
+      for (Map<String, dynamic> event in teamEvents) {
+        await _addEventDetails(event);
+      }
+    } else {
+      print('team_events field not found in user document');
+    }
+
+    if (userData.containsKey('team_challenges')) {
+      List<dynamic> teamChallenges = userData['team_challenges'];
+      for (Map<String, dynamic> challenge in teamChallenges) {
+        await _addChallengeDetails(challenge);
+      }
+    } else {
+      print('team_challenges field not found in user document');
+    }
+
+    if (userData.containsKey('user_events')) {
+      List<dynamic> userEvents = userData['user_events'];
+      for (Map<String, dynamic> event in userEvents) {
+        await _addEventDetails(event);
+      }
+    } else {
+      print('user_events field not found in user document');
+    }
+
+    if (userData.containsKey('team_ids')) {
+      setState(() {
+        teamIds = List.from(userData['team_ids']);
+      });
+    } else {
+      print('Team_ids field not found in user document');
+    }
+  }
+
   Future<void> _addEventDetails(Map<String, dynamic> event) async {
     String eventDocRef = event['eventDocRef'];
+
+    // Check if the event has already been added
+    if (_addedEventIds.contains(eventDocRef)) {
+      return;
+    }
 
     DocumentSnapshot eventSnapshot = await FirebaseFirestore.instance
         .collection('events')
@@ -129,29 +150,59 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .get();
 
     if (eventSnapshot.exists) {
-      Map<String, dynamic> eventData = eventSnapshot.data() as Map<String, dynamic>;
-      print('Event Details:');
+      Map<String, dynamic> eventData =
+      eventSnapshot.data() as Map<String, dynamic>;
+
       print('Event Title: ${eventData['eventTitle']}');
       print('Start Date: ${eventData['startDate']}');
       print('Start Time: ${eventData['startTime']}');
       print('Event Location: ${eventData['eventLocation']}');
-      print('Status: ${event['status']}'); // Fetch status from the event data
+      print('Status: ${event['status']}');
 
-      // Handle potential null values for 'startTime' and 'eventLocation'
       eventDetails.add({
         'title': eventData['eventTitle'],
         'startDate': eventData['startDate'],
         'startTime': eventData['startTime'] ?? '',
         'eventLocation': eventData['eventLocation'] ?? '',
-        'status': event['status'] ?? '', // Fetch status from the event data
+        'status': event['status'] ?? '',
         'eventDocRef': eventDocRef,
       });
+
+      // Add the event ID to the set
+      _addedEventIds.add(eventDocRef);
     } else {
       print('Event document not found for eventDocRef: $eventDocRef');
     }
   }
 
-  Future<void> _updateStatus(String eventDocRef, String status) async {
+  Future<void> _addChallengeDetails(Map<String, dynamic> challenge) async {
+    String challengeDocRef = challenge['challengeDocRef'];
+
+    DocumentSnapshot challengeSnapshot = await FirebaseFirestore.instance
+        .collection('challenge_templates')
+        .doc(challengeDocRef)
+        .get();
+
+    if (challengeSnapshot.exists) {
+      Map<String, dynamic> challengeData =
+      challengeSnapshot.data() as Map<String, dynamic>;
+
+      print('Challenge Title: ${challengeData['template_name']}');
+      print('Description: ${challengeData['frequency']}');
+      print('Status: ${challenge['status']}');
+
+      challengeDetails.add({
+        'title': challengeData['template_name'],
+        'Description': challengeData['frequency'],
+        'status': challenge['status'] ?? '',
+        'challengeDocRef': challengeDocRef,
+      });
+    } else {
+      print('Challenge document not found for challengeDocRef: $challengeDocRef');
+    }
+  }
+
+  Future<void> _updateUserEventsStatus(String docRef, String status) async {
     try {
       QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
           .collection('users')
@@ -162,17 +213,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (userQuerySnapshot.docs.isNotEmpty) {
         DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
 
-        // Update the team_events field in the current user's document
-        List<dynamic> teamEvents = List.from(userSnapshot['team_events']);
-        for (int i = 0; i < teamEvents.length; i++) {
-          if (teamEvents[i]['eventDocRef'] == eventDocRef) {
-            teamEvents[i]['status'] = status;
-            break; // Stop iterating once the correct event is found and updated
+        List<dynamic> userEvents = List.from(userSnapshot['user_events']);
+        for (int i = 0; i < userEvents.length; i++) {
+          if (userEvents[i]['eventDocRef'] == docRef || userEvents[i]['challengeDocRef'] == docRef) {
+            userEvents[i]['status'] = status;
+            await userSnapshot.reference.update({'user_events': userEvents});
+            break;
           }
         }
+      } else {
+        print('User document not found for the current user');
+      }
+    } catch (e) {
+      print('Error updating user_events status: $e');
+    }
+  }
 
-        // Update the user's document with the modified team_events
-        await userSnapshot.reference.update({'team_events': teamEvents});
+  Future<void> _updateStatus(String docRef, String status, String collection) async {
+    try {
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUser!.email)
+          .limit(1)
+          .get();
+
+      if (userQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+
+        List<dynamic> events = List.from(userSnapshot[collection]);
+        for (int i = 0; i < events.length; i++) {
+          if (events[i]['eventDocRef'] == docRef || events[i]['challengeDocRef'] == docRef) {
+            events[i]['status'] = status;
+            await userSnapshot.reference.update({collection: events});
+
+            // Check the collection type and call the appropriate update function
+            if (collection == 'team_events') {
+              await _updateUserEventsStatus(docRef, status);
+            } else if (collection == 'team_challenges') {
+              // Add any specific handling for team_challenges if needed
+            } else if (collection == 'user_events') {
+              await _updateUserEventsStatus(docRef, status);
+            }
+
+            break;
+          }
+        }
       } else {
         print('User document not found for the current user');
       }
@@ -183,15 +268,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Sort events by status, placing "Pending" events at the top
     eventDetails.sort((a, b) {
       if (a['status'] == 'pending' && b['status'] != 'pending') {
         return -1;
       } else if (a['status'] != 'pending' && b['status'] == 'pending') {
         return 1;
       } else {
-        // For non-pending events, sort by start date
         return a['startDate'].compareTo(b['startDate']);
+      }
+    });
+
+    challengeDetails.sort((a, b) {
+      if (a['status'] == 'pending' && b['status'] != 'pending') {
+        return -1;
+      } else if (a['status'] != 'pending' && b['status'] == 'pending') {
+        return 1;
+      } else {
+        // Sort challenges based on your criteria, you can adjust this part
+        return 0;
       }
     });
 
@@ -211,81 +305,171 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 20),
           Expanded(
             child: ListView.builder(
-              itemCount: eventDetails.length,
+              itemCount: eventDetails.length + challengeDetails.length,
               itemBuilder: (context, index) {
-                DateTime startDate = eventDetails[index]['startDate'].toDate();
-                String formattedDate = DateFormat('MMMM d, y').format(startDate); // Updated date format
-
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                  ),
-                  child: ListTile(
-                    title: Text('Event Title: ${eventDetails[index]['title']}'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Start Date: $formattedDate'),
-                        Text('Start Time: ${eventDetails[index]['startTime']}'),
-                        Text('Event Location: ${eventDetails[index]['eventLocation']}'),
-                        SizedBox(height: 8),
-                        Text(
-                          'Your Current Status: ${eventDetails[index]['status']}',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ), // Added section to display current status
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Expanded(
-                              child: StatusButton(
-                                buttonText: 'Going',
-                                eventDocRef: eventDetails[index]['eventDocRef'],
-                                currentStatus: eventDetails[index]['status'],
-                                onPressed: (status) {
-                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
-                                  // Update the local eventDetails list with the new status
-                                  setState(() {
-                                    eventDetails[index]['status'] = status;
-                                  });
-                                },
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: StatusButton(
-                                buttonText: 'Not Going',
-                                eventDocRef: eventDetails[index]['eventDocRef'],
-                                currentStatus: eventDetails[index]['status'],
-                                onPressed: (status) {
-                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
-                                  // Update the local eventDetails list with the new status
-                                  setState(() {
-                                    eventDetails[index]['status'] = status;
-                                  });
-                                },
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: StatusButton(
-                                buttonText: 'Maybe',
-                                eventDocRef: eventDetails[index]['eventDocRef'],
-                                currentStatus: eventDetails[index]['status'],
-                                onPressed: (status) {
-                                  _updateStatus(eventDetails[index]['eventDocRef'], status);
-                                  // Update the local eventDetails list with the new status
-                                  setState(() {
-                                    eventDetails[index]['status'] = status;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                if (index < challengeDetails.length) {
+                  int challengeIndex = index;
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
                     ),
-                  ),
-                );
+                    child: ListTile(
+                      title: Text(
+                          'Title: ${challengeDetails[challengeIndex]['title']}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              'Description: ${challengeDetails[challengeIndex]['Description']}'),
+                          SizedBox(height: 8),
+                          Text(
+                            'Status: ${challengeDetails[challengeIndex]['status']}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Join',
+                                  docRef: challengeDetails[challengeIndex]['challengeDocRef'],
+                                  collection: 'team_challenges',
+                                  currentStatus: challengeDetails[challengeIndex]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(
+                                      challengeDetails[challengeIndex]['challengeDocRef'],
+                                      status,
+                                      'team_challenges',
+                                    );
+                                    setState(() {
+                                      challengeDetails[challengeIndex]['status'] =
+                                          status;
+                                    });
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Decline',
+                                  docRef: challengeDetails[challengeIndex]['challengeDocRef'],
+                                  collection: 'team_challenges',
+                                  currentStatus: challengeDetails[challengeIndex]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(
+                                      challengeDetails[challengeIndex]['challengeDocRef'],
+                                      status,
+                                      'team_challenges',
+                                    );
+                                    setState(() {
+                                      challengeDetails[challengeIndex]['status'] =
+                                          status;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                } else {
+                  int eventIndex = index - challengeDetails.length;
+                  DateTime startDate = eventDetails[eventIndex]['startDate']
+                      .toDate();
+                  String formattedDate = DateFormat('MMMM d, y').format(
+                      startDate);
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                    ),
+                    child: ListTile(
+                      title: Text(
+                          'Title: ${eventDetails[eventIndex]['title']}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Start Date: $formattedDate'),
+                          Text(
+                              'Start Time: ${eventDetails[eventIndex]['startTime']}'),
+                          Text(
+                              'Location: ${eventDetails[eventIndex]['eventLocation']}'),
+                          SizedBox(height: 8),
+                          Text(
+                            'Status: ${eventDetails[eventIndex]['status']}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Going',
+                                  docRef: eventDetails[eventIndex]['eventDocRef'],
+                                  collection: 'team_events',
+                                  currentStatus: eventDetails[eventIndex]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(
+                                      eventDetails[eventIndex]['eventDocRef'],
+                                      status,
+                                      'team_events',
+                                    );
+                                    setState(() {
+                                      eventDetails[eventIndex]['status'] =
+                                          status;
+                                    });
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Not Going',
+                                  docRef: eventDetails[eventIndex]['eventDocRef'],
+                                  collection: 'team_events',
+                                  currentStatus: eventDetails[eventIndex]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(
+                                      eventDetails[eventIndex]['eventDocRef'],
+                                      status,
+                                      'team_events',
+                                    );
+                                    setState(() {
+                                      eventDetails[eventIndex]['status'] =
+                                          status;
+                                    });
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: StatusButton(
+                                  buttonText: 'Maybe',
+                                  docRef: eventDetails[eventIndex]['eventDocRef'],
+                                  collection: 'team_events',
+                                  currentStatus: eventDetails[eventIndex]['status'],
+                                  onPressed: (status) {
+                                    _updateStatus(
+                                      eventDetails[eventIndex]['eventDocRef'],
+                                      status,
+                                      'team_events',
+                                    );
+                                    setState(() {
+                                      eventDetails[eventIndex]['status'] =
+                                          status;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
               },
             ),
           ),

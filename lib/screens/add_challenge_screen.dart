@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:snapchat_ui_clone/screens/prebuilt_activity_template_screen.dart';
 
 class CreateChallenge extends StatefulWidget {
   const CreateChallenge({Key? key}) : super(key: key);
@@ -27,25 +28,6 @@ class _CreateChallengeState extends State<CreateChallenge> {
     // Add more options as needed
   ];
 
-  List<String> selectedTeams = []; // List to store selected teams
-
-  // Initialize a map to keep track of the checked states for each team's activities
-  Map<String, List<bool>> _teamCheckedStates = {};
-
-  Future<List<dynamic>> loadTeamData() async {
-    String jsonDataFile = 'assets/images/data/team_data.json'; // Default to events_data.json
-
-    final String jsonData = await rootBundle.loadString(jsonDataFile);
-    final jsonDataMap = json.decode(jsonData);
-    final challengeList = jsonDataMap['data'] as List<dynamic>;
-
-    // Filter the challengeList based on the 'user' field ****** This is where it should automatically pull
-    // in the user which is currently logged in
-    final filteredChallengeList = challengeList.where((challenge) => challenge['user'] == 'whiskey').toList();
-    print(filteredChallengeList);
-    return filteredChallengeList;
-  }
-
   bool areFieldsFilled() {
     return challengeDataList.isNotEmpty &&
         challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
@@ -53,34 +35,45 @@ class _CreateChallengeState extends State<CreateChallenge> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Activity Template!'),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: <Widget>[
-              Column(
-                children: challengeDataList
-                    .map((data) => _buildChallengeRow(data))
-                    .toList(),
-              ),
-              const SizedBox(height: 20),
-              _buildFrequencySection(),
-              const SizedBox(height: 20),
-              _buildTeamSelection(),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: areFieldsFilled() ? () => postChallenge() : null,
-                child: Text('Post Activity'),
-              ),
-              const SizedBox(height: 20),
-              // Display selected teams below the button
-              _buildSelectedTeamsList(),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Challenges'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Customize Challenge'),
+              Tab(text: 'Select Challenge Template'),
             ],
           ),
+        ),
+        body: TabBarView(
+          children: [
+            // First tab - Customize Activity
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: <Widget>[
+                    Column(
+                      children: challengeDataList
+                          .map((data) => _buildChallengeRow(data))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildFrequencySection(),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: areFieldsFilled() ? () => postChallenge(context) : null,
+                      child: Text('Post Challenge'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Second tab - Placeholder content
+            const PrebuiltActivityTemplateScreen(),
+          ],
         ),
       ),
     );
@@ -100,7 +93,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
               style: TextStyle(fontSize: 16),
               onChanged: (value) {},
               decoration: InputDecoration(
-                hintText: 'Activity Title',
+                hintText: 'Challenge Title',
               ),
             ),
           ),
@@ -115,7 +108,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                   setState(() {});
                 },
                 decoration: const InputDecoration(
-                  hintText: 'Activity',
+                  hintText: 'Challenge',
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
@@ -123,7 +116,6 @@ class _CreateChallengeState extends State<CreateChallenge> {
                 controller: data.controller,
               ),
             ),
-
             IconButton(
               icon: Icon(Icons.add),
               onPressed: () {
@@ -168,7 +160,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
           child: DropdownButton<String>(
             value: selectedFrequency,
             onChanged: (String? newValue) {
-              if (newValue != null) { // Check if newValue is not null
+              if (newValue != null) {
                 setState(() {
                   selectedFrequency = newValue;
                 });
@@ -189,166 +181,10 @@ class _CreateChallengeState extends State<CreateChallenge> {
     );
   }
 
-  // Create a set to store the selected teams
-  Set<String> _selectedTeams = {};
-
-  Widget _buildTeamSelection() {
-    return FutureBuilder<List<dynamic>>(
-      future: loadTeamData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error loading data'));
-        } else if (!snapshot.hasData) {
-          return Center(child: Text('No data available'));
-        }
-
-        final challengeList = snapshot.data!;
-        print(challengeList);
-        print('Team Checked States:');
-        _teamCheckedStates.forEach((teamName, checkedStates) {
-          print('Team Name: $teamName');
-          print('Checked States: $checkedStates');
-        });
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Select Team',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...challengeList.map<Widget>((challenge) {
-              final challengeType = challenge['user'];
-              final subChallengeTypes = challenge['UserTeams'] as Map<String, dynamic>;
-
-              return Column(
-                children: subChallengeTypes.entries.map<Widget>((entry) {
-                  final subChallengeData = entry.value as Map<String, dynamic>;
-                  final TeamName = subChallengeData['teamname'] as String?;
-                  final activities = subChallengeData['teammates'] as List<dynamic>;
-
-                  // Initialize the checked state for this team's activities
-                  _teamCheckedStates.putIfAbsent(
-                    TeamName!,
-                        () => List.generate(activities.length, (index) => false),
-                  );
-
-                  return Card(
-                    elevation: 4,
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ExpansionTile(
-                      leading: StatefulBuilder(
-                        builder: (context, setState) {
-                          return Checkbox(
-                            value: _teamCheckedStates[TeamName!]!.contains(true),
-                            onChanged: (bool? newValue) {
-                              setState(() {
-                                _teamCheckedStates[TeamName!] =
-                                    List.generate(activities.length, (index) => newValue ?? false);
-                                if (newValue == true) {
-                                  _selectedTeams.add(TeamName!);
-                                } else {
-                                  _selectedTeams.remove(TeamName!);
-                                }
-                              });
-                            },
-                          );
-                        },
-                      ),
-                      title: Text(TeamName ?? 'Unknown Team'),
-                      children: [
-                        ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: activities.length,
-                          itemBuilder: (context, activityIndex) {
-                            final activity = activities[activityIndex];
-                            final activityName = activity['name'] as String;
-
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: Text(activityName),
-                                ),
-
-                                StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Checkbox(
-                                      value: _teamCheckedStates[TeamName!]![activityIndex],
-                                      onChanged: (bool? newValue) {
-                                        setState(() {
-                                          _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
-                                StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Checkbox(
-                                      value: _teamCheckedStates[TeamName!]![activityIndex],
-                                      onChanged: (bool? newValue) {
-                                        setState(() {
-                                          _teamCheckedStates[TeamName!]![activityIndex] = newValue ?? false;
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            }).toList(),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSelectedTeamsList() {
-    return selectedTeams.isNotEmpty
-        ? Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Selected Teams:',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ListView.builder(
-          shrinkWrap: true,
-          itemCount: selectedTeams.length,
-          itemBuilder: (context, index) {
-            return Text(selectedTeams[index]);
-          },
-        ),
-      ],
-    )
-        : Container();
-  }
-
-  void postChallenge() {
+  void postChallenge(BuildContext context) {
     // Implement your logic to post the challenge here
     print('Challenges Posted: ${challengeDataList.map((data) => data.challengeTitle).toList()}');
     print('Selected Frequency: $selectedFrequency');
-    print('Selected Teams: $selectedTeams');
   }
 }
 

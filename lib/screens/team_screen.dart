@@ -167,7 +167,7 @@ class _TeamScreenState extends State<TeamScreen> {
                     children: [
                       Row(
                         children: [
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 16),
                           ElevatedButton(
                             onPressed: () async {
                               // Show a loading indicator while creating a team
@@ -197,10 +197,10 @@ class _TeamScreenState extends State<TeamScreen> {
                               // Close the loading indicator dialog
                               Navigator.pop(context);
                             },
-                            child: Text('Create a team'),
+                            child: Text('Create Team'),
                           ),
 
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
                               Navigator.push(
@@ -212,9 +212,9 @@ class _TeamScreenState extends State<TeamScreen> {
                               // Handle the "Create an event/activity" button tap
                               // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
                             },
-                            child: Text('Create an Event'),
+                            child: Text('Create Event'),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {
                               Navigator.push(
@@ -226,9 +226,9 @@ class _TeamScreenState extends State<TeamScreen> {
                               // Handle the "Create a team" button tap
                               // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
                             },
-                            child: Text('Create an Activity'),
+                            child: Text('Create Challenge'),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
                         ],
                       ),
                     ],
