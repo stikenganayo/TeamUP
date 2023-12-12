@@ -331,7 +331,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             children: [
                               Expanded(
                                 child: StatusButton(
-                                  buttonText: 'Join',
+                                  buttonText: 'Accept',
                                   docRef: challengeDetails[challengeIndex]['challengeDocRef'],
                                   collection: 'team_challenges',
                                   currentStatus: challengeDetails[challengeIndex]['status'],
