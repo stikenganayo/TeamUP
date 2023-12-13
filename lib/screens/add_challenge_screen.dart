@@ -1,7 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:snapchat_ui_clone/screens/prebuilt_activity_template_screen.dart';
+import 'package:snapchat_ui_clone/screens/selection_screen.dart';
 
 class CreateChallenge extends StatefulWidget {
   const CreateChallenge({Key? key}) : super(key: key);
@@ -14,23 +13,46 @@ class _CreateChallengeState extends State<CreateChallenge> {
   List<ChallengeData> challengeDataList = [
     ChallengeData(challengeTitle: "", controller: TextEditingController())
   ];
+  List<String> selectedFriends = [];
+  List<String> selectedTeams = [];
 
-  String selectedFrequency = "Once"; // Default value
-  List<String> frequencyOptions = [
-    "Once",
-    "every 1 day",
-    "every 2 days",
-    "every 3 days",
-    "every 4 days",
-    "every 5 days",
-    "every week",
-    "every 2 weeks",
-    // Add more options as needed
+  bool showFrequencyDropdowns = false;
+  int selectedNumber = 1;
+  String selectedTimeUnit = "Day";
+  String selectedChallengeType = "CheckBox"; // Default value for challenge type dropdown
+  List<String> timeUnitOptions = [
+    "Second",
+    "Minute",
+    "Hour",
+    "Day",
+    "Week",
+    "Month",
+    "Year",
+    "Meter",
+    "Kilometer",
+    "Gram",
+    "Kilogram",
+    "Liter",
+    "Milliliter",
+    "Celsius",
+    "Fahrenheit",
+    "Piece",
   ];
+
+  late List<InputFieldData> inputFieldsDataList; // Initialize as late
 
   bool areFieldsFilled() {
     return challengeDataList.isNotEmpty &&
         challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    inputFieldsDataList = List.generate(
+      selectedNumber,
+          (index) => InputFieldData(),
+    );
   }
 
   @override
@@ -49,7 +71,6 @@ class _CreateChallengeState extends State<CreateChallenge> {
         ),
         body: TabBarView(
           children: [
-            // First tab - Customize Activity
             SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -61,17 +82,183 @@ class _CreateChallengeState extends State<CreateChallenge> {
                           .toList(),
                     ),
                     const SizedBox(height: 20),
-                    _buildFrequencySection(),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          showFrequencyDropdowns = !showFrequencyDropdowns;
+                        });
+                      },
+                      child: Text(
+                          showFrequencyDropdowns ? 'Remove Frequency' : 'Set Frequency?'),
+                    ),
+                    if (showFrequencyDropdowns) const SizedBox(height: 10),
+                    if (showFrequencyDropdowns) _buildFrequencySection(),
+                    const SizedBox(height: 20),
+
+                    Column(
+                      children: [
+                        const Text(
+                          'Tracking',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownButton<String>(
+                          value: selectedChallengeType,
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                selectedChallengeType = newValue;
+                                if (newValue == "CheckBox") {
+                                  // Reset tracking-related fields when CheckBox is selected
+                                  selectedNumber = 1;
+                                  selectedTimeUnit = "Day";
+                                  inputFieldsDataList = [InputFieldData()];
+                                } else {
+                                  inputFieldsDataList = List.generate(
+                                    selectedNumber,
+                                        (index) => InputFieldData(),
+                                  );
+                                }
+                              });
+                            }
+                          },
+                          items: ["CheckBox", "1", "2", "3"]
+                              .map<DropdownMenuItem<String>>(
+                                (String value) => DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            ),
+                          )
+                              .toList(),
+                          hint: Text('Select Number'),
+                        ),
+                        if (selectedChallengeType != "CheckBox")
+                          Column(
+                            children: [
+                              const SizedBox(height: 10), // Spacer
+                              for (int index = 0; index < int.parse(selectedChallengeType); index++)
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: TextFormField(
+                                        onChanged: (value) {
+                                          setState(() {
+                                            if (value.isNotEmpty) {
+                                              inputFieldsDataList[index].numberOfFields = int.parse(value);
+                                            }
+                                          });
+                                        },
+                                        decoration: InputDecoration(
+                                          hintText: 'Input Field Name Here',
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: DropdownButton<String>(
+                                        value: inputFieldsDataList[index].unit,
+                                        onChanged: (String? newValue) {
+                                          if (newValue != null) {
+                                            setState(() {
+                                              inputFieldsDataList[index].unit = newValue;
+                                            });
+                                          }
+                                        },
+                                        items: timeUnitOptions
+                                            .map<DropdownMenuItem<String>>(
+                                              (String value) => DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value),
+                                          ),
+                                        )
+                                            .toList(),
+                                        hint: Text('Select Unit'),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                  ],
+                                ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SelectionScreen(),
+                          ),
+                        ).then((result) {
+                          if (result != null && result is Map<String, dynamic>) {
+                            setState(() {
+                              selectedFriends.clear();
+                              if (result.containsKey('friends') && result['friends'] is List<String>) {
+                                selectedFriends.addAll(result['friends']);
+                              }
+
+                              selectedTeams.clear();
+                              if (result.containsKey('teams') && result['teams'] is List<String>) {
+                                selectedTeams.addAll(result['teams']);
+                              }
+                            });
+                          }
+                        });
+                      },
+                      child: const Text('Challenge who?'),
+                    ),
+                    const SizedBox(height: 20),
+
+                    if (selectedFriends.isNotEmpty || selectedTeams.isNotEmpty)
+                      Column(
+                        children: [
+                          Text(
+                            'Posting to:',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            children: [
+                              ...selectedFriends.map(
+                                    (friendName) => Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Chip(
+                                    label: Text(friendName),
+                                    backgroundColor: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                              ...selectedTeams.map(
+                                    (teamName) => Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Chip(
+                                    label: Text(teamName),
+                                    backgroundColor: Colors.blue,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: areFieldsFilled() ? () => postChallenge(context) : null,
-                      child: Text('Post Challenge'),
+                      child: const Text('Post Challenge'),
                     ),
                   ],
                 ),
               ),
             ),
-            // Second tab - Placeholder content
             const PrebuiltActivityTemplateScreen(),
           ],
         ),
@@ -155,36 +342,71 @@ class _CreateChallengeState extends State<CreateChallenge> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          alignment: Alignment.centerLeft,
-          child: DropdownButton<String>(
-            value: selectedFrequency,
-            onChanged: (String? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  selectedFrequency = newValue;
-                });
-              }
-            },
-            items: frequencyOptions.map<DropdownMenuItem<String>>(
-                  (String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              },
-            ).toList(),
-            hint: Text('Select Frequency'),
-          ),
+        Row(
+          children: [
+            Flexible(
+              child: DropdownButton<int>(
+                value: selectedNumber,
+                onChanged: (int? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      selectedNumber = newValue;
+                      inputFieldsDataList = List.generate(
+                        selectedNumber,
+                            (index) => InputFieldData(),
+                      );
+                    });
+                  }
+                },
+                items: [1, 2, 3]
+                    .map<DropdownMenuItem<int>>(
+                      (int value) => DropdownMenuItem<int>(
+                    value: value,
+                    child: Text(value.toString()),
+                  ),
+                )
+                    .toList(),
+                hint: Text('Select Number'),
+              ),
+            ),
+            const Text('/', style: TextStyle(fontSize: 20)),
+            const SizedBox(width: 10),
+
+            Flexible(
+              child: DropdownButton<String>(
+                value: selectedTimeUnit,
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      selectedTimeUnit = newValue;
+                    });
+                  }
+                },
+                items: timeUnitOptions.map<DropdownMenuItem<String>>(
+                      (String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  },
+                ).toList(),
+                hint: Text('Select Time Unit'),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 10),
       ],
     );
   }
 
   void postChallenge(BuildContext context) {
-    // Implement your logic to post the challenge here
     print('Challenges Posted: ${challengeDataList.map((data) => data.challengeTitle).toList()}');
-    print('Selected Frequency: $selectedFrequency');
+    print('Selected Frequency: $selectedNumber $selectedTimeUnit');
+    print('Selected Challenge Type: $selectedChallengeType');
+    for (int i = 0; i < inputFieldsDataList.length; i++) {
+      print('Input Field $i: ${inputFieldsDataList[i].numberOfFields} ${inputFieldsDataList[i].unit}');
+    }
   }
 }
 
@@ -193,4 +415,9 @@ class ChallengeData {
   TextEditingController controller;
 
   ChallengeData({required this.challengeTitle, required this.controller});
+}
+
+class InputFieldData {
+  int numberOfFields = 1;
+  String unit = "Second";
 }
