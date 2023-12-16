@@ -17,9 +17,14 @@ class _CreateChallengeState extends State<CreateChallenge> {
   List<String> selectedTeams = [];
 
   bool showFrequencyDropdowns = false;
+  bool showGoalField = false;
+  bool showUnitsDropdown = false; // Added to control the display of units dropdown
   int selectedNumber = 1;
   String selectedTimeUnit = "Day";
   String selectedChallengeType = "CheckBox"; // Default value for challenge type dropdown
+  String selectedUnit = "Day"; // Default value for units dropdown
+  String selectedGoal = "times"; // Default value for goal dropdown
+
   List<String> timeUnitOptions = [
     "Second",
     "Minute",
@@ -28,16 +33,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
     "Week",
     "Month",
     "Year",
-    "Meter",
-    "Kilometer",
-    "Gram",
-    "Kilogram",
-    "Liter",
-    "Milliliter",
-    "Celsius",
-    "Fahrenheit",
-    "Piece",
   ];
+
+  List<String> goalOptions = ["times", "seconds", "minutes", "hours", "days"]; // Options for the goal dropdown
 
   late List<InputFieldData> inputFieldsDataList; // Initialize as late
 
@@ -88,105 +86,24 @@ class _CreateChallengeState extends State<CreateChallenge> {
                           showFrequencyDropdowns = !showFrequencyDropdowns;
                         });
                       },
-                      child: Text(
-                          showFrequencyDropdowns ? 'Remove Frequency' : 'Set Frequency?'),
+                      child: Text(showFrequencyDropdowns
+                          ? 'Remove Frequency'
+                          : 'Set Frequency?'),
                     ),
                     if (showFrequencyDropdowns) const SizedBox(height: 10),
                     if (showFrequencyDropdowns) _buildFrequencySection(),
                     const SizedBox(height: 20),
-
-                    Column(
-                      children: [
-                        const Text(
-                          'Tracking',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        DropdownButton<String>(
-                          value: selectedChallengeType,
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() {
-                                selectedChallengeType = newValue;
-                                if (newValue == "CheckBox") {
-                                  // Reset tracking-related fields when CheckBox is selected
-                                  selectedNumber = 1;
-                                  selectedTimeUnit = "Day";
-                                  inputFieldsDataList = [InputFieldData()];
-                                } else {
-                                  inputFieldsDataList = List.generate(
-                                    selectedNumber,
-                                        (index) => InputFieldData(),
-                                  );
-                                }
-                              });
-                            }
-                          },
-                          items: ["CheckBox", "1", "2", "3"]
-                              .map<DropdownMenuItem<String>>(
-                                (String value) => DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            ),
-                          )
-                              .toList(),
-                          hint: Text('Select Number'),
-                        ),
-                        if (selectedChallengeType != "CheckBox")
-                          Column(
-                            children: [
-                              const SizedBox(height: 10), // Spacer
-                              for (int index = 0; index < int.parse(selectedChallengeType); index++)
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: TextFormField(
-                                        onChanged: (value) {
-                                          setState(() {
-                                            if (value.isNotEmpty) {
-                                              inputFieldsDataList[index].numberOfFields = int.parse(value);
-                                            }
-                                          });
-                                        },
-                                        decoration: InputDecoration(
-                                          hintText: 'Input Field Name Here',
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Flexible(
-                                      child: DropdownButton<String>(
-                                        value: inputFieldsDataList[index].unit,
-                                        onChanged: (String? newValue) {
-                                          if (newValue != null) {
-                                            setState(() {
-                                              inputFieldsDataList[index].unit = newValue;
-                                            });
-                                          }
-                                        },
-                                        items: timeUnitOptions
-                                            .map<DropdownMenuItem<String>>(
-                                              (String value) => DropdownMenuItem<String>(
-                                            value: value,
-                                            child: Text(value),
-                                          ),
-                                        )
-                                            .toList(),
-                                        hint: Text('Select Unit'),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                  ],
-                                ),
-                            ],
-                          ),
-                      ],
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          showGoalField = !showGoalField;
+                        });
+                      },
+                      child: Text(showGoalField ? 'Remove Goal' : 'Set a Goal'),
                     ),
+                    if (showGoalField) const SizedBox(height: 10),
+                    if (showGoalField) _buildGoalField(),
                     const SizedBox(height: 20),
-
                     ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -195,15 +112,18 @@ class _CreateChallengeState extends State<CreateChallenge> {
                             builder: (context) => SelectionScreen(),
                           ),
                         ).then((result) {
-                          if (result != null && result is Map<String, dynamic>) {
+                          if (result != null &&
+                              result is Map<String, dynamic>) {
                             setState(() {
                               selectedFriends.clear();
-                              if (result.containsKey('friends') && result['friends'] is List<String>) {
+                              if (result.containsKey('friends') &&
+                                  result['friends'] is List<String>) {
                                 selectedFriends.addAll(result['friends']);
                               }
 
                               selectedTeams.clear();
-                              if (result.containsKey('teams') && result['teams'] is List<String>) {
+                              if (result.containsKey('teams') &&
+                                  result['teams'] is List<String>) {
                                 selectedTeams.addAll(result['teams']);
                               }
                             });
@@ -213,7 +133,6 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       child: const Text('Challenge who?'),
                     ),
                     const SizedBox(height: 20),
-
                     if (selectedFriends.isNotEmpty || selectedTeams.isNotEmpty)
                       Column(
                         children: [
@@ -249,10 +168,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
                           ),
                         ],
                       ),
-
                     const SizedBox(height: 20),
                     ElevatedButton(
-                      onPressed: areFieldsFilled() ? () => postChallenge(context) : null,
+                      onPressed: areFieldsFilled()
+                          ? () => postChallenge(context)
+                          : null,
                       child: const Text('Post Challenge'),
                     ),
                   ],
@@ -308,7 +228,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
               onPressed: () {
                 setState(() {
                   challengeDataList.add(
-                    ChallengeData(challengeTitle: "", controller: TextEditingController()),
+                    ChallengeData(
+                        challengeTitle: "",
+                        controller: TextEditingController()),
                   );
                 });
               },
@@ -344,34 +266,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
         const SizedBox(height: 10),
         Row(
           children: [
-            Flexible(
-              child: DropdownButton<int>(
-                value: selectedNumber,
-                onChanged: (int? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      selectedNumber = newValue;
-                      inputFieldsDataList = List.generate(
-                        selectedNumber,
-                            (index) => InputFieldData(),
-                      );
-                    });
-                  }
-                },
-                items: [1, 2, 3]
-                    .map<DropdownMenuItem<int>>(
-                      (int value) => DropdownMenuItem<int>(
-                    value: value,
-                    child: Text(value.toString()),
-                  ),
-                )
-                    .toList(),
-                hint: Text('Select Number'),
-              ),
-            ),
-            const Text('/', style: TextStyle(fontSize: 20)),
             const SizedBox(width: 10),
-
             Flexible(
               child: DropdownButton<String>(
                 value: selectedTimeUnit,
@@ -400,13 +295,97 @@ class _CreateChallengeState extends State<CreateChallenge> {
     );
   }
 
+  Widget _buildGoalField() {
+    return Row(
+      children: [
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Set a Goal',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        showUnitsDropdown = !showUnitsDropdown;
+                      });
+                    },
+                    child: Text(showUnitsDropdown ? 'Remove Units' : 'Units'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Flexible(
+                    child: TextFormField(
+                      onChanged: (value) {
+                        // Handle goal input
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Enter a Goal',
+                        labelStyle: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  if (showUnitsDropdown)
+                    DropdownButton<String>(
+                      value: selectedGoal,
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            selectedGoal = newValue;
+                          });
+                        }
+                      },
+                      items: goalOptions.map<DropdownMenuItem<String>>(
+                            (String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        },
+                      ).toList(),
+                      hint: Text('Units'),
+                    ),
+                  const SizedBox(width: 10),
+                  if (showFrequencyDropdowns)
+                    Text(
+                      selectedTimeUnit,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void postChallenge(BuildContext context) {
-    print('Challenges Posted: ${challengeDataList.map((data) => data.challengeTitle).toList()}');
+    print(
+        'Challenges Posted: ${challengeDataList.map((data) => data.challengeTitle).toList()}');
     print('Selected Frequency: $selectedNumber $selectedTimeUnit');
     print('Selected Challenge Type: $selectedChallengeType');
     for (int i = 0; i < inputFieldsDataList.length; i++) {
-      print('Input Field $i: ${inputFieldsDataList[i].numberOfFields} ${inputFieldsDataList[i].unit}');
+      print(
+          'Input Field $i: ${inputFieldsDataList[i].numberOfFields} ${inputFieldsDataList[i].unit}');
     }
+    print('Selected Goal: $selectedGoal $selectedUnit');
   }
 }
 
