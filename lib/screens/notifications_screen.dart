@@ -118,6 +118,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       print('team_challenges field not found in user document');
     }
 
+    if (userData.containsKey('team_challenges')) {
+      List<dynamic> teamChallenges = userData['team_challenges'];
+      for (Map<String, dynamic> challenge in teamChallenges) {
+        await _addChallengeTemplateDetails(challenge);
+      }
+    } else {
+      print('team_challenges field not found in user document');
+    }
+
+
+
+
+
     if (userData.containsKey('user_events')) {
       List<dynamic> userEvents = userData['user_events'];
       for (Map<String, dynamic> event in userEvents) {
@@ -179,6 +192,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     String challengeDocRef = challenge['challengeDocRef'];
 
     DocumentSnapshot challengeSnapshot = await FirebaseFirestore.instance
+        .collection('challenges')
+        .doc(challengeDocRef)
+        .get();
+
+    if (challengeSnapshot.exists) {
+      Map<String, dynamic> challengeData =
+      challengeSnapshot.data() as Map<String, dynamic>;
+
+      print('Challenge Title: ${challengeData['template_name']}');
+      print('Description: ${challengeData['frequency']}');
+      print('Status: ${challenge['status']}');
+
+      challengeDetails.add({
+        'title': challengeData['challengeDataList'] != null
+            ? challengeData['challengeDataList'][0]['challengeTitle'].toString()
+            : '',
+        'Description': [
+          if (challengeData['goalValue'] != null) challengeData['goalValue'],
+          if (challengeData['selectedUnit'] != null) challengeData['selectedUnit'],
+          if (challengeData['selectedTimeUnit'] != null)
+            challengeData['selectedTimeUnit'],
+        ].where((value) => value.isNotEmpty).join(' '), // Combine non-empty values
+        'status': challenge['status'] ?? '',
+        'challengeDocRef': challengeDocRef,
+      });
+
+    } else {
+      print('Challenge document not found for challengeDocRef: $challengeDocRef');
+    }
+  }
+
+  Future<void> _addChallengeTemplateDetails(Map<String, dynamic> challenge) async {
+    String challengeDocRef = challenge['challengeDocRef'];
+
+    DocumentSnapshot challengeSnapshot = await FirebaseFirestore.instance
         .collection('challenge_templates')
         .doc(challengeDocRef)
         .get();
@@ -201,6 +249,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       print('Challenge document not found for challengeDocRef: $challengeDocRef');
     }
   }
+
+
 
   Future<void> _updateUserEventsStatus(String docRef, String status) async {
     try {
