@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+
+
+
 class StatusButton extends StatefulWidget {
   final String buttonText;
   final String docRef;
@@ -53,9 +56,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   List<String> teamIds = [];
   List<Map<String, dynamic>> eventDetails = [];
   List<Map<String, dynamic>> challengeDetails = [];
+  String currentUserName = '';
+
+  // New variable to store the current user's name
+  String currentUserFullName = '';
+
 
   // Set to keep track of added event IDs
   Set<String> _addedEventIds = Set();
+
+  bool showMyCreated = false; // Added to track the selected option
+
 
   @override
   void initState() {
@@ -79,6 +90,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (userQuerySnapshot.docs.isNotEmpty) {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
           await _addUserDetails(userSnapshot);
+
+          // Store the name field in currentUserFullName
+          currentUserFullName = userSnapshot['name'];
+
+          // Print the name field
+          print('Current User Name: $currentUserFullName');
         } else {
           print('User document not found for the current user');
         }
@@ -177,8 +194,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'startDate': eventData['startDate'],
         'startTime': eventData['startTime'] ?? '',
         'eventLocation': eventData['eventLocation'] ?? '',
+        'Created By': eventData['CurrentUserName'],
         'status': event['status'] ?? '',
         'eventDocRef': eventDocRef,
+        'attending': eventData['attending'],
       });
 
       // Add the event ID to the set
@@ -214,8 +233,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (challengeData['selectedTimeUnit'] != null)
             challengeData['selectedTimeUnit'],
         ].where((value) => value.isNotEmpty).join(' '), // Combine non-empty values
+        'Created By': challengeData['CurrentUserName'],
         'status': challenge['status'] ?? '',
         'challengeDocRef': challengeDocRef,
+        'accepted': challengeData['accepted'],
       });
 
     } else {
@@ -242,6 +263,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       challengeDetails.add({
         'title': challengeData['template_name'],
         'Description': challengeData['frequency'],
+        'Created By': challengeData['CurrentUserName'],
         'status': challenge['status'] ?? '',
         'challengeDocRef': challengeDocRef,
       });
@@ -259,7 +281,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .where('email', isEqualTo: currentUser!.email)
           .limit(1)
           .get();
-
+      print(status);
       if (userQuerySnapshot.docs.isNotEmpty) {
         DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
 
@@ -287,27 +309,62 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .limit(1)
           .get();
 
+      print('Updating status: $status for docRef: $docRef in collection: $collection');
+
       if (userQuerySnapshot.docs.isNotEmpty) {
         DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
 
-        List<dynamic> events = List.from(userSnapshot[collection]);
-        for (int i = 0; i < events.length; i++) {
-          if (events[i]['eventDocRef'] == docRef || events[i]['challengeDocRef'] == docRef) {
-            events[i]['status'] = status;
-            await userSnapshot.reference.update({collection: events});
+        List<dynamic> items = List.from(userSnapshot[collection]);
+        print('Before update - $collection: $items');
 
-            // Check the collection type and call the appropriate update function
-            if (collection == 'team_events') {
-              await _updateUserEventsStatus(docRef, status);
-            } else if (collection == 'team_challenges') {
-              // Add any specific handling for team_challenges if needed
-            } else if (collection == 'user_events') {
-              await _updateUserEventsStatus(docRef, status);
-            }
+        // Check the collection type and call the appropriate update function
+        print('Collection: $collection');
+        if (collection == 'team_events') {
+          print('Calling _updateUserEventsStatus for team_events');
+          await _updateUserEventsStatus(docRef, status);
 
-            break;
+          // Increment attendance if status is 'Going'
+          if (status == 'Going') {
+            await _updateAttendance(docRef, 'increment');
+          } else {
+            // Decrement attendance for other statuses
+            await _updateAttendance(docRef, 'decrement');
           }
+        } else if (collection == 'team_challenges') {
+          // Add any specific handling for team_challenges if needed
+          await _updateChallengeStatus(docRef, status);
+        } else if (collection == 'user_events') {
+          print('Calling _updateUserEventsStatus for user_events');
+          await _updateUserEventsStatus(docRef, status);
+
+          // Increment attendance if status is 'Going'
+          if (status == 'Going') {
+            await _updateAttendance(docRef, 'increment');
+          } else {
+            // Decrement attendance for other statuses
+            await _updateAttendance(docRef, 'decrement');
+          }
+        } else {
+          print('Unexpected collection type: $collection');
         }
+
+        // Find the index of the item in the items list
+        int itemIndex = items.indexWhere((item) => item['eventDocRef'] == docRef);
+
+        // Check if the status is different before updating Firebase
+        if (items[itemIndex]['status'] != status) {
+          // Update the status of the specific item in Firebase
+          items[itemIndex]['status'] = status;
+
+          // Update the status to Firebase
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userSnapshot.id)
+              .update({collection: items});
+        }
+
+        // Update the UI by triggering a rebuild
+        setState(() {});
       } else {
         print('User document not found for the current user');
       }
@@ -315,6 +372,121 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       print('Error updating status: $e');
     }
   }
+
+  Future<void> _updateChallengeStatus(String docRef, String status) async {
+    try {
+      // Update challenge status in the 'challenges' collection
+      DocumentReference challengeDocRef = FirebaseFirestore.instance.collection('challenges').doc(docRef);
+
+      // Get the initial data before the update
+      DocumentSnapshot initialSnapshot = await challengeDocRef.get();
+      int initialAccepted = initialSnapshot['accepted'] ?? 0;
+
+      if (status == 'Accept') {
+        // Increment local accepted count
+        initialAccepted += 1;
+      } else {
+        // Decrement local accepted count
+        initialAccepted -= 1;
+      }
+
+      // Update Firestore document with status
+      await challengeDocRef.update({
+        'accepted': initialAccepted,
+        'status': status,
+      });
+
+      // Update the local state after Firestore update
+      int existingIndex = challengeDetails.indexWhere((element) => element['challengeDocRef'] == docRef);
+      if (existingIndex != -1) {
+        challengeDetails[existingIndex]['accepted'] = initialAccepted;
+        challengeDetails[existingIndex]['status'] = status;
+      }
+
+      // Trigger a UI update by rebuilding
+      setState(() {});
+
+      // Update challenge status in the user's document
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUser!.email)
+          .limit(1)
+          .get();
+
+      if (userQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+
+        List<dynamic> teamChallenges = List.from(userSnapshot['team_challenges']);
+        int challengeIndex = teamChallenges.indexWhere((challenge) => challenge['challengeDocRef'] == docRef);
+
+        if (challengeIndex != -1) {
+          // Update the status and accepted fields of the specific challenge in the 'team_challenges' array
+          teamChallenges[challengeIndex]['status'] = status;
+          teamChallenges[challengeIndex]['accepted'] = initialAccepted;
+
+          // Update the user document in Firebase with the modified 'team_challenges' array
+          await userSnapshot.reference.update({'team_challenges': teamChallenges});
+
+          // Update the local state after Firebase update
+          if (existingIndex != -1) {
+            challengeDetails[existingIndex]['status'] = status;
+            challengeDetails[existingIndex]['accepted'] = initialAccepted;
+          }
+
+          // Trigger a UI update by rebuilding
+          setState(() {});
+
+          print('Updating challenge status and accepted in both collections: $status for docRef: $docRef');
+        } else {
+          print('Challenge not found in user document for docRef: $docRef');
+        }
+      } else {
+        print('User document not found for the current user');
+      }
+    } catch (e) {
+      print('Error updating challenge status and accepted: $e');
+    }
+  }
+
+
+
+
+
+  Future<void> _updateAttendance(String docRef, String action) async {
+    try {
+      DocumentReference eventDocRef = FirebaseFirestore.instance.collection('events').doc(docRef);
+
+      // Get the initial data before the update
+      DocumentSnapshot initialSnapshot = await eventDocRef.get();
+      int initialAttendance = initialSnapshot['attending'] ?? 0;
+
+      if (action == 'increment') {
+        // Increment local attendance
+        initialAttendance += 1;
+      } else if (action == 'decrement') {
+        // Decrement local attendance
+        initialAttendance -= 1;
+      }
+
+      // Update Firestore document
+      await eventDocRef.update({'attending': initialAttendance});
+
+      // Update the local state after Firestore update
+      int existingIndex = eventDetails.indexWhere((element) => element['eventDocRef'] == docRef);
+      if (existingIndex != -1) {
+        eventDetails[existingIndex]['attending'] = initialAttendance;
+      }
+
+      // Trigger a UI update by rebuilding
+      setState(() {});
+    } catch (e) {
+      print('Error updating attendance: $e');
+    }
+  }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -353,8 +525,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
+          DropdownButton<String>(
+            value: showMyCreated ? 'My Created Events & Challenges' : 'All Notifications',
+            items: [
+              'All Notifications',
+              'My Created Events & Challenges',
+            ].map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                showMyCreated = newValue == 'My Created Events & Challenges';
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          const SizedBox(height: 10),
           Expanded(
-            child: ListView.builder(
+            child: showMyCreated
+                ? Container()
+                : ListView.builder(
               itemCount: eventDetails.length + challengeDetails.length,
               itemBuilder: (context, index) {
                 if (index < challengeDetails.length) {
@@ -365,12 +558,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     child: ListTile(
                       title: Text(
-                          'Title: ${challengeDetails[challengeIndex]['title']}'),
+                        'Title: ${challengeDetails[challengeIndex]['title']}',
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                              'Description: ${challengeDetails[challengeIndex]['Description']}'),
+                            'Description: ${challengeDetails[challengeIndex]['Description']}',
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Challenge Created By: ${challengeDetails[challengeIndex]['Created By']}',
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Accepted: ${challengeDetails[challengeIndex]['accepted']}',
+                          ),
                           SizedBox(height: 8),
                           Text(
                             'Status: ${challengeDetails[challengeIndex]['status']}',
@@ -379,45 +582,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Expanded(
-                                child: StatusButton(
-                                  buttonText: 'Accept',
-                                  docRef: challengeDetails[challengeIndex]['challengeDocRef'],
-                                  collection: 'team_challenges',
-                                  currentStatus: challengeDetails[challengeIndex]['status'],
-                                  onPressed: (status) {
-                                    _updateStatus(
-                                      challengeDetails[challengeIndex]['challengeDocRef'],
-                                      status,
-                                      'team_challenges',
-                                    );
-                                    setState(() {
-                                      challengeDetails[challengeIndex]['status'] =
-                                          status;
-                                    });
-                                  },
+                              Visibility(
+                                visible: challengeDetails[challengeIndex]['Created By'] != currentUserFullName,
+                                child: Expanded(
+                                  child: StatusButton(
+                                    buttonText: 'Accept',
+                                    docRef: challengeDetails[challengeIndex]['challengeDocRef'],
+                                    collection: 'team_challenges',
+                                    currentStatus: challengeDetails[challengeIndex]['status'],
+                                    onPressed: (status) {
+                                      if (status != challengeDetails[challengeIndex]['status']) {
+                                        // Only update if the new status is different from the current status
+                                        _updateStatus(
+                                          challengeDetails[challengeIndex]['challengeDocRef'],
+                                          status,
+                                          'team_challenges',
+                                        );
+                                        setState(() {
+                                          challengeDetails[challengeIndex]['status'] = status;
+                                        });
+                                      }
+                                    },
+                                  ),
                                 ),
                               ),
+
                               SizedBox(width: 8),
-                              Expanded(
-                                child: StatusButton(
-                                  buttonText: 'Decline',
-                                  docRef: challengeDetails[challengeIndex]['challengeDocRef'],
-                                  collection: 'team_challenges',
-                                  currentStatus: challengeDetails[challengeIndex]['status'],
-                                  onPressed: (status) {
-                                    _updateStatus(
-                                      challengeDetails[challengeIndex]['challengeDocRef'],
-                                      status,
-                                      'team_challenges',
-                                    );
-                                    setState(() {
-                                      challengeDetails[challengeIndex]['status'] =
-                                          status;
-                                    });
-                                  },
+                              Visibility(
+                                visible: challengeDetails[challengeIndex]['Created By'] != currentUserFullName,
+                                child: Expanded(
+                                  child: StatusButton(
+                                    buttonText: 'Decline',
+                                    docRef: challengeDetails[challengeIndex]['challengeDocRef'],
+                                    collection: 'team_challenges',
+                                    currentStatus: challengeDetails[challengeIndex]['status'],
+                                    onPressed: (status) {
+                                      if (status != challengeDetails[challengeIndex]['status']) {
+                                        // Only update if the new status is different from the current status
+                                        _updateStatus(
+                                          challengeDetails[challengeIndex]['challengeDocRef'],
+                                          status,
+                                          'team_challenges',
+                                        );
+                                        setState(() {
+                                          challengeDetails[challengeIndex]['status'] = status;
+                                        });
+                                      }
+                                    },
+                                  ),
                                 ),
                               ),
+
                             ],
                           ),
                         ],
@@ -426,10 +641,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   );
                 } else {
                   int eventIndex = index - challengeDetails.length;
-                  DateTime startDate = eventDetails[eventIndex]['startDate']
-                      .toDate();
-                  String formattedDate = DateFormat('MMMM d, y').format(
-                      startDate);
+                  DateTime startDate =
+                  eventDetails[eventIndex]['startDate'].toDate();
+                  String formattedDate =
+                  DateFormat('MMMM d, y').format(startDate);
 
                   return Container(
                     decoration: BoxDecoration(
@@ -437,15 +652,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
                     child: ListTile(
                       title: Text(
-                          'Title: ${eventDetails[eventIndex]['title']}'),
+                        'Title: ${eventDetails[eventIndex]['title']}',
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Start Date: $formattedDate'),
                           Text(
-                              'Start Time: ${eventDetails[eventIndex]['startTime']}'),
+                            'Start Time: ${eventDetails[eventIndex]['startTime']}',
+                          ),
                           Text(
-                              'Location: ${eventDetails[eventIndex]['eventLocation']}'),
+                            'Location: ${eventDetails[eventIndex]['eventLocation']}',
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Event Created By: ${eventDetails[eventIndex]['Created By']}',
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Attending: ${eventDetails[eventIndex]['attending']}',
+                          ),
                           SizedBox(height: 8),
                           Text(
                             'Status: ${eventDetails[eventIndex]['status']}',
@@ -454,65 +680,89 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Expanded(
-                                child: StatusButton(
-                                  buttonText: 'Going',
-                                  docRef: eventDetails[eventIndex]['eventDocRef'],
-                                  collection: 'team_events',
-                                  currentStatus: eventDetails[eventIndex]['status'],
-                                  onPressed: (status) {
-                                    _updateStatus(
-                                      eventDetails[eventIndex]['eventDocRef'],
-                                      status,
-                                      'team_events',
-                                    );
-                                    setState(() {
-                                      eventDetails[eventIndex]['status'] =
-                                          status;
-                                    });
-                                  },
+                              Visibility(
+                                visible: eventDetails[eventIndex]['Created By'] != currentUserFullName,
+                                child: Expanded(
+                                  child: StatusButton(
+                                    buttonText: 'Going',
+                                    docRef: eventDetails[eventIndex]['eventDocRef'],
+                                    collection: 'team_events',
+                                    currentStatus: eventDetails[eventIndex]['status'],
+                                    onPressed: (status) async {
+                                      if (eventDetails[eventIndex]['status'] != 'Going') {
+                                        // Update the status only if it's not already "Going"
+                                        await _updateStatus(
+                                          eventDetails[eventIndex]['eventDocRef'],
+                                          status,
+                                          'team_events',
+                                        );
+
+                                        // Update the local state
+                                        setState(() {
+                                          eventDetails[eventIndex]['status'] = status;
+                                        });
+                                      }
+                                    },
+                                  ),
                                 ),
                               ),
+
                               SizedBox(width: 8),
-                              Expanded(
-                                child: StatusButton(
-                                  buttonText: 'Not Going',
-                                  docRef: eventDetails[eventIndex]['eventDocRef'],
-                                  collection: 'team_events',
-                                  currentStatus: eventDetails[eventIndex]['status'],
-                                  onPressed: (status) {
-                                    _updateStatus(
-                                      eventDetails[eventIndex]['eventDocRef'],
-                                      status,
-                                      'team_events',
-                                    );
-                                    setState(() {
-                                      eventDetails[eventIndex]['status'] =
-                                          status;
-                                    });
-                                  },
+                              Visibility(
+                                visible: eventDetails[eventIndex]['Created By'] != currentUserFullName,
+                                child: Expanded(
+                                  child: StatusButton(
+                                    buttonText: 'Not Going',
+                                    docRef: eventDetails[eventIndex]['eventDocRef'],
+                                    collection: 'team_events',
+                                    currentStatus: eventDetails[eventIndex]['status'],
+                                    onPressed: (status) async {
+                                      if (eventDetails[eventIndex]['status'] != 'Not Going') {
+                                        // Update the status only if it's not already "Not Going"
+                                        await _updateStatus(
+                                          eventDetails[eventIndex]['eventDocRef'],
+                                          status,
+                                          'team_events',
+                                        );
+
+                                        // Update the local state
+                                        setState(() {
+                                          eventDetails[eventIndex]['status'] = status;
+                                        });
+                                      }
+                                    },
+                                  ),
                                 ),
                               ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: StatusButton(
-                                  buttonText: 'Maybe',
-                                  docRef: eventDetails[eventIndex]['eventDocRef'],
-                                  collection: 'team_events',
-                                  currentStatus: eventDetails[eventIndex]['status'],
-                                  onPressed: (status) {
-                                    _updateStatus(
-                                      eventDetails[eventIndex]['eventDocRef'],
-                                      status,
-                                      'team_events',
-                                    );
-                                    setState(() {
-                                      eventDetails[eventIndex]['status'] =
-                                          status;
-                                    });
-                                  },
-                                ),
-                              ),
+
+                              // SizedBox(width: 8),
+                              // Visibility(
+                              //   visible: eventDetails[eventIndex]['Created By'] != currentUserFullName,
+                              //   child: Expanded(
+                              //     child: StatusButton(
+                              //       buttonText: 'Maybe',
+                              //       docRef: eventDetails[eventIndex]['eventDocRef'],
+                              //       collection: 'team_events',
+                              //       currentStatus: eventDetails[eventIndex]['status'],
+                              //       onPressed: (status) async {
+                              //         if (eventDetails[eventIndex]['status'] != 'Maybe') {
+                              //           // Update the status only if it's not already "Maybe"
+                              //           await _updateStatus(
+                              //             eventDetails[eventIndex]['eventDocRef'],
+                              //             status,
+                              //             'team_events',
+                              //           );
+                              //
+                              //           // Update the local state
+                              //           setState(() {
+                              //             eventDetails[eventIndex]['status'] = status;
+                              //           });
+                              //         }
+                              //       },
+                              //     ),
+                              //   ),
+                              // ),
+
                             ],
                           ),
                         ],
@@ -526,5 +776,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
     );
+
+
   }
 }

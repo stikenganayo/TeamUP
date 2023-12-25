@@ -236,7 +236,8 @@ Future<void> postEvent() async {
               'selectedFriends': selectedFriends,
               'selectedTeams': selectedTeams,
               'template_name': selectedTemplate, // Store the template_name
-              'frequency': "Track expenses every day"
+              'frequency': "Track expenses every day",
+              'accepted': 0,
             });
 
 

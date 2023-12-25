@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:snapchat_ui_clone/screens/prebuilt_activity_template_screen.dart';
+import 'package:snapchat_ui_clone/screens/select_teams_screen.dart';
 import 'package:snapchat_ui_clone/screens/selection_screen.dart';
 
 class CreateChallenge extends StatefulWidget {
@@ -110,7 +111,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SelectionScreen(),
+                            builder: (context) => const SelectTeamsScreen(),
                           ),
                         ).then((result) {
                           if (result != null &&
@@ -415,6 +416,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'selectedUnit': selectedGoal,
             'showUnitsDropdown': showUnitsDropdown,
             'goalValue': inputFieldsDataList[0].unit, // Add this line to include the goal value
+            'accepted' : 0,
           };
 
           DocumentReference challengeDocRef =
