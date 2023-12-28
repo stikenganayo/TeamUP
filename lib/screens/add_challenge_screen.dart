@@ -333,7 +333,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
                     child: TextFormField(
                       onChanged: (value) {
                         // Handle goal input
-                        inputFieldsDataList[0].unit = value; // Assuming you want to save the goal value in the 'unit' field of InputFieldData
+                        inputFieldsDataList[0].unit =
+                            value; // Assuming you want to save the goal value in the 'unit' field of InputFieldData
                       },
                       decoration: const InputDecoration(
                         hintText: 'Enter a Goal',
@@ -403,7 +404,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
 
           Map<String, dynamic> challengeData = {
             'CurrentUserEmail': currentUser.email,
-            'CurrentUserName': userData['name'], // Store the user's name
+            'CurrentUserName': userData['name'],
+            // Store the user's name
             'challengeDataList': challengeDataList
                 .map((data) => {'challengeTitle': data.challengeTitle})
                 .toList(),
@@ -415,8 +417,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'showGoalField': showGoalField,
             'selectedUnit': selectedGoal,
             'showUnitsDropdown': showUnitsDropdown,
-            'goalValue': inputFieldsDataList[0].unit, // Add this line to include the goal value
-            'accepted' : 0,
+            'goalValue': inputFieldsDataList[0].unit,
+            // Add this line to include the goal value
+            'accepted': 0,
           };
 
           DocumentReference challengeDocRef =
@@ -440,31 +443,38 @@ class _CreateChallengeState extends State<CreateChallenge> {
               String teamId = teamSnapshot.id;
 
               // Get the list of users in the selected team
-              List<String> teamMembers = List<String>.from(teamSnapshot['users'] ?? []);
+              List<String> teamMembers =
+              List<String>.from(teamSnapshot['users'] ?? []);
+
+              // Include existing users in the 'players' field
+              List<String> players = List.from(teamMembers);
+              players.addAll(selectedFriends);
 
               // Update the team's document with the challenge data
-              await FirebaseFirestore.instance.collection('teams').doc(teamId).update({
+              await FirebaseFirestore.instance
+                  .collection('teams')
+                  .doc(teamId)
+                  .update({
                 'team_challenges': FieldValue.arrayUnion([
                   {
                     'status': 'pending',
                     'challengeDocRef': challengeDocRef.id,
-                    'creatorUserId': userData['name'], // Store the user's name
+                    'creatorUserId': userData['name'],
+                    // Store the user's name
                     'template_name': challengeDataList
                         .map((data) => {'challengeTitle': data.challengeTitle})
                         .toList(),
+                    'players': players,
+                    // Add the list of players to the team challenge
                   }
                 ]),
-              });
-
-              // Update the team's document with the users
-              await FirebaseFirestore.instance.collection('teams').doc(teamId).update({
-                'users': FieldValue.arrayUnion(selectedFriends),
               });
 
               // Iterate through each user and update their 'team_events'
               for (String teamMember in teamMembers) {
                 // Find the user's ID in the 'users' collection
-                QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+                QuerySnapshot userQuerySnapshot = await FirebaseFirestore
+                    .instance
                     .collection('users')
                     .where('name', isEqualTo: teamMember)
                     .limit(1)
@@ -475,15 +485,24 @@ class _CreateChallengeState extends State<CreateChallenge> {
                   String userId = userSnapshot.id;
 
                   // Update the user's document with the challenge data
-                  await FirebaseFirestore.instance.collection('users').doc(userId).update({
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(userId)
+                      .update({
                     'team_challenges': FieldValue.arrayUnion([
                       {
                         'status': 'pending',
                         'challengeDocRef': challengeDocRef.id,
                         'creatorUserId': currentUser.uid,
                         'template_name': challengeDataList
-                            .map((data) => {'challengeTitle': data.challengeTitle})
-                            .toList(),    // You might want to set the template name if applicable
+                            .map((data) =>
+                        {
+                          'challengeTitle': data.challengeTitle
+                        })
+                            .toList(),
+                        // You might want to set the template name if applicable
+                        'players': players,
+                        // Add the list of players to the user's team challenge
                       }
                     ])
                   });
@@ -491,7 +510,6 @@ class _CreateChallengeState extends State<CreateChallenge> {
               }
             }
           }
-
 
           Navigator.pop(context);
         } else {
@@ -505,9 +523,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
       print('StackTrace: $stackTrace');
     }
   }
-
 }
-class ChallengeData {
+  class ChallengeData {
   String challengeTitle;
   TextEditingController controller;
 
