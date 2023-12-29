@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import 'image_list_screen.dart'; // Import the ImageListScreen
+import 'package:async/async.dart';
+import 'package:rxdart/rxdart.dart';
 
 class ChatScreen extends StatefulWidget {
   final String friendName;
 
-  const ChatScreen({Key? key, required this.friendName}) : super(key: key);
+  const ChatScreen({Key? key, required this.friendName, required String friendEmail}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
@@ -15,13 +15,16 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late FocusNode _focusNode;
+  late User _currentUser;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
-    // Set focus on the TextField when the screen loads
+    _currentUser = FirebaseAuth.instance.currentUser!;
+    _loadCurrentUser();
     _focusNode.requestFocus();
   }
 
@@ -31,143 +34,156 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  String getConversationId(String userId, String friendId) {
-    List<String> ids = [userId, friendId];
-    ids.sort(); // Sort IDs to ensure consistency
-    return ids.join('_'); // Concatenate sorted IDs with underscore
+  void _loadCurrentUser() async {
+    try {
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: _currentUser.email)
+          .limit(1)
+          .get();
+
+      if (userQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+        print('User Data: $userData');
+      } else {
+        print('User document not found for the current user');
+      }
+    } catch (e) {
+      print('Error loading user document: $e');
+    }
+  }
+
+  void _sendMessage(String receiverUid) async {
+    final messageText = _messageController.text;
+    if (messageText.isNotEmpty) {
+      await _firestore.collection('messages').add({
+        'text': messageText,
+        'dateTime': FieldValue.serverTimestamp(),
+        'senderUid': _currentUser.uid,
+        'receiverUid': receiverUid,
+        'senderEmail': _currentUser.email,
+      });
+      _messageController.clear();
+    }
+  }
+
+  Stream<List<QueryDocumentSnapshot>> getMessages(String currentUserUid, String friendUid) {
+    var sentMessagesStream = _firestore
+        .collection('messages')
+        .where('senderUid', isEqualTo: currentUserUid)
+        .where('receiverUid', isEqualTo: friendUid)
+        .orderBy('dateTime', descending: true)
+        .snapshots();
+
+    var receivedMessagesStream = _firestore
+        .collection('messages')
+        .where('senderUid', isEqualTo: friendUid)
+        .where('receiverUid', isEqualTo: currentUserUid)
+        .orderBy('dateTime', descending: true)
+        .snapshots();
+
+    return Rx.combineLatest2(sentMessagesStream, receivedMessagesStream,
+            (QuerySnapshot sentSnapshot, QuerySnapshot receivedSnapshot) {
+          return [...sentSnapshot.docs, ...receivedSnapshot.docs]
+            ..sort((a, b) {
+              Timestamp aTime = a['dateTime'] ?? Timestamp.now();
+              Timestamp bTime = b['dateTime'] ?? Timestamp.now();
+              return bTime.compareTo(aTime);
+            });
+        }
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    User? currentUser = FirebaseAuth.instance.currentUser;
+    return FutureBuilder<String?>(
+      future: getReceiverUid(widget.friendName),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
 
-    if (currentUser == null) {
-      // Redirect to login screen if the user is not logged in
-      return CircularProgressIndicator();
-    }
+        if (snapshot.hasError || snapshot.data == null) {
+          return Text('Error fetching friend UID');
+        }
 
-    final String userId = currentUser.uid;
-    final String friendId = widget.friendName; // Replace with the actual friend's ID
+        final friendUid = snapshot.data!;
 
-    final String conversationId = getConversationId(userId, friendId);
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(widget.friendName),
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<List<QueryDocumentSnapshot>>(
+                  stream: getMessages(_currentUser.uid, friendUid),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      print("Error: ${snapshot.error}");
+                      return Text("Error: ${snapshot.error}");
+                    }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.friendName),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('conversations')
-                  .doc(conversationId)
-                  .collection('messages')
-                  .orderBy('dateTime')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return CircularProgressIndicator();
-                }
+                    if (!snapshot.hasData) {
+                      return Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    }
 
-                if (!snapshot.hasData ||
-                    snapshot.data == null ||
-                    snapshot.data!.docs.isEmpty) {
-                  return Text('No messages found');
-                }
+                    final allMessages = snapshot.data!;
 
-                final messages = snapshot.data!.docs;
+                    List<MessageItem> messageWidgets = [];
+                    for (var message in allMessages) {
+                      final messageText = message['text'];
+                      final isMe = message['senderUid'] == _currentUser.uid;
 
-                return ListView.builder(
-                  itemCount: messages.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final message = messages[index].data() as Map<String, dynamic>;
-                    return MessageItem(
-                      text: message['text'],
-                      isMe: message['isMe'],
+                      final messageWidget = MessageItem(text: messageText, isMe: isMe, friendName: widget.friendName);
+                      messageWidgets.add(messageWidget);
+                    }
+
+                    return ListView(
+                      reverse: true,
+                      children: messageWidgets,
                     );
                   },
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: _openImageListScreen,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.camera_alt),
-                  ),
                 ),
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    focusNode: _focusNode,
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        focusNode: _focusNode,
+                        decoration: const InputDecoration(
+                          hintText: 'Type a message...',
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8.0),
+                    ElevatedButton(
+                      onPressed: () async {
+                        String? receiverUid = await getReceiverUid(widget.friendName);
+                        if (receiverUid != null) {
+                          _sendMessage(receiverUid);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: Receiver UID not found')),
+                          );
+                        }
+                      },
+                      child: const Text('Send'),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8.0),
-                ElevatedButton(
-                  onPressed: () {
-                    _sendMessage(userId, friendId, conversationId);
-                  },
-                  child: const Text('Send'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  void _sendMessage(String userId, String friendId, String conversationId) {
-    final messageText = _messageController.text;
-    if (messageText.isNotEmpty) {
-      final now = DateTime.now();
-
-      FirebaseFirestore.instance
-          .collection('conversations')
-          .doc(conversationId)
-          .collection('messages')
-          .add({
-        'text': messageText,
-        'isMe': true,
-        'dateTime': now,
-      });
-
-      // If you want to notify the other user, you can send a push notification or update their conversation
-      // FirebaseFirestore.instance.collection('conversations').doc(conversationId).update({
-      //   'hasUnreadMessages': true,
-      // });
-
-      // Add the message to the recipient's conversation as well
-      FirebaseFirestore.instance
-          .collection('conversations')
-          .doc(getConversationId(friendId, userId))
-          .collection('messages')
-          .add({
-        'text': messageText,
-        'isMe': false,
-        'dateTime': now,
-      });
-
-      setState(() {
-        _messageController.clear();
-      });
-    }
-  }
-
-  void _openImageListScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const ImageListScreen(images: [],),
-      ),
+        );
+      },
     );
   }
 }
@@ -175,11 +191,13 @@ class _ChatScreenState extends State<ChatScreen> {
 class MessageItem extends StatelessWidget {
   final String text;
   final bool isMe;
+  final String friendName;
 
   const MessageItem({
     Key? key,
     required this.text,
     required this.isMe,
+    required this.friendName,
   }) : super(key: key);
 
   @override
@@ -188,6 +206,13 @@ class MessageItem extends StatelessWidget {
       title: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
+          Text(
+            isMe ? 'Me' : friendName,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isMe ? Colors.blue : Colors.black,
+            ),
+          ),
           Container(
             decoration: BoxDecoration(
               color: isMe ? Colors.blue : Colors.grey[300],
@@ -207,3 +232,15 @@ class MessageItem extends StatelessWidget {
   }
 }
 
+Future<String?> getReceiverUid(String receiverName) async {
+  QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .where('name', isEqualTo: receiverName)
+      .get();
+
+  if (querySnapshot.docs.isNotEmpty) {
+    return querySnapshot.docs.first.id;
+  }
+
+  return null;
+}

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../screens/image_list_screen.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:firebase_storage/firebase_storage.dart';
+import '../widgets/friends.dart'; // Import the Friends widget
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -12,8 +17,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   List<FriendData> friends = [];
 
-  String username = 'John Doe'; // Set the default name
-  String userEmail = ''; // Store user email
+  String username = '';
+  String userEmail = '';
   int totalPoints = 1000;
   int totalStreaks = 5;
   String profilePictureUrl = 'https://csncollision.com/wp-content/uploads/2019/10/placeholder-circle.png';
@@ -34,13 +39,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         setState(() {
-          username = user.displayName ?? username;
           userEmail = user.email ?? '';
+          username = _extractUsername(userEmail);
           _nameController.text = username;
         });
       }
     } catch (e) {
       print('Error loading user data: $e');
+    }
+  }
+
+  String _extractUsername(String email) {
+    int endIndex = email.indexOf('@');
+    if (endIndex != -1) {
+      return email.substring(0, endIndex);
+    } else {
+      return email;
     }
   }
 
@@ -68,6 +82,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _selectProfilePicture() async {
+    List<String> firebaseImages = []; // Replace this with actual Firebase image URLs
+
+    final selectedImage = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageListScreen(images: firebaseImages),
+      ),
+    );
+
+    if (selectedImage != null) {
+      setState(() {
+        profilePictureUrl = selectedImage;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,6 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _nameController.text = username;
                 }
               });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.photo),
+            onPressed: () {
+              _selectProfilePicture();
             },
           ),
         ],
@@ -132,7 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  ' Friends:',
+                  ' Teams:',
                   style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -146,6 +183,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
               ),
+              const SizedBox(height: 30),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  ' Friends:',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                ),
+              ),
+              // Display friends using the FriendsGrid widget
+              FriendsGrid(),
               const SizedBox(height: 30),
             ],
           ),

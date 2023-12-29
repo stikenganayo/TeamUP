@@ -114,7 +114,7 @@ class _MainPageState extends State<MainPage> {
         children: <Widget> [
           // showSignUpScreen ? SignUpScreen() : Container(), // Display SignUpScreen conditionally
           // TemporaryScreen(color: _colors[0]),
-          const ChatScreen(),
+          const ChatScreen(friendName: '',),
           // TemporaryScreen(color: _colors[1]),
           const TeamScreen(),
           CameraScreen(cameraController: _cameraController, initCamera: initCamera),
