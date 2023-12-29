@@ -61,20 +61,83 @@ class _SearchContentState extends State<SearchContent> {
   }
 
   void _searchUsers(String query) {
-    // Fetch user data from Firestore based on the query
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      // If no user is logged in, return empty results
+      setState(() {
+        searchResults = [];
+      });
+      return;
+    }
+
+    String currentUserEmail = currentUser.email ?? '';
+
     FirebaseFirestore.instance
         .collection('users')
         .where('name', isGreaterThanOrEqualTo: query)
         .where('name', isLessThan: query + 'z')
         .get()
-        .then((QuerySnapshot querySnapshot) {
+        .then((QuerySnapshot querySnapshot) async {
+      List<String> friendsEmailsList = await getCurrentUserFriendsEmails(currentUser);
+      List<String> excludedUsers = await getFriendRequestExcludedUsers(currentUserEmail);
+
       setState(() {
         searchResults = querySnapshot.docs
+            .where((doc) =>
+        doc['email'] != currentUserEmail &&
+            !friendsEmailsList.contains(doc['email'] as String) &&
+            !excludedUsers.contains(doc['name'] as String))
             .map((doc) => doc['name'] as String)
             .toList();
       });
     });
   }
+
+  Future<List<String>> getCurrentUserFriendsEmails(User currentUser) async {
+    String? currentUserEmail = currentUser.email;
+
+    if (currentUserEmail == null) {
+      return [];
+    }
+
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: currentUserEmail)
+        .get()
+        .then((querySnapshot) => querySnapshot.docs.first);
+
+    if (userSnapshot.exists) {
+      // Assuming the friends list is directly under the 'friends' field in the user document
+      List<String> friendsEmailsList = List<String>.from(userSnapshot['friends'] ?? []);
+      return friendsEmailsList;
+    } else {
+      print('Current user document not found');
+    }
+
+    return [];
+  }
+
+  Future<List<String>> getFriendRequestExcludedUsers(String currentUserEmail) async {
+    List<String> excludedUsers = [];
+
+    QuerySnapshot friendRequestsSnapshot = await FirebaseFirestore.instance
+        .collection('friend_requests')
+        .where('senderEmail', isEqualTo: currentUserEmail)
+        .get();
+
+    for (QueryDocumentSnapshot doc in friendRequestsSnapshot.docs) {
+      String receiverUid = doc['receiverUid'];
+      DocumentSnapshot receiverUserSnapshot = await FirebaseFirestore.instance.collection('users').doc(receiverUid).get();
+
+      if (receiverUserSnapshot.exists) {
+        excludedUsers.add(receiverUserSnapshot['name'] as String);
+      }
+    }
+
+    return excludedUsers;
+  }
+
 
   Future<void> _addUser(String user) async {
     User? currentUser = FirebaseAuth.instance.currentUser;

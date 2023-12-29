@@ -358,6 +358,7 @@ class _CreateEventState extends State<CreateEvent> {
               'eventDescription': eventDescription,
               'selectedFriends': selectedFriends,
               'selectedTeams': selectedTeams,
+              'attending': 0,
             });
 
             print('Event Posted:');

@@ -5,67 +5,106 @@ import 'package:intl/intl.dart';
 import 'add_event_screen.dart';
 import 'add_challenge_screen.dart'; // Import the CreateChallenge screen
 
+import 'list_screen.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Calendar App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: CalendarScreen(),
+    );
+  }
+}
+
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Upcoming'),
-      ),
-      body: const CalendarWithActivities(),
-      floatingActionButton: Align(
-        alignment: Alignment.bottomCenter,
-        child: FloatingActionButton(
-          onPressed: () {
-            // You can use a _menuSelected variable to track the selected menu item.
-            String? _menuSelected;
-            showModalBottomSheet(
-              context: context,
-              builder: (BuildContext context) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: const Icon(CupertinoIcons.stopwatch),
-                      title: const Text('Add Challenge'),
-                      onTap: () {
-                        _menuSelected = 'Challenge';
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const CreateChallenge()), // Navigate to CreateChallenge screen
-                        );
-                      },
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        _menuSelected = 'Event';
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const CreateEvent()), // Navigate to CreateEvent screen
-                        );
-                      },
-                      child: const ListTile(
-                        leading: Icon(CupertinoIcons.globe),
-                        title: Text('Add Event'),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('View Events/Activities'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Calendar View'),
+              Tab(text: 'List View'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            // First tab - CalendarScreen
+            CalendarWithActivities(),
+            // Second tab - NotificationScreen
+            ListScreen(),
+          ],
+        ),
+        floatingActionButton: Align(
+          alignment: Alignment.bottomCenter,
+          child: FloatingActionButton(
+            onPressed: () {
+              // Your existing FAB logic
+              String? _menuSelected;
+              showModalBottomSheet(
+                context: context,
+                builder: (BuildContext context) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      ListTile(
+                        leading: const Icon(CupertinoIcons.stopwatch),
+                        title: const Text('Add Challenge'),
+                        onTap: () {
+                          _menuSelected = 'Challenge';
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreateChallenge(),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  ],
-                );
-              },
-            ).then((value) {
-              // Handle the selected option (_menuSelected)
-              if (_menuSelected == 'Challenge') {
-                // Handle Challenge option
-              } else if (_menuSelected == 'Event') {
-                // Handle Event option
-              }
-            });
-          },
-          child: const Icon(Icons.add, size: 36.0), // Large add icon
+                      GestureDetector(
+                        onTap: () {
+                          _menuSelected = 'Event';
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CreateEvent(),
+                            ),
+                          );
+                        },
+                        child: const ListTile(
+                          leading: Icon(CupertinoIcons.globe),
+                          title: Text('Add Event'),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ).then((value) {
+                // Handle the selected option (_menuSelected)
+                if (_menuSelected == 'Challenge') {
+                  // Handle Challenge option
+                } else if (_menuSelected == 'Event') {
+                  // Handle Event option
+                }
+              });
+            },
+            child: const Icon(Icons.add, size: 36.0),
+          ),
         ),
       ),
     );
@@ -76,7 +115,8 @@ class CalendarWithActivities extends StatefulWidget {
   const CalendarWithActivities({Key? key}) : super(key: key);
 
   @override
-  _CalendarWithActivitiesState createState() => _CalendarWithActivitiesState();
+  _CalendarWithActivitiesState createState() =>
+      _CalendarWithActivitiesState();
 }
 
 class _CalendarWithActivitiesState extends State<CalendarWithActivities> {
