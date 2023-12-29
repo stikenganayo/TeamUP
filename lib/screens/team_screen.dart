@@ -275,8 +275,141 @@ class _TeamScreenState extends State<TeamScreen> {
     return [];
   }
 
+  Future<List<String>> _getStatusForChallenge(String teamId, String challengeTitle) async {
+    List<String> statusList = [];
 
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
 
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Check for the 'team_challenges' field and 'team_name' field in the team data
+        if (teamData.containsKey('team_challenges') && teamData.containsKey('team_name')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+          String teamName = teamData['team_name'];
+
+          // Find the challenge with the matching title
+          Map<String, dynamic>? selectedChallenge;
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'] is List &&
+                challenge['template_name'][0].containsKey('challengeTitle') &&
+                challenge['template_name'][0]['challengeTitle'] == challengeTitle) {
+              selectedChallenge = challenge;
+              break;
+            }
+          }
+
+          // Find the challengeDocRef and players
+          if (selectedChallenge != null && selectedChallenge.containsKey('challengeDocRef')) {
+            // Find the list of players for the current challenge
+            if (selectedChallenge.containsKey('players') &&
+                selectedChallenge['players'] is List) {
+              List<String> players = List.from(selectedChallenge['players']);
+
+              // Iterate through each player
+              for (var player in players) {
+                // Find the user document based on the player's name
+                var userDocument = await FirebaseFirestore.instance
+                    .collection('users')
+                    .where('name', isEqualTo: player)
+                    .get();
+
+                if (userDocument.docs.isNotEmpty) {
+                  var userDocData = userDocument.docs.first.data();
+
+                  // Find the user's status in the current challenge
+                  if (userDocData.containsKey('team_challenges') &&
+                      userDocData['team_challenges'] is List) {
+                    List<dynamic> userChallenges = List.from(userDocData['team_challenges']);
+
+                    for (var userChallenge in userChallenges) {
+                      if (userChallenge is Map &&
+                          userChallenge.containsKey('challengeDocRef') &&
+                          userChallenge['challengeDocRef'] == selectedChallenge['challengeDocRef']) {
+                        // Match found, add the status to the list
+                        if (userChallenge.containsKey('status')) {
+                          statusList.add('${player}: ${userChallenge['status']}');
+                        }
+
+                        break; // Break out of the loop after finding the matching challenge
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+    }
+
+    return statusList;
+  }
+  Future<String> _getStatusForUserInChallenge(String teamId, String challengeTitle, String userName) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Check for the 'team_challenges' field and 'team_name' field in the team data
+        if (teamData.containsKey('team_challenges') && teamData.containsKey('team_name')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+
+          // Find the challenge with the matching title
+          Map<String, dynamic>? selectedChallenge;
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'] is List &&
+                challenge['template_name'][0].containsKey('challengeTitle') &&
+                challenge['template_name'][0]['challengeTitle'] == challengeTitle) {
+              selectedChallenge = challenge;
+              break;
+            }
+          }
+
+          // Check if the challenge is found
+          if (selectedChallenge != null) {
+            // Check if the challenge has a 'status' field
+            if (selectedChallenge.containsKey('status') && selectedChallenge['status'] is Map) {
+              Map<String, dynamic> statusMap = Map.from(selectedChallenge['status']);
+
+              // Find the status for the specified user
+              if (statusMap.containsKey(userName)) {
+                return statusMap[userName].toString();
+              } else {
+                return 'Status not found';
+              }
+            } else {
+              print('Status field not found for the challenge: $challengeTitle');
+            }
+          } else {
+            print('Challenge not found: $challengeTitle');
+          }
+        } else {
+          print('Team challenges or Team name field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+    }
+
+    return 'Error loading status'; // Return an error message in case of an issue
+  }
 
 
 
@@ -423,7 +556,6 @@ class _TeamScreenState extends State<TeamScreen> {
                                                     fontSize: 25, // Adjust the font size as needed
                                                     fontWeight: FontWeight.bold,
                                                     color: Colors.black, // Adjust the text color as needed
-
                                                   ),
                                                 ),
                                               );
@@ -435,7 +567,6 @@ class _TeamScreenState extends State<TeamScreen> {
                                       ),
                                     ],
                                   ),
-
                                   const SizedBox(height: 8),
                                   Container(
                                     decoration: BoxDecoration(
@@ -448,16 +579,15 @@ class _TeamScreenState extends State<TeamScreen> {
                                         FutureBuilder<List<String>>(
                                           future: _getChallengeTitles(teamId),
                                           builder: (context, challengeTitlesSnapshot) {
-                                            if (challengeTitlesSnapshot.connectionState ==
-                                                ConnectionState.done) {
-                                              if (challengeTitlesSnapshot.hasError ||
-                                                  challengeTitlesSnapshot.data == null) {
+                                            if (challengeTitlesSnapshot.connectionState == ConnectionState.done) {
+                                              if (challengeTitlesSnapshot.hasError || challengeTitlesSnapshot.data == null) {
                                                 return Text('Error loading team challenges for $teamId');
                                               } else {
                                                 // Display list of challenge titles
                                                 return Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: challengeTitlesSnapshot.data!.map((challengeTitle) {
+                                                    // Add this line to print the challengeDocRef
                                                     return Container(
                                                       decoration: BoxDecoration(
                                                         border: Border.all(color: Colors.grey[300]!),
@@ -467,24 +597,44 @@ class _TeamScreenState extends State<TeamScreen> {
                                                         title: Text('$challengeTitle'),
                                                         children: [
                                                           FutureBuilder<List<String>>(
-                                                            future: _getTeamPlayersForChallenge(teamId, challengeTitle),
-                                                            builder: (context, userSnapshot) {
-                                                              if (userSnapshot.connectionState ==
-                                                                  ConnectionState.done) {
-                                                                if (userSnapshot.hasError ||
-                                                                    userSnapshot.data == null) {
-                                                                  return Text('Error loading team users for $teamId');
+                                                            future: _getStatusForChallenge(teamId, challengeTitle),
+                                                            builder: (context, statusListSnapshot) {
+                                                              if (statusListSnapshot.connectionState == ConnectionState.done) {
+                                                                if (statusListSnapshot.hasError || statusListSnapshot.data == null) {
+                                                                  return Text('Error loading status for $challengeTitle');
                                                                 } else {
-                                                                  // Display list of users for the current challenge
+                                                                  // Display list of users for the current challenge along with their status
                                                                   return Column(
                                                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                                                    children: userSnapshot.data!.map((user) {
+                                                                    children: statusListSnapshot.data!.map((userStatus) {
+                                                                      // Split the userStatus into user and status
+                                                                      List<String> parts = userStatus.split(':');
+                                                                      String user = parts[0].trim();
+                                                                      String status = parts[1].trim();
+
+                                                                      // Define the color based on status
+                                                                      Color circleColor = status == 'Accept' ? Colors.green : Colors.red;
+
                                                                       return Padding(
                                                                         padding: const EdgeInsets.only(left: 16),
                                                                         child: Column(
                                                                           crossAxisAlignment: CrossAxisAlignment.start,
                                                                           children: [
-                                                                            Text(user),
+                                                                            Row(
+                                                                              children: [
+                                                                                // Circle indicator
+                                                                                Container(
+                                                                                  width: 12,
+                                                                                  height: 12,
+                                                                                  decoration: BoxDecoration(
+                                                                                    shape: BoxShape.circle,
+                                                                                    color: circleColor,
+                                                                                  ),
+                                                                                ),
+                                                                                const SizedBox(width: 8), // Add spacing between the circle and text
+                                                                                Text('$user: $status'),
+                                                                              ],
+                                                                            ),
                                                                             Divider(), // Line between users
                                                                           ],
                                                                         ),
@@ -525,6 +675,8 @@ class _TeamScreenState extends State<TeamScreen> {
                       }
                     },
                   ),
+
+
 
 
 
