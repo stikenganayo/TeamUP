@@ -473,8 +473,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
               // Iterate through each user and update their 'team_events'
               for (String teamMember in teamMembers) {
                 // Find the user's ID in the 'users' collection
-                QuerySnapshot userQuerySnapshot = await FirebaseFirestore
-                    .instance
+                QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
                     .collection('users')
                     .where('name', isEqualTo: teamMember)
                     .limit(1)
@@ -484,6 +483,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
                   DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
                   String userId = userSnapshot.id;
 
+                  // Determine the status based on whether the user is the host
+                  String status = (userData['name'] == teamMember) ? 'host' : 'pending';
+
                   // Update the user's document with the challenge data
                   await FirebaseFirestore.instance
                       .collection('users')
@@ -491,23 +493,19 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       .update({
                     'team_challenges': FieldValue.arrayUnion([
                       {
-                        'status': 'pending',
+                        'status': status,
                         'challengeDocRef': challengeDocRef.id,
-                        'creatorUserId': currentUser.uid,
+                        'creatorUserId': userData['name'], // Use the user's name as creatorUserId
                         'template_name': challengeDataList
-                            .map((data) =>
-                        {
-                          'challengeTitle': data.challengeTitle
-                        })
+                            .map((data) => {'challengeTitle': data.challengeTitle})
                             .toList(),
-                        // You might want to set the template name if applicable
                         'players': players,
-                        // Add the list of players to the user's team challenge
                       }
                     ])
                   });
                 }
               }
+
             }
           }
 
@@ -524,6 +522,86 @@ class _CreateChallengeState extends State<CreateChallenge> {
     }
   }
 }
+
+Future<void> deletePostedChallenge(DocumentReference challengeDocRef) async {
+  try {
+    // Get the challenge data before deleting
+    DocumentSnapshot challengeSnapshot = await challengeDocRef.get();
+    Map<String, dynamic> challengeData =
+    challengeSnapshot.data() as Map<String, dynamic>;
+
+    // Delete the challenge document
+    await challengeDocRef.delete();
+    print('Challenge deleted successfully');
+
+    // Iterate through selectedTeams and update teams' challenges and users
+    for (String teamName in challengeData['selectedTeams']) {
+      // Find team's ID in the 'teams' collection
+      QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .where('team_name', isEqualTo: teamName)
+          .limit(1)
+          .get();
+
+      if (teamQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
+        String teamId = teamSnapshot.id;
+
+        // Update the team's document by removing the challenge data
+        await FirebaseFirestore.instance
+            .collection('teams')
+            .doc(teamId)
+            .update({
+          'team_challenges': FieldValue.arrayRemove([
+            {
+              'status': 'pending',
+              'challengeDocRef': challengeDocRef.id,
+            }
+          ]),
+        });
+
+        // Iterate through each user in the team and update their 'team_events'
+        for (String teamMember in teamSnapshot['users']) {
+          // Find the user's ID in the 'users' collection
+          QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .where('name', isEqualTo: teamMember)
+              .limit(1)
+              .get();
+
+          if (userQuerySnapshot.docs.isNotEmpty) {
+            DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+            String userId = userSnapshot.id;
+
+            // Update the user's document by removing the challenge data
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .update({
+              'team_challenges': FieldValue.arrayRemove([
+                {
+                  'status': (userSnapshot['name'] == teamMember)
+                      ? 'host'
+                      : 'pending',
+                  'challengeDocRef': challengeDocRef.id,
+                }
+              ])
+            });
+          }
+        }
+      }
+    }
+
+    print('Challenge deleted from all relevant locations');
+  } catch (e, stackTrace) {
+    print('Error deleting challenge: $e');
+    print('StackTrace: $stackTrace');
+  }
+}
+
+
+
+
   class ChallengeData {
   String challengeTitle;
   TextEditingController controller;
