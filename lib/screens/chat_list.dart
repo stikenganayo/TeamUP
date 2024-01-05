@@ -86,12 +86,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Rx.combineLatest2(sentMessagesStream, receivedMessagesStream,
             (QuerySnapshot sentSnapshot, QuerySnapshot receivedSnapshot) {
-          return [...sentSnapshot.docs, ...receivedSnapshot.docs]
-            ..sort((a, b) {
-              Timestamp aTime = a['dateTime'] ?? Timestamp.now();
-              Timestamp bTime = b['dateTime'] ?? Timestamp.now();
-              return bTime.compareTo(aTime);
-            });
+          List<QueryDocumentSnapshot> combinedList = [];
+
+          combinedList.addAll(sentSnapshot.docs);
+          combinedList.addAll(receivedSnapshot.docs);
+
+          combinedList.sort((a, b) {
+            Timestamp aTime = a['dateTime'] ?? Timestamp.now();
+            Timestamp bTime = b['dateTime'] ?? Timestamp.now();
+            return bTime.compareTo(aTime);
+          });
+
+          return combinedList;
         }
     );
   }

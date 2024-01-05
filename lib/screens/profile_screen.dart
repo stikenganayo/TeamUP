@@ -82,22 +82,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _selectProfilePicture() async {
-    List<String> firebaseImages = []; // Replace this with actual Firebase image URLs
-
-    final selectedImage = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ImageListScreen(images: firebaseImages),
-      ),
-    );
-
-    if (selectedImage != null) {
-      setState(() {
-        profilePictureUrl = selectedImage;
-      });
-    }
-  }
+  // Future<void> _selectProfilePicture() async {
+  //   List<String> firebaseImages = []; // Replace this with actual Firebase image URLs
+  //
+  //   final selectedImage = await Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => ImageListScreen(images: firebaseImages),
+  //     ),
+  //   );
+  //
+  //   if (selectedImage != null) {
+  //     setState(() {
+  //       profilePictureUrl = selectedImage;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.photo),
             onPressed: () {
-              _selectProfilePicture();
+              //_selectProfilePicture();
             },
           ),
         ],
