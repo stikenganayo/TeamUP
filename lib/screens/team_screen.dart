@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:snapchat_ui_clone/screens/event_screen.dart';
 import 'package:snapchat_ui_clone/screens/search_screen.dart';
 import '../style.dart';
@@ -26,6 +27,54 @@ class _TeamScreenState extends State<TeamScreen> {
     super.initState();
     _loadCurrentUser();
   }
+
+  Future<String?> _loadCurrentUserName() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('Current User Email: ${currentUser!.email}');
+
+      try {
+        // Fetch the user document based on the current user's email
+        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser!.email)
+            .limit(1)
+            .get();
+
+        if (userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+          // Print all data inside the current user's document
+          print('User Data: $userData');
+
+          // Check for the 'name' field in the user data
+          if (userData.containsKey('name')) {
+            String userName = userData['name'] as String;
+            return userName;
+          } else {
+            print('Name field not found in user document');
+          }
+        } else {
+          print('User document not found for the current user');
+        }
+      } catch (e) {
+        print('Error loading user document: $e');
+      }
+    }
+    return null; // Return null if any error occurs or if user is not found
+  }
+
+
+
+
+
+
+
+
+
+
+
 
   Future<void> _loadCurrentUser() async {
     currentUser = FirebaseAuth.instance.currentUser;
@@ -411,6 +460,69 @@ class _TeamScreenState extends State<TeamScreen> {
     return 'Error loading status'; // Return an error message in case of an issue
   }
 
+  Future<void> _showConfirmationDialog(String userName, String userLoggedIn, String currentChallenge) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirmation'),
+          content: Text('Select yes if you would like to confirm $userName has completed this challenge for today.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () async {
+                // Add your logic for confirming completion here
+                Navigator.of(context).pop();
+
+                // Get the challenges collection reference
+                CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+
+                // Fetch documents from the challenges collection
+                QuerySnapshot challengesSnapshot =
+                await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
+
+                // Iterate through the documents and update if challengeTitle matches
+                challengesSnapshot.docs.forEach((challengeDoc) async {
+                  Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+                  // Check if userName already exists in the players field
+                  List<String> playersList = List<String>.from(challengeData['players'] ?? []);
+                  if (!playersList.contains(userName)) {
+                    // Update the players field with the new userName
+                    playersList.add(userName);
+
+                    // Get the current date in the desired format
+                    String formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+
+                    // Create the subfield with the formatted date and confirmed_completion
+                    Map<String, dynamic> subfield = {
+                      'date': formattedDate,
+                      'confirmed_completion': (challengeData['confirmed_completion'] != null)
+                          ? challengeData['confirmed_completion'] + ', ' + userLoggedIn
+                          : userLoggedIn,
+                    };
+
+                    // Update the document in the challenges collection
+                    await challengesCollection.doc(challengeDoc.id).update({
+                      '${userName}_stats': FieldValue.arrayUnion([subfield]),
+                    });
+                  }
+                });
+              },
+              child: Text('Yes'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('No'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 
 
   @override
@@ -603,44 +715,80 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                 if (statusListSnapshot.hasError || statusListSnapshot.data == null) {
                                                                   return Text('Error loading status for $challengeTitle');
                                                                 } else {
-                                                                  // Display list of users for the current challenge along with their status
-                                                                  return Column(
-                                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                                    children: statusListSnapshot.data!.map((userStatus) {
-                                                                      // Split the userStatus into user and status
-                                                                      List<String> parts = userStatus.split(':');
-                                                                      String user = parts[0].trim();
-                                                                      String status = parts[1].trim();
+                                                                  // Check if there is any status containing 'pending'
+                                                                  bool containsPending = statusListSnapshot.data!.any((userStatus) => userStatus.contains('pending'));
 
-                                                                      // Define the color based on status
-                                                                      Color circleColor = status == 'Accept' ? Colors.green : Colors.red;
+                                                                  // Display list of users only if there is no 'pending' status
+                                                                  if (!containsPending) {
+                                                                    return Column(
+                                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                                      children: statusListSnapshot.data!.map((userStatus) {
+                                                                        // Split the userStatus into user and status
+                                                                        List<String> parts = userStatus.split(':');
+                                                                        String user = parts[0].trim();
+                                                                        String status = parts[1].trim();
 
-                                                                      return Padding(
-                                                                        padding: const EdgeInsets.only(left: 16),
-                                                                        child: Column(
-                                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                                          children: [
-                                                                            Row(
-                                                                              children: [
-                                                                                // Circle indicator
-                                                                                Container(
-                                                                                  width: 12,
-                                                                                  height: 12,
-                                                                                  decoration: BoxDecoration(
-                                                                                    shape: BoxShape.circle,
-                                                                                    color: circleColor,
+                                                                        // Define the color based on status
+                                                                        Color circleColor = status == 'Accept' ? Colors.green : Colors.red;
+
+                                                                        // Define the icon based on the userStatus
+                                                                        IconData icon = userStatus.contains('host') ? Icons.person : Icons.circle;
+
+                                                                        // Button text
+                                                                        String buttonText = 'Completed';
+
+                                                                        // Check if the user's name matches one of the displayed names
+                                                                        Future<String?> userNameFuture = _loadCurrentUserName();
+                                                                        return FutureBuilder<String?>(
+                                                                          future: userNameFuture,
+                                                                          builder: (context, userNameSnapshot) {
+                                                                            if (userNameSnapshot.connectionState == ConnectionState.done) {
+                                                                              if (userNameSnapshot.hasError || userNameSnapshot.data == null) {
+                                                                                return Text('Error loading current user name');
+                                                                              } else {
+                                                                                // Check if the current user's name matches the displayed user's name
+                                                                                bool isCurrentUser = user == userNameSnapshot.data!;
+                                                                                return Padding(
+                                                                                  padding: const EdgeInsets.only(left: 16),
+                                                                                  child: Column(
+                                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                    children: [
+                                                                                      Row(
+                                                                                        children: [
+                                                                                          // Circle or person icon
+                                                                                          Icon(icon, color: circleColor, size: 12),
+                                                                                          const SizedBox(width: 8), // Add spacing between the icon and text
+                                                                                          Expanded(
+                                                                                            child: Text('$user: $status'),
+                                                                                          ),
+                                                                                          // Completed button (conditional rendering)
+                                                                                          if (!isCurrentUser)
+                                                                                            ElevatedButton(
+                                                                                              onPressed: () {
+                                                                                                // Handle button press here
+                                                                                                // For example, mark the user as completed
+                                                                                                _showConfirmationDialog(user, userNameSnapshot.data!, challengeTitle);
+                                                                                              },
+                                                                                              child: Text(buttonText),
+                                                                                            ),
+                                                                                        ],
+                                                                                      ),
+                                                                                      Divider(), // Line between users
+                                                                                    ],
                                                                                   ),
-                                                                                ),
-                                                                                const SizedBox(width: 8), // Add spacing between the circle and text
-                                                                                Text('$user: $status'),
-                                                                              ],
-                                                                            ),
-                                                                            Divider(), // Line between users
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                  );
+                                                                                );
+                                                                              }
+                                                                            } else {
+                                                                              return CircularProgressIndicator();
+                                                                            }
+                                                                          },
+                                                                        );
+                                                                      }).toList(),
+                                                                    );
+                                                                  } else {
+                                                                    // Return a message indicating that there are 'pending' statuses
+                                                                    return Text('This challenge contains pending statuses.');
+                                                                  }
                                                                 }
                                                               } else {
                                                                 return CircularProgressIndicator();
@@ -661,6 +809,9 @@ class _TeamScreenState extends State<TeamScreen> {
                                       ],
                                     ),
                                   ),
+
+
+
                                   const SizedBox(height: 20),
                                 ],
                               );
