@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -459,68 +461,365 @@ class _TeamScreenState extends State<TeamScreen> {
 
     return 'Error loading status'; // Return an error message in case of an issue
   }
+  Future<int> getTeamDetails(String teamId) async {
+    try {
+      // Assuming Firestore is your database instance
+      final teamsCollection = FirebaseFirestore.instance.collection('teams');
 
-  Future<void> _showConfirmationDialog(String userName, String userLoggedIn, String currentChallenge) async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirmation'),
-          content: Text('Select yes if you would like to confirm $userName has completed this challenge for today.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () async {
-                // Add your logic for confirming completion here
-                Navigator.of(context).pop();
+      // Fetch the team document based on the provided teamId
+      DocumentSnapshot teamDocSnapshot = await teamsCollection.doc(teamId).get();
 
-                // Get the challenges collection reference
-                CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+      if (teamDocSnapshot.exists) {
+        // Extract users array from team document
+        List<dynamic>? users = teamDocSnapshot['users'];
 
-                // Fetch documents from the challenges collection
-                QuerySnapshot challengesSnapshot =
-                await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
+        // Print teamId
+        print('Team ID: $teamId');
 
-                // Iterate through the documents and update if challengeTitle matches
-                challengesSnapshot.docs.forEach((challengeDoc) async {
-                  Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+        // Print users to the screen
+        print('Users:');
+        if (users != null) {
+          for (var user in users) {
+            print('- $user');
+          }
+        } else {
+          print('No users found for this team.');
+        }
 
-                  // Check if userName already exists in the players field
-                  List<String> playersList = List<String>.from(challengeData['players'] ?? []);
-                  if (!playersList.contains(userName)) {
-                    // Update the players field with the new userName
-                    playersList.add(userName);
+        // Calculate and print the count of users
+        int userCount = users?.length ?? 0;
+        print('User Count: $userCount');
 
-                    // Get the current date in the desired format
-                    String formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+        // Subtract 1 from the count and return the adjusted count
+        int adjustedUserCount = userCount - 1;
+        print('Adjusted User Count: $adjustedUserCount');
+        return adjustedUserCount;
+      } else {
+        print('Team document not found for teamId: $teamId');
+        // Throw an exception to handle this case
+        throw Exception('Team document not found for teamId: $teamId');
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+      // Throw an exception to handle the error
+      throw Exception('Error loading team document: $e');
+    }
+  }
 
-                    // Create the subfield with the formatted date and confirmed_completion
-                    Map<String, dynamic> subfield = {
+  Future<void> _showConfirmationDialog(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
+    try {
+      // Fetch and display team details
+      int adjustedUserCount = await getTeamDetails(teamId);
+
+      return showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Confirmation'),
+            content: Text('Select yes if you would like to confirm $userName has completed this challenge for today.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () async {
+                  // Add your logic for confirming completion here
+                  Navigator.of(context).pop();
+
+                  // Get the challenges collection reference
+                  CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+
+                  // Fetch documents from the challenges collection
+                  QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
+
+                  // Get the current date in the desired format
+                  String formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+
+                  // Iterate through the documents and update if challengeTitle matches
+                  challengesSnapshot.docs.forEach((challengeDoc) async {
+                    Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+                    // Assuming userName_stats is an array
+                    List<dynamic> userNameStats = challengeData['${userName}_stats'] ?? [];
+
+                    // Create a new array element
+                    Map<String, dynamic> newStatsElement = {
+                      'confirmed_completion': [userLoggedIn.trim()],
                       'date': formattedDate,
-                      'confirmed_completion': (challengeData['confirmed_completion'] != null)
-                          ? challengeData['confirmed_completion'] + ', ' + userLoggedIn
-                          : userLoggedIn,
                     };
 
                     // Update the document in the challenges collection
                     await challengesCollection.doc(challengeDoc.id).update({
-                      '${userName}_stats': FieldValue.arrayUnion([subfield]),
+                      '${userName}_stats': FieldValue.arrayUnion([newStatsElement]),
                     });
-                  }
-                });
-              },
-              child: Text('Yes'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('No'),
-            ),
-          ],
-        );
-      },
+                  });
+                },
+                child: Text('Yes'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('No'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      // Handle exceptions here, if needed
+      print('Error in _showConfirmationDialog: $e');
+    }
+  }
+
+
+  Future<Map<String, int>> _displayUserPoints(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
+    try {
+      // Fetch and display team details
+      int adjustedUserCount = await getTeamDetails(teamId);
+      print(adjustedUserCount);
+
+      // Get the challenges collection reference
+      CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+
+      // Fetch documents from the challenges collection
+      QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
+
+      // Get the current date in the desired format
+      DateTime currentDate = DateTime.now();
+      String formattedDate = DateFormat('MMMM dd, yyyy').format(currentDate);
+
+      int countOfArraysForCurrentDate = 0;
+      Set<String> uniqueDates = Set<String>();
+      int countOfArraysForConsistencyDates = 0;
+      int countOfArraysForDifferentDate = 0;
+
+      // Iterate through the documents and display confirmation message
+      challengesSnapshot.docs.forEach((challengeDoc) {
+        Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+        // Assuming userLoggedIn_stats is an array
+        List<dynamic> userLoggedInStats = challengeData['${userName}_stats'] ?? [];
+
+        // Count the number of arrays with the current date
+        countOfArraysForCurrentDate += userLoggedInStats.where((statsElement) =>
+        statsElement['date'] == formattedDate,
+        ).length;
+
+        // Count all arrays
+        countOfArraysForDifferentDate += userLoggedInStats.length;
+
+        // Create a Set to store unique dates
+        Set<String> uniqueDatesInChallenge = Set<String>();
+
+        // Iterate through userLoggedInStats to add unique dates
+        userLoggedInStats.forEach((statsElement) {
+          String date = statsElement['date'];
+
+          // Check if the date is not in uniqueDatesInChallenge
+          if (!uniqueDatesInChallenge.contains(date)) {
+            uniqueDatesInChallenge.add(date);
+          } else {
+            // Subtract 1 for each duplicate date
+            countOfArraysForDifferentDate--;
+          }
+        });
+
+        // Count the number of arrays for consistency dates
+        DateTime loopDate = currentDate; // Create a separate variable for the loop
+        bool foundMatchingDate = userLoggedInStats.any((statsElement) => statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate));
+
+        if (!foundMatchingDate) {
+          // Subtract one day if no match for the current date
+          loopDate = loopDate.subtract(Duration(days: 1));
+        }
+
+        while (userLoggedInStats.any((statsElement) => statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate))) {
+          countOfArraysForConsistencyDates++;
+          loopDate = loopDate.subtract(Duration(days: 1));
+        }
+
+      });
+
+
+
+      print('Teammates who verified $userName: $countOfArraysForCurrentDate');
+      print('Total points for $userName: $countOfArraysForDifferentDate');
+      print('Current Streak for $userName: $countOfArraysForConsistencyDates');
+      print(adjustedUserCount);
+
+      Map<String, int> result = {
+        'countOfArraysForCurrentDate': countOfArraysForCurrentDate,
+        'countOfArraysForDifferentDate': countOfArraysForDifferentDate,
+        'countOfArraysForConsistencyDates': countOfArraysForConsistencyDates,
+        'adjustedUserCount': adjustedUserCount,
+      };
+
+      return result;
+    } catch (e) {
+      // Handle exceptions here, if needed
+      print('Error in _showConfirmationDialog: $e');
+      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0}; // Return default values or handle the error accordingly
+    }
+  }
+
+  Future<List<dynamic>> getTeamUsers(String teamId) async {
+    try {
+      // Assuming Firestore is your database instance
+      final teamsCollection = FirebaseFirestore.instance.collection('teams');
+
+      // Fetch the team document based on the provided teamId
+      DocumentSnapshot teamDocSnapshot = await teamsCollection.doc(teamId).get();
+
+      if (teamDocSnapshot.exists) {
+        // Extract users array from team document
+        List<dynamic>? users = teamDocSnapshot['users'];
+
+        // Print teamId
+        print('Team ID: $teamId');
+
+        // Print users to the screen
+        print('Users:');
+        if (users != null) {
+
+        } else {
+          print('No users found for this team.');
+        }
+
+        return users ?? []; // Return the list of users, or an empty list if null
+      } else {
+        print('Team document not found for teamId: $teamId');
+        // Throw an exception to handle this case
+        throw Exception('Team document not found for teamId: $teamId');
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+      // Throw an exception to handle the error
+      throw Exception('Error loading team document: $e');
+    }
+  }
+
+
+
+
+
+  Future<Widget> challengeStreaksAndPoints(challengeTitle, teamId) async {
+    // Fetch and display team details
+    List<dynamic> users = await getTeamUsers(teamId);
+
+    // Add "_stats" to each user name
+    List<String> userStatsNames = users.map((user) => '$user\_stats').toList();
+    print(userStatsNames);
+
+    // Get the challenges collection reference
+    CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+
+    // Fetch documents from the challenges collection
+    QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': challengeTitle}).get();
+
+    // Get the current date in the desired format
+    DateTime currentDate = DateTime.now();
+    String formattedDate = DateFormat('MMMM dd, yyyy').format(currentDate);
+
+    print(challengeTitle);
+
+    // Initialize a map to store counts for each user
+    Map<String, int> userCounts = {};
+
+    // Initialize a variable to store the sum of all users' points
+    int totalUserPoints = 0;
+
+    // Initialize a list to store all the currentStreak values
+    List<int> currentStreaksList = [];
+
+    // Iterate through each index in userStatsNames
+    for (String userStatName in userStatsNames) {
+      // Initialize count for the current user
+      int userCount = 0;
+
+      // Initialize a variable to store the streak for the current user
+      int currentStreak = 0;
+
+      // Iterate through each document in challengesSnapshot
+      for (QueryDocumentSnapshot challengeDoc in challengesSnapshot.docs) {
+        Map<String, dynamic> challengeData = challengeDoc.data() as Map<
+            String,
+            dynamic>;
+
+        // Retrieve the stats array for the current userStatName
+        List<dynamic> userLoggedInStats = challengeData[userStatName] ?? [];
+
+        // Count all arrays
+        userCount += userLoggedInStats.length;
+
+        // Create a Set to store unique dates
+        Set<String> uniqueDatesInChallenge = Set<String>();
+
+        // Iterate through userLoggedInStats to add unique dates
+        userLoggedInStats.forEach((statsElement) {
+          String date = statsElement['date'];
+
+          // Check if the date is not in uniqueDatesInChallenge
+          if (!uniqueDatesInChallenge.contains(date)) {
+            uniqueDatesInChallenge.add(date);
+          } else {
+            // Subtract 1 for each duplicate date
+            userCount--;
+          }
+        });
+
+        // Count the number of arrays for consistency dates
+        DateTime loopDate = currentDate; // Create a separate variable for the loop
+        bool foundMatchingDate = userLoggedInStats.any((statsElement) =>
+        statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate));
+
+        if (!foundMatchingDate) {
+          // Subtract one day if no match for the current date
+          loopDate = loopDate.subtract(Duration(days: 1));
+        }
+
+        while (userLoggedInStats.any((statsElement) =>
+        statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate))) {
+          currentStreak++;
+          loopDate = loopDate.subtract(Duration(days: 1));
+        }
+      }
+
+        // Print the current streak for the current user
+      print('Current Streak for $userStatName: $currentStreak');
+
+      // Store the current streak in the list
+      currentStreaksList.add(currentStreak);
+
+      // Store the count for the current userStatName in the userCounts map
+      userCounts[userStatName] = userCount;
+
+      // Add the user's count to the totalUserPoints
+      totalUserPoints += userCount;
+    }
+
+    // Print the counts for each user
+    userCounts.forEach((user, count) {
+      print('$user: $count');
+    });
+
+    // Print the total points for all users
+    print('Total User Points: $totalUserPoints');
+
+    // Find the minimum count among all users
+    int minUserCount = currentStreaksList.isNotEmpty ? currentStreaksList.reduce((value, element) => value < element ? value : element) : 0;
+
+    // Print the minimum count among all users
+    print('Min Count Among All Users: $minUserCount');
+
+    return Row(
+      children: [
+        // SizedBox(width: 16), // Adjust the width for more space
+        Icon(Icons.local_fire_department_sharp),
+        Text(' $minUserCount'),
+        Icon(Icons.directions_run), // Add another icon
+        Text(' $totalUserPoints'),
+      ],
     );
   }
+
 
 
 
@@ -706,7 +1005,24 @@ class _TeamScreenState extends State<TeamScreen> {
                                                         borderRadius: BorderRadius.all(Radius.circular(8)),
                                                       ),
                                                       child: ExpansionTile(
-                                                        title: Text('$challengeTitle'),
+                                                        title: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [
+                                                            Text('$challengeTitle'),
+                                                            FutureBuilder<Widget>(
+                                                              future: challengeStreaksAndPoints(challengeTitle, teamId),
+                                                              builder: (context, snapshot) {
+                                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                                  return CircularProgressIndicator(); // Show a loading indicator while fetching data
+                                                                } else if (snapshot.hasError) {
+                                                                  return Text('Error loading data'); // Show an error message if there's an error
+                                                                } else {
+                                                                  return snapshot.data!; // Display the fetched data
+                                                                }
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
                                                         children: [
                                                           FutureBuilder<List<String>>(
                                                             future: _getStatusForChallenge(teamId, challengeTitle),
@@ -737,8 +1053,10 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                         // Button text
                                                                         String buttonText = 'Completed';
 
-                                                                        // Check if the user's name matches one of the displayed names
+
+
                                                                         Future<String?> userNameFuture = _loadCurrentUserName();
+
                                                                         return FutureBuilder<String?>(
                                                                           future: userNameFuture,
                                                                           builder: (context, userNameSnapshot) {
@@ -748,6 +1066,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                               } else {
                                                                                 // Check if the current user's name matches the displayed user's name
                                                                                 bool isCurrentUser = user == userNameSnapshot.data!;
+
                                                                                 return Padding(
                                                                                   padding: const EdgeInsets.only(left: 16),
                                                                                   child: Column(
@@ -759,7 +1078,74 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                           Icon(icon, color: circleColor, size: 12),
                                                                                           const SizedBox(width: 8), // Add spacing between the icon and text
                                                                                           Expanded(
-                                                                                            child: Text('$user: $status'),
+                                                                                            child: Column(
+                                                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                              children: [
+                                                                                                Text('$user: $status'),
+
+                                                                                            FutureBuilder<Map<String, dynamic>>(
+                                                                                              future: _displayUserPoints(user, userNameSnapshot.data!, challengeTitle, teamId),
+                                                                                              builder: (context, displayTextSnapshot) {
+                                                                                                if (displayTextSnapshot.connectionState == ConnectionState.done) {
+                                                                                                  Map<String, dynamic>? result = displayTextSnapshot.data;
+
+                                                                                                  // Check if the result is not null before accessing its values
+                                                                                                  if (result != null) {
+                                                                                                    int countOfArraysForCurrentDate = result['countOfArraysForCurrentDate'] as int? ?? 0;
+                                                                                                    int adjustedUserCount = result['adjustedUserCount'] as int? ?? 0;
+                                                                                                    int countOfArraysForDifferentDate = result['countOfArraysForDifferentDate'] as int? ?? 0;
+                                                                                                    int countOfArraysForConsistencyDates = result['countOfArraysForConsistencyDates'] as int? ?? 0;
+
+                                                                                                    print(countOfArraysForCurrentDate);
+                                                                                                    print(adjustedUserCount);
+
+                                                                                                    // Now you can use these values as needed
+
+                                                                                                    return Column(
+                                                                                                      children: [
+                                                                                                        Row(
+                                                                                                          children: [
+                                                                                                            Text('$countOfArraysForCurrentDate/$adjustedUserCount teammates confirmed completion'), // Display additional text based on isCurrentUser
+                                                                                                          ],
+                                                                                                        ),
+
+
+                                                                                                        Row(
+                                                                                                          children: [
+                                                                                                            const Icon(
+                                                                                                              Icons.directions_run,
+                                                                                                              color: Colors.black26, // Set the icon color to your preference
+                                                                                                            ),
+                                                                                                            SizedBox(width: 8), // Add some spacing between the icon and text
+                                                                                                            Text('$countOfArraysForDifferentDate'),
+                                                                                                            SizedBox(width: 16),
+                                                                                                            const Icon(
+                                                                                                              Icons.local_fire_department_sharp,
+                                                                                                              color: Colors.yellow, // Set the icon color to your preference
+                                                                                                            ),
+                                                                                                            SizedBox(width: 8), // Add some spacing between the icon and text
+                                                                                                            Text('$countOfArraysForConsistencyDates'),
+                                                                                                          ],
+                                                                                                        ),
+                                                                                                      ],
+                                                                                                    );
+
+
+
+                                                                                                  } else {
+                                                                                                    // Handle the case where result is null
+                                                                                                    return Text('Error: Null result from _displayUserPoints');
+                                                                                                  }
+                                                                                                } else {
+                                                                                                  return CircularProgressIndicator();
+                                                                                                }
+                                                                                              },
+                                                                                            )
+
+
+
+                                                                                            ],
+                                                                                            ),
                                                                                           ),
                                                                                           // Completed button (conditional rendering)
                                                                                           if (!isCurrentUser)
@@ -767,7 +1153,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                               onPressed: () {
                                                                                                 // Handle button press here
                                                                                                 // For example, mark the user as completed
-                                                                                                _showConfirmationDialog(user, userNameSnapshot.data!, challengeTitle);
+                                                                                                _showConfirmationDialog(user, userNameSnapshot.data!, challengeTitle, teamId);
                                                                                               },
                                                                                               child: Text(buttonText),
                                                                                             ),
@@ -783,6 +1169,9 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                             }
                                                                           },
                                                                         );
+
+
+
                                                                       }).toList(),
                                                                     );
                                                                   } else {
