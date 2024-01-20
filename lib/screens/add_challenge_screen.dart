@@ -26,6 +26,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
   String selectedTimeUnit = "Per Day";
   String selectedChallengeType = "CheckBox";
   String selectedGoal = "times";
+  bool enableUserTyping = false;
 
   List<String> timeUnitOptions = [
     "Per Second",
@@ -80,6 +81,16 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       children: challengeDataList
                           .map((data) => _buildChallengeRow(data))
                           .toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          // Toggle the enableUserTyping state
+                          enableUserTyping = !enableUserTyping;
+                        });
+                      },
+                      child: Text(enableUserTyping ? "Disable user typing" : "Enable user typing"),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -420,6 +431,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'goalValue': inputFieldsDataList[0].unit,
             // Add this line to include the goal value
             'accepted': 0,
+            'userTyping' : enableUserTyping,
           };
 
           DocumentReference challengeDocRef =
@@ -465,6 +477,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                         .map((data) => {'challengeTitle': data.challengeTitle})
                         .toList(),
                     'players': players,
+                    'userTyping' : enableUserTyping,
                     // Add the list of players to the team challenge
                   }
                 ]),
@@ -500,6 +513,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                             .map((data) => {'challengeTitle': data.challengeTitle})
                             .toList(),
                         'players': players,
+                        'userTyping' : enableUserTyping,
                       }
                     ])
                   });

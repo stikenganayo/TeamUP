@@ -587,9 +587,9 @@ class _TeamScreenState extends State<TeamScreen> {
       String formattedDate = DateFormat('MMMM dd, yyyy').format(currentDate);
 
       int countOfArraysForCurrentDate = 0;
-      Set<String> uniqueDates = Set<String>();
       int countOfArraysForConsistencyDates = 0;
       int countOfArraysForDifferentDate = 0;
+      int userTyping = 0;
 
       // Iterate through the documents and display confirmation message
       challengesSnapshot.docs.forEach((challengeDoc) {
@@ -636,10 +636,18 @@ class _TeamScreenState extends State<TeamScreen> {
           loopDate = loopDate.subtract(Duration(days: 1));
         }
 
+        // Debugging statements
+        print('Challenge data: $challengeData');
+        print('User Typing field: ${challengeData['userTyping']}');
+
+// Assuming userTyping is a boolean field
+        userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
+        print('User Typing for $userName: $userTyping');
+
+
       });
 
-
-
+      print('Is user typing enabled for $userName: $userTyping');
       print('Teammates who verified $userName: $countOfArraysForCurrentDate');
       print('Total points for $userName: $countOfArraysForDifferentDate');
       print('Current Streak for $userName: $countOfArraysForConsistencyDates');
@@ -650,15 +658,17 @@ class _TeamScreenState extends State<TeamScreen> {
         'countOfArraysForDifferentDate': countOfArraysForDifferentDate,
         'countOfArraysForConsistencyDates': countOfArraysForConsistencyDates,
         'adjustedUserCount': adjustedUserCount,
+        'userTyping': userTyping,
       };
 
       return result;
     } catch (e) {
       // Handle exceptions here, if needed
-      print('Error in _showConfirmationDialog: $e');
-      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0}; // Return default values or handle the error accordingly
+      print('Error in _displayUserPoints: $e');
+      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0}; // Return default values or handle the error accordingly
     }
   }
+
 
   Future<List<dynamic>> getTeamUsers(String teamId) async {
     try {
@@ -818,6 +828,47 @@ class _TeamScreenState extends State<TeamScreen> {
         Text(' $totalUserPoints'),
       ],
     );
+  }
+
+  Future<String> _userTextInput(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
+    try {
+      // Fetch and display team details
+      int adjustedUserCount = await getTeamDetails(teamId);
+      print(adjustedUserCount);
+
+      // Get the challenges collection reference
+      CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+
+      // Fetch documents from the challenges collection
+      QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
+
+      // Default value in case it's not found
+      String userTyping = "nothing";
+
+      // Iterate through the documents and display confirmation message
+      challengesSnapshot.docs.forEach((challengeDoc) {
+        Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+        // Assuming userLoggedIn_stats is an array
+        List<dynamic> userLoggedInStats = challengeData['${userName}_stats'] ?? [];
+
+        userTyping = challengeData['userTyping'].toString();
+
+        // Print the userTyping content to the console
+        print('User Typing for $userName: $userTyping');
+      });
+
+      // Check if userLoggedIn is equal to userName and userTyping is 'true'
+      if (userLoggedIn == userName && userTyping == 'true') {
+        return 'typing'; // Return a string indicating the user is typing
+      } else {
+        return 'not_typing'; // Return a string indicating the user is not typing
+      }
+    } catch (e) {
+      // Handle exceptions here, if needed
+      print('Error in _userTextInput: $e');
+      return 'error'; // Return a default value or handle the error accordingly
+    }
   }
 
 
@@ -1095,9 +1146,11 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                     int adjustedUserCount = result['adjustedUserCount'] as int? ?? 0;
                                                                                                     int countOfArraysForDifferentDate = result['countOfArraysForDifferentDate'] as int? ?? 0;
                                                                                                     int countOfArraysForConsistencyDates = result['countOfArraysForConsistencyDates'] as int? ?? 0;
+                                                                                                    int userTyping = result['userTyping'] as int? ?? 0;
 
                                                                                                     print(countOfArraysForCurrentDate);
                                                                                                     print(adjustedUserCount);
+                                                                                                    print("Status please: $userTyping");
 
                                                                                                     // Now you can use these values as needed
 
@@ -1127,6 +1180,14 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                             Text('$countOfArraysForConsistencyDates'),
                                                                                                           ],
                                                                                                         ),
+                                                                                                        if (userTyping == 1)
+                                                                                                          ElevatedButton(
+                                                                                                            onPressed: () {
+                                                                                                              // Handle button press here
+                                                                                                              // For example, mark the user as completed
+                                                                                                            },
+                                                                                                            child: const Text("Hello"),
+                                                                                                          ),
                                                                                                       ],
                                                                                                     );
 
@@ -1140,11 +1201,42 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                   return CircularProgressIndicator();
                                                                                                 }
                                                                                               },
-                                                                                            )
+                                                                                            ),
 
 
 
-                                                                                            ],
+
+                                                                                                // Add the new FutureBuilder for userTextInput
+                                                                                                FutureBuilder<String>(
+                                                                                                  future: _userTextInput(user, userNameSnapshot.data!, challengeTitle, teamId), // Assuming _userTextInput returns a Future<String>
+                                                                                                  builder: (context, userTextInputSnapshot) {
+                                                                                                    if (userTextInputSnapshot.connectionState == ConnectionState.done) {
+                                                                                                      if (userTextInputSnapshot.hasError) {
+                                                                                                        return Text('Error loading user text input');
+                                                                                                      } else {
+                                                                                                        // Display the user text input
+                                                                                                        String userTypingStatus = userTextInputSnapshot.data ?? 'not_typing';
+
+                                                                                                        if (userTypingStatus == 'typing') {
+                                                                                                          // Display a button when user is typing
+                                                                                                          return ElevatedButton(
+                                                                                                            onPressed: () {
+                                                                                                              // Handle button press here
+                                                                                                              // For example, open a text input field for the user to type a response
+                                                                                                            },
+                                                                                                            child: const Text('Type response'),
+                                                                                                          );
+                                                                                                        } else {
+                                                                                                          // Display a message when the user is not typing
+                                                                                                          return Text('User is not typing');
+                                                                                                        }
+                                                                                                      }
+                                                                                                    } else {
+                                                                                                      return CircularProgressIndicator();
+                                                                                                    }
+                                                                                                  },
+                                                                                                ),
+                                                                                              ],
                                                                                             ),
                                                                                           ),
                                                                                           // Completed button (conditional rendering)
