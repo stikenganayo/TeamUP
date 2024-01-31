@@ -39,6 +39,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
   ];
 
   List<String> goalOptions = ["times", "seconds", "minutes", "hours", "days"];
+  String dropdownValue = 'Challenge everyone including you';
 
   late List<InputFieldData> inputFieldsDataList;
 
@@ -77,12 +78,33 @@ class _CreateChallengeState extends State<CreateChallenge> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: <Widget>[
+
+                    const SizedBox(height: 20),
                     Column(
                       children: challengeDataList
                           .map((data) => _buildChallengeRow(data))
                           .toList(),
                     ),
                     const SizedBox(height: 20),
+                    DropdownButton<String>(
+                      value: dropdownValue,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          dropdownValue = newValue!;
+                          // Add logic to handle different dropdown options here
+                        });
+                      },
+                      items: <String>[
+                        'Challenge everyone including you',
+                        'Challenge yourself OR get your teammates to verify',
+                        'Challenge your teammates - you verify',
+                      ].map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
                     ElevatedButton(
                       onPressed: () {
                         setState(() {
@@ -432,6 +454,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             // Add this line to include the goal value
             'accepted': 0,
             'userTyping' : enableUserTyping,
+            'challengeType' : dropdownValue,
           };
 
           DocumentReference challengeDocRef =

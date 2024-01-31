@@ -590,6 +590,7 @@ class _TeamScreenState extends State<TeamScreen> {
       int countOfArraysForConsistencyDates = 0;
       int countOfArraysForDifferentDate = 0;
       int userTyping = 0;
+      int challengeType = 0;
 
       // Iterate through the documents and display confirmation message
       challengesSnapshot.docs.forEach((challengeDoc) {
@@ -598,10 +599,13 @@ class _TeamScreenState extends State<TeamScreen> {
         // Assuming userLoggedIn_stats is an array
         List<dynamic> userLoggedInStats = challengeData['${userName}_stats'] ?? [];
 
-        // Count the number of arrays with the current date
+        // Count the number of arrays with the current date and 'confirmed_completion'
         countOfArraysForCurrentDate += userLoggedInStats.where((statsElement) =>
-        statsElement['date'] == formattedDate,
+        statsElement['date'] == formattedDate &&
+            statsElement.containsKey('confirmed_completion') &&
+            (statsElement['confirmed_completion'] as List).isNotEmpty,
         ).length;
+
 
         // Count all arrays
         countOfArraysForDifferentDate += userLoggedInStats.length;
@@ -639,10 +643,14 @@ class _TeamScreenState extends State<TeamScreen> {
         // Debugging statements
         print('Challenge data: $challengeData');
         print('User Typing field: ${challengeData['userTyping']}');
+        print('Challenge Type: ${challengeData['challengeType']}');
 
 // Assuming userTyping is a boolean field
         userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
         print('User Typing for $userName: $userTyping');
+
+        challengeType = challengeData['challengeType'] == 'Challenge yourself - get your teammates to verify' ? 1 : 0;
+        print(challengeType);
 
 
       });
@@ -659,13 +667,14 @@ class _TeamScreenState extends State<TeamScreen> {
         'countOfArraysForConsistencyDates': countOfArraysForConsistencyDates,
         'adjustedUserCount': adjustedUserCount,
         'userTyping': userTyping,
+        'challengeType': challengeType,
       };
 
       return result;
     } catch (e) {
       // Handle exceptions here, if needed
       print('Error in _displayUserPoints: $e');
-      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0}; // Return default values or handle the error accordingly
+      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0, 'challengeType': 0}; // Return default values or handle the error accordingly
     }
   }
 
@@ -843,16 +852,30 @@ class _TeamScreenState extends State<TeamScreen> {
       QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
 
       // Default value in case it's not found
-      String userTyping = "nothing";
+      String userTyping = "not_typing";
 
       // Iterate through the documents and display confirmation message
       challengesSnapshot.docs.forEach((challengeDoc) {
         Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
 
         // Assuming userLoggedIn_stats is an array
-        List<dynamic> userLoggedInStats = challengeData['${userName}_stats'] ?? [];
+        List<dynamic> userTextInput = challengeData['${userName}_quotes'] ?? [];
 
-        userTyping = challengeData['userTyping'].toString();
+        // Check if there's an array with today's date
+        Map<String, dynamic>? todayEntry = userTextInput.firstWhere(
+              (entry) => entry['date'] == DateFormat('MMMM dd, yyyy').format(DateTime.now()),
+          orElse: () => null,
+        );
+
+        // If an entry for today exists, return the 'input' field
+        if (todayEntry != null && todayEntry.containsKey('input')) {
+          userTyping = todayEntry['input'].toString();
+        } else {
+          // If userTyping field exists in challengeData, use it
+          if (challengeData.containsKey('userTyping')) {
+            userTyping = challengeData['userTyping'].toString();
+          }
+        }
 
         // Print the userTyping content to the console
         print('User Typing for $userName: $userTyping');
@@ -862,7 +885,7 @@ class _TeamScreenState extends State<TeamScreen> {
       if (userLoggedIn == userName && userTyping == 'true') {
         return 'typing'; // Return a string indicating the user is typing
       } else {
-        return 'not_typing'; // Return a string indicating the user is not typing
+        return userTyping; // Return the 'input' field or "not_typing"
       }
     } catch (e) {
       // Handle exceptions here, if needed
@@ -872,6 +895,79 @@ class _TeamScreenState extends State<TeamScreen> {
   }
 
 
+
+
+  Future<void> _showTypeResponseDialog(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
+    try {
+      // Fetch and display team details
+      int adjustedUserCount = await getTeamDetails(teamId);
+      TextEditingController inputController = TextEditingController();
+
+      return showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Type Response below'),
+            content: TextField(
+              controller: inputController,
+              decoration: InputDecoration(
+                hintText: 'Enter your response',
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () async {
+                  // Retrieve the entered text
+                  String enteredText = inputController.text.trim();
+
+                  // Add your logic for confirming completion here
+                  Navigator.of(context).pop();
+
+                  // Get the challenges collection reference
+                  CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
+
+                  // Fetch documents from the challenges collection
+                  QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': currentChallenge}).get();
+
+                  // Get the current date in the desired format
+                  String formattedDate = DateFormat('MMMM dd, yyyy').format(DateTime.now());
+
+                  // Iterate through the documents and update if challengeTitle matches
+                  challengesSnapshot.docs.forEach((challengeDoc) async {
+                    Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+                    // Assuming userName_stats is an array
+                    List<dynamic> userNameStats = challengeData['${userName}_quotes'] ?? [];
+
+                    // Create a new array element
+                    Map<String, dynamic> newStatsElement = {
+                      'input': enteredText,
+                      'date': formattedDate,
+                    };
+
+                    // Update the document in the challenges collection
+                    await challengesCollection.doc(challengeDoc.id).update({
+                      '${userName}_quotes': FieldValue.arrayUnion([newStatsElement]),
+                    });
+                  });
+                },
+                child: Text('Save'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      // Handle exceptions here, if needed
+      print('Error in _showConfirmationDialog: $e');
+    }
+  }
 
 
 
@@ -1147,49 +1243,59 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                     int countOfArraysForDifferentDate = result['countOfArraysForDifferentDate'] as int? ?? 0;
                                                                                                     int countOfArraysForConsistencyDates = result['countOfArraysForConsistencyDates'] as int? ?? 0;
                                                                                                     int userTyping = result['userTyping'] as int? ?? 0;
+                                                                                                    int challengeType = result['challengeType'] as int? ?? 0;
 
                                                                                                     print(countOfArraysForCurrentDate);
                                                                                                     print(adjustedUserCount);
                                                                                                     print("Status please: $userTyping");
 
-                                                                                                    // Now you can use these values as needed
+                                                                                                    // Add a condition to not display the Column when challengeType is 1
+                                                                                                    // Add a condition to not display the Column when challengeType is 1 and user is the same as userNameSnapshot.data!
+                                                                                                    if (!(challengeType == 1 && user != userNameSnapshot.data!)) {
+                                                                                                      print(countOfArraysForCurrentDate);
+                                                                                                      print(adjustedUserCount);
+                                                                                                      print("Status please: $userTyping");
 
-                                                                                                    return Column(
-                                                                                                      children: [
-                                                                                                        Row(
-                                                                                                          children: [
-                                                                                                            Text('$countOfArraysForCurrentDate/$adjustedUserCount teammates confirmed completion'), // Display additional text based on isCurrentUser
-                                                                                                          ],
-                                                                                                        ),
+                                                                                                      // Now you can use these values as needed
 
-
-                                                                                                        Row(
-                                                                                                          children: [
-                                                                                                            const Icon(
-                                                                                                              Icons.directions_run,
-                                                                                                              color: Colors.black26, // Set the icon color to your preference
-                                                                                                            ),
-                                                                                                            SizedBox(width: 8), // Add some spacing between the icon and text
-                                                                                                            Text('$countOfArraysForDifferentDate'),
-                                                                                                            SizedBox(width: 16),
-                                                                                                            const Icon(
-                                                                                                              Icons.local_fire_department_sharp,
-                                                                                                              color: Colors.yellow, // Set the icon color to your preference
-                                                                                                            ),
-                                                                                                            SizedBox(width: 8), // Add some spacing between the icon and text
-                                                                                                            Text('$countOfArraysForConsistencyDates'),
-                                                                                                          ],
-                                                                                                        ),
-                                                                                                        if (userTyping == 1)
-                                                                                                          ElevatedButton(
-                                                                                                            onPressed: () {
-                                                                                                              // Handle button press here
-                                                                                                              // For example, mark the user as completed
-                                                                                                            },
-                                                                                                            child: const Text("Hello"),
+                                                                                                      return Column(
+                                                                                                        children: [
+                                                                                                          Row(
+                                                                                                            children: [
+                                                                                                              Text('$countOfArraysForCurrentDate/$adjustedUserCount teammates confirmed completion'),
+                                                                                                            ],
                                                                                                           ),
-                                                                                                      ],
-                                                                                                    );
+                                                                                                          Row(
+                                                                                                            children: [
+                                                                                                              const Icon(
+                                                                                                                Icons.directions_run,
+                                                                                                                color: Colors.black26,
+                                                                                                              ),
+                                                                                                              SizedBox(width: 8),
+                                                                                                              Text('$countOfArraysForDifferentDate'),
+                                                                                                              SizedBox(width: 16),
+                                                                                                              const Icon(
+                                                                                                                Icons.local_fire_department_sharp,
+                                                                                                                color: Colors.yellow,
+                                                                                                              ),
+                                                                                                              SizedBox(width: 8),
+                                                                                                              Text('$countOfArraysForConsistencyDates'),
+                                                                                                            ],
+                                                                                                          ),
+                                                                                                          if (userTyping == 1)
+                                                                                                            ElevatedButton(
+                                                                                                              onPressed: () {
+                                                                                                                // Handle button press here
+                                                                                                                // For example, mark the user as completed
+                                                                                                              },
+                                                                                                              child: const Text("Hello"),
+                                                                                                            ),
+                                                                                                        ],
+                                                                                                      );
+                                                                                                    } else {
+                                                                                                      // ChallengeType is 1 and user is the same as userNameSnapshot.data!, do not display the Column
+                                                                                                      return SizedBox.shrink();
+                                                                                                    }
 
 
 
@@ -1221,15 +1327,19 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                           // Display a button when user is typing
                                                                                                           return ElevatedButton(
                                                                                                             onPressed: () {
+                                                                                                              _showTypeResponseDialog(user, userNameSnapshot.data!, challengeTitle, teamId);
                                                                                                               // Handle button press here
                                                                                                               // For example, open a text input field for the user to type a response
                                                                                                             },
                                                                                                             child: const Text('Type response'),
                                                                                                           );
+                                                                                                        } else if (userTypingStatus == 'not_typing' || userTypingStatus == 'true' || userTypingStatus == 'false') {
+                                                                                                          return const Text('');
                                                                                                         } else {
                                                                                                           // Display a message when the user is not typing
-                                                                                                          return Text('User is not typing');
+                                                                                                          return Text(userTypingStatus);
                                                                                                         }
+
                                                                                                       }
                                                                                                     } else {
                                                                                                       return CircularProgressIndicator();
