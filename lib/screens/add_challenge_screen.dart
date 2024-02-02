@@ -96,7 +96,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       },
                       items: <String>[
                         'Challenge everyone including you',
-                        'Challenge yourself OR get your teammates to verify',
+                        'Challenge yourself - get your teammates to verify',
                         'Challenge your teammates - you verify',
                       ].map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
@@ -235,7 +235,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
             padding: const EdgeInsets.only(bottom: 10.0),
             child: TextFormField(
               style: TextStyle(fontSize: 16),
-              onChanged: (value) {},
+              onChanged: (value) {
+                // Update the challengeTitle in the current data
+                data.challengeTitle = value;
+                setState(() {});
+              },
               decoration: InputDecoration(
                 hintText: 'Challenge Title',
               ),
@@ -248,6 +252,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             Flexible(
               child: TextFormField(
                 onChanged: (value) {
+                  // Update the challengeTitle in the current data
                   data.challengeTitle = value;
                   setState(() {});
                 },
@@ -264,10 +269,21 @@ class _CreateChallengeState extends State<CreateChallenge> {
               icon: Icon(Icons.add),
               onPressed: () {
                 setState(() {
+                  // If there is a challengeTitle, add it to the list before adding the new ChallengeData
+                  if (data.challengeTitle.isNotEmpty) {
+                    challengeDataList.add(
+                      ChallengeData(
+                        challengeTitle: data.challengeTitle,
+                        controller: TextEditingController(),
+                      ),
+                    );
+                  }
+                  // Add the new ChallengeData to the list
                   challengeDataList.add(
                     ChallengeData(
-                        challengeTitle: "",
-                        controller: TextEditingController()),
+                      challengeTitle: "",
+                      controller: TextEditingController(),
+                    ),
                   );
                 });
               },
@@ -288,6 +304,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
       ],
     );
   }
+
 
   Widget _buildFrequencySection() {
     return Column(

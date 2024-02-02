@@ -649,7 +649,8 @@ class _TeamScreenState extends State<TeamScreen> {
         userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
         print('User Typing for $userName: $userTyping');
 
-        challengeType = challengeData['challengeType'] == 'Challenge yourself - get your teammates to verify' ? 1 : 0;
+        challengeType = challengeData['challengeType'] == 'Challenge yourself - get your teammates to verify' ? 1 : (challengeData['challengeType'] == 'Challenge your teammates - you verify' ? 2 : 0);
+
         print(challengeType);
 
 
@@ -732,6 +733,8 @@ class _TeamScreenState extends State<TeamScreen> {
 
     // Fetch documents from the challenges collection
     QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': challengeTitle}).get();
+
+
 
     // Get the current date in the desired format
     DateTime currentDate = DateTime.now();
@@ -828,15 +831,83 @@ class _TeamScreenState extends State<TeamScreen> {
     // Print the minimum count among all users
     print('Min Count Among All Users: $minUserCount');
 
+    // Initialize a variable to track whether there is more than one array
+    bool hasMultipleChallenges = false;
+
+// Initialize a list to store challenge data for the popup
+    List<Map<String, dynamic>> popupChallengeDataList = [];
+
+// Iterate through the documents
+    for (QueryDocumentSnapshot challengeDoc in challengesSnapshot.docs) {
+      Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+      // Assuming 'challengeDataList' is a list
+      List<dynamic> challengeDataList = challengeData['challengeDataList'];
+
+      // Print the entire array
+      print("Challenge Data List: $challengeDataList");
+
+      // Check if the array has more than one element
+      if (challengeDataList.length > 1) {
+        hasMultipleChallenges = true;
+
+        // Store the challenge data for the popup
+        popupChallengeDataList = List.from(challengeDataList);
+      }
+    }
+
     return Row(
       children: [
-        // SizedBox(width: 16), // Adjust the width for more space
+        // Add a button to the left of the row if there are multiple challenges
+        if (hasMultipleChallenges)
+          ElevatedButton(
+            onPressed: () {
+              // Show a dialog with the title at index 0 and the rest as a list
+              showDialog(
+                context: context, // Replace 'context' with your actual context variable
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text(popupChallengeDataList.isNotEmpty ? popupChallengeDataList[0]['challengeTitle'] : ''),
+                    content: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: 200, // Adjust the height constraint as needed
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: List.generate(
+                            popupChallengeDataList.length - 1,
+                                (index) => ListTile(
+                              title: Text(popupChallengeDataList[index + 1]['challengeTitle']),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close the dialog
+                        },
+                        child: Text('Close'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            child: Text('View List'),
+          ),
+
+
+        SizedBox(width: 8), // Add some space between the button and the icons/text
         Icon(Icons.local_fire_department_sharp),
         Text(' $minUserCount'),
-        Icon(Icons.directions_run), // Add another icon
+        Icon(Icons.directions_run),
         Text(' $totalUserPoints'),
       ],
     );
+
+
   }
 
   Future<String> _userTextInput(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
@@ -1251,7 +1322,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
                                                                                                     // Add a condition to not display the Column when challengeType is 1
                                                                                                     // Add a condition to not display the Column when challengeType is 1 and user is the same as userNameSnapshot.data!
-                                                                                                    if (!(challengeType == 1 && user != userNameSnapshot.data!)) {
+                                                                                                    if (!(challengeType == 1 && user != userNameSnapshot.data! || challengeType == 2 && user == userNameSnapshot.data!)){
                                                                                                       print(countOfArraysForCurrentDate);
                                                                                                       print(adjustedUserCount);
                                                                                                       print("Status please: $userTyping");
