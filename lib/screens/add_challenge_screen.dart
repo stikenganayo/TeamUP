@@ -26,6 +26,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
   String selectedTimeUnit = "Per Day";
   String selectedChallengeType = "CheckBox";
   String selectedGoal = "times";
+  bool enableUserTyping = false;
 
   List<String> timeUnitOptions = [
     "Per Second",
@@ -38,6 +39,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
   ];
 
   List<String> goalOptions = ["times", "seconds", "minutes", "hours", "days"];
+  String dropdownValue = 'Challenge everyone including you';
 
   late List<InputFieldData> inputFieldsDataList;
 
@@ -76,10 +78,41 @@ class _CreateChallengeState extends State<CreateChallenge> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: <Widget>[
+
+                    const SizedBox(height: 20),
                     Column(
                       children: challengeDataList
                           .map((data) => _buildChallengeRow(data))
                           .toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButton<String>(
+                      value: dropdownValue,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          dropdownValue = newValue!;
+                          // Add logic to handle different dropdown options here
+                        });
+                      },
+                      items: <String>[
+                        'Challenge everyone including you',
+                        'Challenge yourself - get your teammates to verify',
+                        'Challenge your teammates - you verify',
+                      ].map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          // Toggle the enableUserTyping state
+                          enableUserTyping = !enableUserTyping;
+                        });
+                      },
+                      child: Text(enableUserTyping ? "Disable user typing" : "Enable user typing"),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -202,7 +235,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
             padding: const EdgeInsets.only(bottom: 10.0),
             child: TextFormField(
               style: TextStyle(fontSize: 16),
-              onChanged: (value) {},
+              onChanged: (value) {
+                // Update the challengeTitle in the current data
+                data.challengeTitle = value;
+                setState(() {});
+              },
               decoration: InputDecoration(
                 hintText: 'Challenge Title',
               ),
@@ -215,6 +252,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             Flexible(
               child: TextFormField(
                 onChanged: (value) {
+                  // Update the challengeTitle in the current data
                   data.challengeTitle = value;
                   setState(() {});
                 },
@@ -231,10 +269,21 @@ class _CreateChallengeState extends State<CreateChallenge> {
               icon: Icon(Icons.add),
               onPressed: () {
                 setState(() {
+                  // If there is a challengeTitle, add it to the list before adding the new ChallengeData
+                  if (data.challengeTitle.isNotEmpty) {
+                    challengeDataList.add(
+                      ChallengeData(
+                        challengeTitle: data.challengeTitle,
+                        controller: TextEditingController(),
+                      ),
+                    );
+                  }
+                  // Add the new ChallengeData to the list
                   challengeDataList.add(
                     ChallengeData(
-                        challengeTitle: "",
-                        controller: TextEditingController()),
+                      challengeTitle: "",
+                      controller: TextEditingController(),
+                    ),
                   );
                 });
               },
@@ -255,6 +304,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
       ],
     );
   }
+
 
   Widget _buildFrequencySection() {
     return Column(
@@ -420,6 +470,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'goalValue': inputFieldsDataList[0].unit,
             // Add this line to include the goal value
             'accepted': 0,
+            'userTyping' : enableUserTyping,
+            'challengeType' : dropdownValue,
           };
 
           DocumentReference challengeDocRef =
@@ -465,6 +517,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                         .map((data) => {'challengeTitle': data.challengeTitle})
                         .toList(),
                     'players': players,
+                    'userTyping' : enableUserTyping,
                     // Add the list of players to the team challenge
                   }
                 ]),
@@ -473,8 +526,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
               // Iterate through each user and update their 'team_events'
               for (String teamMember in teamMembers) {
                 // Find the user's ID in the 'users' collection
-                QuerySnapshot userQuerySnapshot = await FirebaseFirestore
-                    .instance
+                QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
                     .collection('users')
                     .where('name', isEqualTo: teamMember)
                     .limit(1)
@@ -484,6 +536,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
                   DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
                   String userId = userSnapshot.id;
 
+                  // Determine the status based on whether the user is the host
+                  String status = (userData['name'] == teamMember) ? 'host' : 'pending';
+
                   // Update the user's document with the challenge data
                   await FirebaseFirestore.instance
                       .collection('users')
@@ -491,23 +546,20 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       .update({
                     'team_challenges': FieldValue.arrayUnion([
                       {
-                        'status': 'pending',
+                        'status': status,
                         'challengeDocRef': challengeDocRef.id,
-                        'creatorUserId': currentUser.uid,
+                        'creatorUserId': userData['name'], // Use the user's name as creatorUserId
                         'template_name': challengeDataList
-                            .map((data) =>
-                        {
-                          'challengeTitle': data.challengeTitle
-                        })
+                            .map((data) => {'challengeTitle': data.challengeTitle})
                             .toList(),
-                        // You might want to set the template name if applicable
                         'players': players,
-                        // Add the list of players to the user's team challenge
+                        'userTyping' : enableUserTyping,
                       }
                     ])
                   });
                 }
               }
+
             }
           }
 
@@ -524,6 +576,86 @@ class _CreateChallengeState extends State<CreateChallenge> {
     }
   }
 }
+
+Future<void> deletePostedChallenge(DocumentReference challengeDocRef) async {
+  try {
+    // Get the challenge data before deleting
+    DocumentSnapshot challengeSnapshot = await challengeDocRef.get();
+    Map<String, dynamic> challengeData =
+    challengeSnapshot.data() as Map<String, dynamic>;
+
+    // Delete the challenge document
+    await challengeDocRef.delete();
+    print('Challenge deleted successfully');
+
+    // Iterate through selectedTeams and update teams' challenges and users
+    for (String teamName in challengeData['selectedTeams']) {
+      // Find team's ID in the 'teams' collection
+      QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .where('team_name', isEqualTo: teamName)
+          .limit(1)
+          .get();
+
+      if (teamQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
+        String teamId = teamSnapshot.id;
+
+        // Update the team's document by removing the challenge data
+        await FirebaseFirestore.instance
+            .collection('teams')
+            .doc(teamId)
+            .update({
+          'team_challenges': FieldValue.arrayRemove([
+            {
+              'status': 'pending',
+              'challengeDocRef': challengeDocRef.id,
+            }
+          ]),
+        });
+
+        // Iterate through each user in the team and update their 'team_events'
+        for (String teamMember in teamSnapshot['users']) {
+          // Find the user's ID in the 'users' collection
+          QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .where('name', isEqualTo: teamMember)
+              .limit(1)
+              .get();
+
+          if (userQuerySnapshot.docs.isNotEmpty) {
+            DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+            String userId = userSnapshot.id;
+
+            // Update the user's document by removing the challenge data
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .update({
+              'team_challenges': FieldValue.arrayRemove([
+                {
+                  'status': (userSnapshot['name'] == teamMember)
+                      ? 'host'
+                      : 'pending',
+                  'challengeDocRef': challengeDocRef.id,
+                }
+              ])
+            });
+          }
+        }
+      }
+    }
+
+    print('Challenge deleted from all relevant locations');
+  } catch (e, stackTrace) {
+    print('Error deleting challenge: $e');
+    print('StackTrace: $stackTrace');
+  }
+}
+
+
+
+
   class ChallengeData {
   String challengeTitle;
   TextEditingController controller;

@@ -234,6 +234,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             challengeData['selectedTimeUnit'],
         ].where((value) => value.isNotEmpty).join(' '), // Combine non-empty values
         'Created By': challengeData['CurrentUserName'],
+        'Teams': (challengeData['selectedTeams'] as List<dynamic>)
+            .map((team) => team.toString())
+            .join(', '), // Concatenate teams with commas
+
         'status': challenge['status'] ?? '',
         'challengeDocRef': challengeDocRef,
         'accepted': challengeData['accepted'],
@@ -484,6 +488,103 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<void> deleteChallengeAndReferences(String challengeDocRef) async {
+    try {
+      // Delete the challenge itself
+      await FirebaseFirestore.instance.collection('challenges').doc(challengeDocRef).delete();
+      print("Challenge deleted successfully!");
+    } catch (error) {
+      print("Error deleting challenge: $error");
+      // Handle the error as needed
+    }
+
+    try {
+      // Delete the challenge from teams
+      QuerySnapshot teamsSnapshot = await FirebaseFirestore.instance.collection('teams').get();
+
+      for (QueryDocumentSnapshot teamDoc in teamsSnapshot.docs) {
+        String teamID = teamDoc.id;
+
+        DocumentReference teamChallengesRef = FirebaseFirestore.instance.collection('teams').doc(teamID);
+        DocumentSnapshot teamChallengesDoc = await teamChallengesRef.get();
+
+        List<dynamic> teamChallengesArray = teamChallengesDoc['team_challenges'] ?? [];
+        List<dynamic> updatedChallengesArray = teamChallengesArray
+            .where((challenge) {
+          String? teamChallengeDocRef = challenge['challengeDocRef'] as String?;
+          return teamChallengeDocRef == null || teamChallengeDocRef != challengeDocRef;
+        })
+            .toList();
+
+        await teamChallengesRef.update({'team_challenges': updatedChallengesArray});
+        print("Updated Team Challenges for Team $teamID: $updatedChallengesArray");
+      }
+    } catch (error) {
+      print("Error deleting challenge from teams: $error");
+      // Handle the error as needed
+    }
+
+    try {
+      // Delete the challenge from users
+      QuerySnapshot usersSnapshot = await FirebaseFirestore.instance.collection('users').get();
+
+      for (QueryDocumentSnapshot userDoc in usersSnapshot.docs) {
+        String userID = userDoc.id;
+
+        DocumentReference userChallengesRef = FirebaseFirestore.instance.collection('users').doc(userID);
+        DocumentSnapshot userChallengesDoc = await userChallengesRef.get();
+
+        List<dynamic> userChallengesArray = userChallengesDoc['team_challenges'] ?? [];
+        List<dynamic> updatedChallengesArray = userChallengesArray
+            .where((challenge) {
+          if (challenge is Map<String, dynamic>) {
+            String? userChallengeDocRef = challenge['challengeDocRef'] as String?;
+            return userChallengeDocRef == null || userChallengeDocRef != challengeDocRef;
+          }
+          return true;
+        })
+            .toList();
+
+        await userChallengesRef.update({'team_challenges': updatedChallengesArray});
+        print("Updated Team Challenges for User $userID: $updatedChallengesArray");
+      }
+    } catch (error) {
+      print("Error deleting challenge from users: $error");
+      // Handle the error as needed
+    }
+  }
+
+  void showDeleteConfirmationDialog(BuildContext context, String challengeDocRef) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Challenge"),
+          content: Text("Clicking Yes will delete the challenge posted for all Teams. Are you sure you want to do this?"),
+          actions: [
+            TextButton(
+              child: Text("No"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text("Yes"),
+              onPressed: () async {
+                // Perform the delete action here
+                await deleteChallengeAndReferences(challengeDocRef);
+
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Challenge deleted successfully!')));
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 
 
 
@@ -552,92 +653,113 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               itemBuilder: (context, index) {
                 if (index < challengeDetails.length) {
                   int challengeIndex = index;
-                  return Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: ListTile(
-                      title: Text(
-                        'Title: ${challengeDetails[challengeIndex]['title']}',
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Description: ${challengeDetails[challengeIndex]['Description']}',
+                  bool buttonsVisible =
+                      challengeDetails[challengeIndex]['Created By'] !=
+                          currentUserFullName;
+                  return Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            'Title: ${challengeDetails[challengeIndex]['title']}',
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Challenge Created By: ${challengeDetails[challengeIndex]['Created By']}',
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Accepted: ${challengeDetails[challengeIndex]['accepted']}',
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Status: ${challengeDetails[challengeIndex]['status']}',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Visibility(
-                                visible: challengeDetails[challengeIndex]['Created By'] != currentUserFullName,
-                                child: Expanded(
-                                  child: StatusButton(
-                                    buttonText: 'Accept',
-                                    docRef: challengeDetails[challengeIndex]['challengeDocRef'],
-                                    collection: 'team_challenges',
-                                    currentStatus: challengeDetails[challengeIndex]['status'],
-                                    onPressed: (status) {
-                                      if (status != challengeDetails[challengeIndex]['status']) {
-                                        // Only update if the new status is different from the current status
-                                        _updateStatus(
-                                          challengeDetails[challengeIndex]['challengeDocRef'],
-                                          status,
-                                          'team_challenges',
-                                        );
-                                        setState(() {
-                                          challengeDetails[challengeIndex]['status'] = status;
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
+                              Text(
+                                'Description: ${challengeDetails[challengeIndex]['Description']}',
                               ),
-
-                              SizedBox(width: 8),
-                              Visibility(
-                                visible: challengeDetails[challengeIndex]['Created By'] != currentUserFullName,
-                                child: Expanded(
-                                  child: StatusButton(
-                                    buttonText: 'Decline',
-                                    docRef: challengeDetails[challengeIndex]['challengeDocRef'],
-                                    collection: 'team_challenges',
-                                    currentStatus: challengeDetails[challengeIndex]['status'],
-                                    onPressed: (status) {
-                                      if (status != challengeDetails[challengeIndex]['status']) {
-                                        // Only update if the new status is different from the current status
-                                        _updateStatus(
-                                          challengeDetails[challengeIndex]['challengeDocRef'],
-                                          status,
-                                          'team_challenges',
-                                        );
-                                        setState(() {
-                                          challengeDetails[challengeIndex]['status'] = status;
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Challenge Created By: ${challengeDetails[challengeIndex]['Created By']}',
                               ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Teams Challenged: ${challengeDetails[challengeIndex]['Teams']}',
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Accepted: ${challengeDetails[challengeIndex]['accepted']}',
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Status: ${challengeDetails[challengeIndex]['status']}',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Visibility(
+                                    visible: buttonsVisible,
+                                    child: Expanded(
+                                      child: StatusButton(
+                                        buttonText: 'Accept',
+                                        docRef: challengeDetails[challengeIndex]['challengeDocRef'],
+                                        collection: 'team_challenges',
+                                        currentStatus: challengeDetails[challengeIndex]['status'],
+                                        onPressed: (status) {
+                                          if (status != challengeDetails[challengeIndex]['status']) {
+                                            // Only update if the new status is different from the current status
+                                            _updateStatus(
+                                              challengeDetails[challengeIndex]['challengeDocRef'],
+                                              status,
+                                              'team_challenges',
+                                            );
+                                            setState(() {
+                                              challengeDetails[challengeIndex]['status'] = status;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
 
+                                  SizedBox(width: 8),
+                                  Visibility(
+                                    visible: buttonsVisible,
+                                    child: Expanded(
+                                      child: StatusButton(
+                                        buttonText: 'Decline',
+                                        docRef: challengeDetails[challengeIndex]['challengeDocRef'],
+                                        collection: 'team_challenges',
+                                        currentStatus: challengeDetails[challengeIndex]['status'],
+                                        onPressed: (status) {
+                                          if (status != challengeDetails[challengeIndex]['status']) {
+                                            // Only update if the new status is different from the current status
+                                            _updateStatus(
+                                              challengeDetails[challengeIndex]['challengeDocRef'],
+                                              status,
+                                              'team_challenges',
+                                            );
+                                            setState(() {
+                                              challengeDetails[challengeIndex]['status'] = status;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      if (!buttonsVisible) // hide 'x' when buttons are visible
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(Icons.close),
+                            onPressed: () {
+                              showDeleteConfirmationDialog(context, challengeDetails[challengeIndex]['challengeDocRef']);// Handle the removal action
+                            },
+                          ),
+                        ),
+                    ],
                   );
                 } else {
                   int eventIndex = index - challengeDetails.length;
@@ -646,128 +768,118 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   String formattedDate =
                   DateFormat('MMMM d, y').format(startDate);
 
-                  return Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: ListTile(
-                      title: Text(
-                        'Title: ${eventDetails[eventIndex]['title']}',
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Start Date: $formattedDate'),
-                          Text(
-                            'Start Time: ${eventDetails[eventIndex]['startTime']}',
+                  bool buttonsVisible =
+                      eventDetails[eventIndex]['Created By'] !=
+                          currentUserFullName;
+
+                  return Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            'Title: ${eventDetails[eventIndex]['title']}',
                           ),
-                          Text(
-                            'Location: ${eventDetails[eventIndex]['eventLocation']}',
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Event Created By: ${eventDetails[eventIndex]['Created By']}',
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Attending: ${eventDetails[eventIndex]['attending']}',
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Status: ${eventDetails[eventIndex]['status']}',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Visibility(
-                                visible: eventDetails[eventIndex]['Created By'] != currentUserFullName,
-                                child: Expanded(
-                                  child: StatusButton(
-                                    buttonText: 'Going',
-                                    docRef: eventDetails[eventIndex]['eventDocRef'],
-                                    collection: 'team_events',
-                                    currentStatus: eventDetails[eventIndex]['status'],
-                                    onPressed: (status) async {
-                                      if (eventDetails[eventIndex]['status'] != 'Going') {
-                                        // Update the status only if it's not already "Going"
-                                        await _updateStatus(
-                                          eventDetails[eventIndex]['eventDocRef'],
-                                          status,
-                                          'team_events',
-                                        );
-
-                                        // Update the local state
-                                        setState(() {
-                                          eventDetails[eventIndex]['status'] = status;
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
+                              Text('Start Date: $formattedDate'),
+                              Text(
+                                'Start Time: ${eventDetails[eventIndex]['startTime']}',
                               ),
-
-                              SizedBox(width: 8),
-                              Visibility(
-                                visible: eventDetails[eventIndex]['Created By'] != currentUserFullName,
-                                child: Expanded(
-                                  child: StatusButton(
-                                    buttonText: 'Not Going',
-                                    docRef: eventDetails[eventIndex]['eventDocRef'],
-                                    collection: 'team_events',
-                                    currentStatus: eventDetails[eventIndex]['status'],
-                                    onPressed: (status) async {
-                                      if (eventDetails[eventIndex]['status'] != 'Not Going') {
-                                        // Update the status only if it's not already "Not Going"
-                                        await _updateStatus(
-                                          eventDetails[eventIndex]['eventDocRef'],
-                                          status,
-                                          'team_events',
-                                        );
-
-                                        // Update the local state
-                                        setState(() {
-                                          eventDetails[eventIndex]['status'] = status;
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ),
+                              Text(
+                                'Location: ${eventDetails[eventIndex]['eventLocation']}',
                               ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Event Created By: ${eventDetails[eventIndex]['Created By']}',
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Attending: ${eventDetails[eventIndex]['attending']}',
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Status: ${eventDetails[eventIndex]['status']}',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Visibility(
+                                    visible: buttonsVisible,
+                                    child: Expanded(
+                                      child: StatusButton(
+                                        buttonText: 'Going',
+                                        docRef: eventDetails[eventIndex]['eventDocRef'],
+                                        collection: 'team_events',
+                                        currentStatus: eventDetails[eventIndex]['status'],
+                                        onPressed: (status) async {
+                                          if (eventDetails[eventIndex]['status'] != 'Going') {
+                                            // Update the status only if it's not already "Going"
+                                            await _updateStatus(
+                                              eventDetails[eventIndex]['eventDocRef'],
+                                              status,
+                                              'team_events',
+                                            );
 
-                              // SizedBox(width: 8),
-                              // Visibility(
-                              //   visible: eventDetails[eventIndex]['Created By'] != currentUserFullName,
-                              //   child: Expanded(
-                              //     child: StatusButton(
-                              //       buttonText: 'Maybe',
-                              //       docRef: eventDetails[eventIndex]['eventDocRef'],
-                              //       collection: 'team_events',
-                              //       currentStatus: eventDetails[eventIndex]['status'],
-                              //       onPressed: (status) async {
-                              //         if (eventDetails[eventIndex]['status'] != 'Maybe') {
-                              //           // Update the status only if it's not already "Maybe"
-                              //           await _updateStatus(
-                              //             eventDetails[eventIndex]['eventDocRef'],
-                              //             status,
-                              //             'team_events',
-                              //           );
-                              //
-                              //           // Update the local state
-                              //           setState(() {
-                              //             eventDetails[eventIndex]['status'] = status;
-                              //           });
-                              //         }
-                              //       },
-                              //     ),
-                              //   ),
-                              // ),
+                                            // Update the local state
+                                            setState(() {
+                                              eventDetails[eventIndex]['status'] = status;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
 
+                                  SizedBox(width: 8),
+                                  Visibility(
+                                    visible: buttonsVisible,
+                                    child: Expanded(
+                                      child: StatusButton(
+                                        buttonText: 'Not Going',
+                                        docRef: eventDetails[eventIndex]['eventDocRef'],
+                                        collection: 'team_events',
+                                        currentStatus: eventDetails[eventIndex]['status'],
+                                        onPressed: (status) async {
+                                          if (eventDetails[eventIndex]['status'] != 'Not Going') {
+                                            // Update the status only if it's not already "Not Going"
+                                            await _updateStatus(
+                                              eventDetails[eventIndex]['eventDocRef'],
+                                              status,
+                                              'team_events',
+                                            );
+
+                                            // Update the local state
+                                            setState(() {
+                                              eventDetails[eventIndex]['status'] = status;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      if (!buttonsVisible) // hide 'x' when buttons are visible
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(Icons.close),
+                            onPressed: () {
+                              // Handle the removal action
+                            },
+                          ),
+                        ),
+                    ],
                   );
                 }
               },
@@ -776,6 +888,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
     );
+
+
+
 
 
   }

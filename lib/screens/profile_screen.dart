@@ -82,22 +82,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Future<void> _selectProfilePicture() async {
-  //   List<String> firebaseImages = []; // Replace this with actual Firebase image URLs
-  //
-  //   final selectedImage = await Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => ImageListScreen(images: firebaseImages),
-  //     ),
-  //   );
-  //
-  //   if (selectedImage != null) {
-  //     setState(() {
-  //       profilePictureUrl = selectedImage;
-  //     });
-  //   }
-  // }
+  Future<void> _selectProfilePicture() async {
+    List<String> firebaseImages = []; // Replace this with actual Firebase image URLs
+
+    final selectedImage = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ImageListScreen(images: firebaseImages),
+      ),
+    );
+
+    if (selectedImage != null) {
+      setState(() {
+        profilePictureUrl = selectedImage;
+      });
+    }
+  }
+  // Helper function to create an icon and text combination with an image
+  Widget _buildIconText(String imagePath, String text) {
+    return Row(
+      children: [
+        Image.asset(
+          imagePath,
+          width: 24, // Adjust the width as needed
+          height: 24, // Adjust the height as needed
+        ),
+        SizedBox(width: 10),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 18),
+        ),
+        SizedBox(height: 10),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.photo),
             onPressed: () {
-              //_selectProfilePicture();
+              _selectProfilePicture();
             },
           ),
         ],
@@ -156,16 +174,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 10),
-              Text(
-                'Total Points: $totalPoints',
-                style: const TextStyle(fontSize: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildIconText('assets/images/brain.png', '$totalPoints'),
+                  _buildIconText('assets/images/heart.png', '$totalPoints'),
+                  _buildIconText('assets/images/physical.png', '$totalPoints'),
+                  _buildIconText('assets/images/spiritual.png', '$totalPoints'),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Total Streaks: $totalStreaks',
-                style: const TextStyle(fontSize: 18),
-              ),
-              const SizedBox(height: 30),
+
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
