@@ -221,6 +221,25 @@ class _CreateEventState extends State<CreateEvent> {
                       labelText: 'Event Location'),
                 ),
                 const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: canPostEvent,
+                      onChanged: (value) {
+                        setState(() {
+                          canPostEvent = value!;
+                        });
+                      },
+                    ),
+                    Text(
+                      'Post to community page',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+
+                SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -256,6 +275,7 @@ class _CreateEventState extends State<CreateEvent> {
                 ),
 
                 const SizedBox(height: 20),
+
 
                 // Display selected friends and teams
                 if (selectedFriends.isNotEmpty || selectedTeams.isNotEmpty)
@@ -296,6 +316,7 @@ class _CreateEventState extends State<CreateEvent> {
                   ),
 
                 const SizedBox(height: 20),
+
 
                 ElevatedButton(
                   onPressed: canPostEvent
@@ -359,6 +380,7 @@ class _CreateEventState extends State<CreateEvent> {
               'selectedFriends': selectedFriends,
               'selectedTeams': selectedTeams,
               'attending': 0,
+              'communityEvent': canPostEvent,
             });
 
             print('Event Posted:');
