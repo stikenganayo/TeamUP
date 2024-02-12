@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
@@ -21,12 +22,56 @@ class _StoriesScreenState extends State<StoriesScreen> {
   ]; // Hold community events details
   List<Map<String, dynamic>> communityChallenges = [
   ]; // Hold community challenges details
+  List<Map<String, dynamic>> communityCoaches = [];
+  late User? currentUser;
+
+
 
   @override
   void initState() {
     super.initState();
     _loadCommunityEvents();
     _loadCommunityChallenges();
+    _loadCommunityCoaches(); // Call to load coaches' data
+  }
+
+
+
+  Future<String?> _loadCurrentUserName() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('Current User Email: ${currentUser!.email}');
+
+      try {
+        // Fetch the user document based on the current user's email
+        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser!.email)
+            .limit(1)
+            .get();
+
+        if (userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+          // Print all data inside the current user's document
+          print('User Data: $userData');
+
+          // Check for the 'name' field in the user data
+          if (userData.containsKey('name')) {
+            String userName = userData['name'] as String;
+            return userName;
+          } else {
+            print('Name field not found in user document');
+          }
+        } else {
+          print('User document not found for the current user');
+        }
+      } catch (e) {
+        print('Error loading user document: $e');
+      }
+    }
+    return null; // Return null if any error occurs or if user is not found
   }
 
   Future<void> _loadCommunityEvents() async {
@@ -161,7 +206,91 @@ class _StoriesScreenState extends State<StoriesScreen> {
       print('Error loading community challenges: $e');
     }
   }
+  void _showAddCoachDialog(BuildContext context) {
 
+    String description = '';
+    String yearsOfExperience = '';
+    String coach = _loadCurrentUserName() as String;
+
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Community Coach'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                onChanged: (value) {
+                  description = value;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                ),
+              ),
+              TextField(
+                onChanged: (value) {
+                  yearsOfExperience = value;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Years of Experience',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Saving data to Firestore
+                FirebaseFirestore.instance.collection('community_coaches').add({
+                  'coach': coach,
+                  'description': description,
+                  'years_of_experience': yearsOfExperience,
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _loadCommunityCoaches() async {
+    try {
+      QuerySnapshot communityCoachesSnapshot = await FirebaseFirestore.instance
+          .collection('community_coaches')
+          .get();
+
+      List<Map<String, dynamic>> coaches = [];
+
+      for (DocumentSnapshot doc in communityCoachesSnapshot.docs) {
+        if (doc.exists) {
+          Map<String, dynamic> coachDetails = {
+            'coach': doc['coach'] ?? '',
+            'coachId': doc.id,
+            'description': doc['description'] ?? '',
+            'years_of_experience': doc['years_of_experience'] ?? '',
+          };
+          coaches.add(coachDetails);
+        }
+      }
+
+      setState(() {
+        communityCoaches = coaches;
+      });
+    } catch (e) {
+      print('Error loading community coaches: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -340,6 +469,77 @@ class _StoriesScreenState extends State<StoriesScreen> {
                           )).toList(),
                     ),
                   ),
+                  // const SizedBox(height: 28),
+                  // Style.sectionTitle('Community Coaches'),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Style.sectionTitle('Community Coaches'),
+                            SizedBox(width: 10), // Adjust the width as needed
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Add your button functionality here
+                          _showAddCoachDialog(context);
+                        },
+                        child: Text('Be a Community Coach'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: communityCoaches.map((coach) =>
+                          SizedBox(
+                            width: MediaQuery
+                                .of(context)
+                                .size
+                                .width * 0.4,
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(height: 8),
+                                    FutureBuilder<String?>(
+                                      future: _loadCurrentUserName(),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState == ConnectionState.waiting) {
+                                          return CircularProgressIndicator();
+                                        } else if (snapshot.hasError) {
+                                          return Text('Error: ${snapshot.error}');
+                                        } else {
+                                          return Text('Coach: ${snapshot.data}');
+                                        }
+                                      },
+                                    ),
+                                    // Text(
+                                    //   'Coach ID: ${coach['coachId']}',
+                                    //   style: TextStyle(fontWeight: FontWeight.bold),
+                                    // ),
+                                    SizedBox(height: 8),
+                                    Text('Description: ${coach['description']}'),
+                                    SizedBox(height: 8),
+                                    Text('Years of Experience: ${coach['years_of_experience']}'),
+                                    SizedBox(height: 8),
+
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ).toList(),
+                    ),
+                  ),
+
+                  SizedBox(height: 28),
                 ],
               ),
             ),

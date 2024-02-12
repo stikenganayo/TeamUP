@@ -67,17 +67,6 @@ class _TeamScreenState extends State<TeamScreen> {
     return null; // Return null if any error occurs or if user is not found
   }
 
-
-
-
-
-
-
-
-
-
-
-
   Future<void> _loadCurrentUser() async {
     currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
