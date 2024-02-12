@@ -1,7 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:async/async.dart';
 import 'package:rxdart/rxdart.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -24,7 +24,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _focusNode = FocusNode();
     _currentUser = FirebaseAuth.instance.currentUser!;
-    _loadCurrentUser();
     _focusNode.requestFocus();
   }
 
@@ -32,27 +31,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _focusNode.dispose();
     super.dispose();
-  }
-
-  void _loadCurrentUser() async {
-    try {
-      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: _currentUser.email)
-          .limit(1)
-          .get();
-
-      if (userQuerySnapshot.docs.isNotEmpty) {
-        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-
-        print('User Data: $userData');
-      } else {
-        print('User document not found for the current user');
-      }
-    } catch (e) {
-      print('Error loading user document: $e');
-    }
   }
 
   void _sendMessage(String receiverUid) async {
@@ -92,14 +70,77 @@ class _ChatScreenState extends State<ChatScreen> {
           combinedList.addAll(receivedSnapshot.docs);
 
           combinedList.sort((a, b) {
-            Timestamp aTime = a['dateTime'] ?? Timestamp.now();
-            Timestamp bTime = b['dateTime'] ?? Timestamp.now();
+            Timestamp aTime = a['dateTime'];
+            Timestamp bTime = b['dateTime'];
             return bTime.compareTo(aTime);
           });
 
           return combinedList;
+        });
+  }
+
+  Future<void> _sendCurrentChallenges(String receiverUid) async {
+    DocumentSnapshot userSnapshot = await _firestore.collection('users').doc(_currentUser.uid).get();
+    if (userSnapshot.exists) {
+      Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+      if (userData.containsKey('teamId')) {
+        String teamId = userData['teamId'];
+        List<String> challengeTitles = await _getChallengeTitles(teamId);
+        if (challengeTitles.isNotEmpty) {
+          String challengesMessage = "Current Challenges:\n" + challengeTitles.join("\n");
+          await _firestore.collection('messages').add({
+            'text': challengesMessage,
+            'dateTime': FieldValue.serverTimestamp(),
+            'senderUid': _currentUser.uid,
+            'receiverUid': receiverUid,
+            'senderEmail': _currentUser.email,
+          });
+        } else {
+          print('No challenges found for the team.');
         }
-    );
+      } else {
+        print('Team ID not found in user document.');
+      }
+    } else {
+      print('User document not found.');
+    }
+  }
+
+  Future<List<String>> _getChallengeTitles(String teamId) async {
+    try {
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        if (teamData.containsKey('team_challenges')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+
+          List<String> challengeTitles = [];
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'].isNotEmpty &&
+                challenge['template_name'][0].containsKey('challengeTitle')) {
+              String challengeTitle = challenge['template_name'][0]['challengeTitle'];
+              challengeTitles.add(challengeTitle);
+            }
+          }
+
+          return challengeTitles;
+        } else {
+          print('Team challenges field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team or challenge document: $e');
+    }
+
+    return []; // Default value if anything goes wrong
   }
 
   @override
@@ -108,11 +149,11 @@ class _ChatScreenState extends State<ChatScreen> {
       future: getReceiverUid(widget.friendName),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError || snapshot.data == null) {
-          return Text('Error fetching friend UID');
+          return const Text('Error fetching friend UID');
         }
 
         final friendUid = snapshot.data!;
@@ -120,77 +161,135 @@ class _ChatScreenState extends State<ChatScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(widget.friendName),
-          ),
-          body: Column(
-            children: [
-              Expanded(
-                child: StreamBuilder<List<QueryDocumentSnapshot>>(
-                  stream: getMessages(_currentUser.uid, friendUid),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      print("Error: ${snapshot.error}");
-                      return Text("Error: ${snapshot.error}");
-                    }
-
-                    if (!snapshot.hasData) {
-                      return Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
-
-                    final allMessages = snapshot.data!;
-
-                    List<MessageItem> messageWidgets = [];
-                    for (var message in allMessages) {
-                      final messageText = message['text'];
-                      final isMe = message['senderUid'] == _currentUser.uid;
-
-                      final messageWidget = MessageItem(text: messageText, isMe: isMe, friendName: widget.friendName);
-                      messageWidgets.add(messageWidget);
-                    }
-
-                    return ListView(
-                      reverse: true,
-                      children: messageWidgets,
-                    );
-                  },
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  // Send current challenges when this button is pressed
+                  await _sendCurrentChallenges(friendUid);
+                },
+                child: Text(
+                  'Send Current Challenges',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                        ),
-                      ),
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all<Color>(Colors.blue),
+                  padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
+                    EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  ),
+                  shape: MaterialStateProperty.all<OutlinedBorder>(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                      side: BorderSide(color: Colors.white),
                     ),
-                    const SizedBox(width: 8.0),
-                    ElevatedButton(
-                      onPressed: () async {
-                        String? receiverUid = await getReceiverUid(widget.friendName);
-                        if (receiverUid != null) {
-                          _sendMessage(receiverUid);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: Receiver UID not found')),
-                          );
-                        }
-                      },
-                      child: const Text('Send'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
+          body: Container(
+            color: Colors.grey[200],
+            child: Column(
+              children: [
+                Expanded(
+                  child: StreamBuilder<List<QueryDocumentSnapshot>>(
+                    stream: getMessages(_currentUser.uid, friendUid),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Text("Error: ${snapshot.error}");
+                      }
+
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+
+                      final allMessages = snapshot.data!;
+
+                      return ListView.builder(
+                        reverse: true,
+                        itemCount: allMessages.length,
+                        itemBuilder: (context, index) {
+                          final message = allMessages[index];
+                          final messageText = message['text'];
+                          final isMe = message['senderUid'] == _currentUser.uid;
+
+                          return MessageItem(
+                            text: messageText,
+                            isMe: isMe,
+                            friendName: widget.friendName,
+                            isReceivedMessage: !isMe,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: TextField(
+                              controller: _messageController,
+                              focusNode: _focusNode,
+                              decoration: const InputDecoration(
+                                hintText: 'Type a message...',
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+                      Material(
+                        borderRadius: BorderRadius.circular(30.0),
+                        color: Colors.blue,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(30.0),
+                          onTap: () {
+                            _sendMessage(friendUid);
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: Icon(
+                              Icons.send,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
+  }
+
+  Future<String?> getReceiverUid(String receiverName) async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('name', isEqualTo: receiverName)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      return querySnapshot.docs.first.id;
+    }
+
+    return null;
   }
 }
 
@@ -198,37 +297,41 @@ class MessageItem extends StatelessWidget {
   final String text;
   final bool isMe;
   final String friendName;
+  final bool isReceivedMessage;
 
   const MessageItem({
     Key? key,
     required this.text,
     required this.isMe,
     required this.friendName,
+    required this.isReceivedMessage,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      title: Column(
-        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: isReceivedMessage ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
           Text(
-            isMe ? 'Me' : friendName,
+            isReceivedMessage ? friendName : 'Me',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: isMe ? Colors.blue : Colors.black,
+              color: isReceivedMessage ? Colors.blue : Colors.black,
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: isMe ? Colors.blue : Colors.grey[300],
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black,
+          Material(
+            color: isReceivedMessage ? Colors.white : Colors.blue,
+            borderRadius: BorderRadius.circular(8.0),
+            elevation: 3.0,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: isReceivedMessage ? Colors.black : Colors.white,
+                ),
               ),
             ),
           ),
@@ -236,17 +339,4 @@ class MessageItem extends StatelessWidget {
       ),
     );
   }
-}
-
-Future<String?> getReceiverUid(String receiverName) async {
-  QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-      .collection('users')
-      .where('name', isEqualTo: receiverName)
-      .get();
-
-  if (querySnapshot.docs.isNotEmpty) {
-    return querySnapshot.docs.first.id;
-  }
-
-  return null;
 }

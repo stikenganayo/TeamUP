@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../screens/image_list_screen.dart';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:firebase_storage/firebase_storage.dart';
-import '../widgets/friends.dart'; // Import the Friends widget
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -17,8 +12,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   List<FriendData> friends = [];
 
-  String username = '';
-  String userEmail = '';
+  String username = 'John Doe'; // Set the default name
+  String userEmail = ''; // Store user email
   int totalPoints = 1000;
   int totalStreaks = 5;
   String profilePictureUrl = 'https://csncollision.com/wp-content/uploads/2019/10/placeholder-circle.png';
@@ -39,22 +34,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         setState(() {
+          username = user.displayName ?? username;
           userEmail = user.email ?? '';
-          username = _extractUsername(userEmail);
           _nameController.text = username;
         });
       }
     } catch (e) {
       print('Error loading user data: $e');
-    }
-  }
-
-  String _extractUsername(String email) {
-    int endIndex = email.indexOf('@');
-    if (endIndex != -1) {
-      return email.substring(0, endIndex);
-    } else {
-      return email;
     }
   }
 
@@ -82,41 +68,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _selectProfilePicture() async {
-    List<String> firebaseImages = []; // Replace this with actual Firebase image URLs
-
-    final selectedImage = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ImageListScreen(images: firebaseImages),
-      ),
-    );
-
-    if (selectedImage != null) {
-      setState(() {
-        profilePictureUrl = selectedImage;
-      });
-    }
-  }
-  // Helper function to create an icon and text combination with an image
-  Widget _buildIconText(String imagePath, String text) {
-    return Row(
-      children: [
-        Image.asset(
-          imagePath,
-          width: 24, // Adjust the width as needed
-          height: 24, // Adjust the height as needed
-        ),
-        SizedBox(width: 10),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 18),
-        ),
-        SizedBox(height: 10),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,12 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _nameController.text = username;
                 }
               });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.photo),
-            onPressed: () {
-              _selectProfilePicture();
             },
           ),
         ],
@@ -174,20 +119,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildIconText('assets/images/brain.png', '$totalPoints'),
-                  _buildIconText('assets/images/heart.png', '$totalPoints'),
-                  _buildIconText('assets/images/physical.png', '$totalPoints'),
-                  _buildIconText('assets/images/spiritual.png', '$totalPoints'),
-                ],
+              Text(
+                'Total Points: $totalPoints',
+                style: const TextStyle(fontSize: 18),
               ),
-
+              const SizedBox(height: 10),
+              Text(
+                'Total Streaks: $totalStreaks',
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 30),
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  ' Teams:',
+                  ' Friends:',
                   style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -201,16 +146,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
               ),
-              const SizedBox(height: 30),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  ' Friends:',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                ),
-              ),
-              // Display friends using the FriendsGrid widget
-              FriendsGrid(),
               const SizedBox(height: 30),
             ],
           ),
