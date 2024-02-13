@@ -1098,6 +1098,62 @@ class _TeamScreenState extends State<TeamScreen> {
   }
 
 
+  void openTeamDetailsDialog(BuildContext context, String teamId) async {
+    print(teamId);
+
+    try {
+      // Fetch team users from Firestore
+      List<dynamic> users = await getTeamUsers(teamId);
+
+      // Show dialog with team details
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Team Details'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Text('Team ID: $teamId'),
+              Text('All members:'),
+              const SizedBox(height: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: users.map<Widget>((user) => Text(user.toString())).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      print('Error opening team details dialog: $e');
+      // Show error message
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Error'),
+          content: Text('Failed to load team details: $e'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1237,15 +1293,41 @@ class _TeamScreenState extends State<TeamScreen> {
                                             } else {
                                               return Padding(
                                                 padding: const EdgeInsets.only(left: 16),
-                                                child: Text(
-                                                  '${teamNameSnapshot.data}',
-                                                  style: const TextStyle(
-                                                    fontSize: 25, // Adjust the font size as needed
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.black, // Adjust the text color as needed
-                                                  ),
+                                                child: FutureBuilder<String>(
+                                                  future: _getTeamName(teamId),
+                                                  builder: (context, teamNameSnapshot) {
+                                                    if (teamNameSnapshot.connectionState == ConnectionState.done) {
+                                                      if (teamNameSnapshot.hasError || teamNameSnapshot.data == null) {
+                                                        return Text('Unknown Team');
+                                                      } else {
+                                                        return Row(
+                                                          children: [
+                                                            Text(
+                                                              '${teamNameSnapshot.data}',
+                                                              style: const TextStyle(
+                                                                fontSize: 25, // Adjust the font size as needed
+                                                                fontWeight: FontWeight.bold,
+                                                                color: Colors.black, // Adjust the text color as needed
+                                                              ),
+                                                            ),
+                                                            SizedBox(width: 5), // Adjust the spacing between text and icon
+                                                            IconButton(
+                                                              icon: Icon(Icons.info),
+                                                              onPressed: () {
+                                                                openTeamDetailsDialog(context, teamId); // Call the function to open dialog
+                                                              },
+                                                            ),
+                                                          ],
+                                                        );
+                                                      }
+                                                    } else {
+                                                      return CircularProgressIndicator();
+                                                    }
+                                                  },
                                                 ),
                                               );
+
+
                                             }
                                           } else {
                                             return CircularProgressIndicator();

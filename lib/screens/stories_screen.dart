@@ -516,14 +516,14 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                         } else if (snapshot.hasError) {
                                           return Text('Error: ${snapshot.error}');
                                         } else {
-                                          return Text('Coach: ${snapshot.data}');
+                                          return Text('');
                                         }
                                       },
                                     ),
-                                    // Text(
-                                    //   'Coach ID: ${coach['coachId']}',
-                                    //   style: TextStyle(fontWeight: FontWeight.bold),
-                                    // ),
+                                    Text(
+                                      'Coach ID: ${coach['coach']}',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
                                     SizedBox(height: 8),
                                     Text('Description: ${coach['description']}'),
                                     SizedBox(height: 8),
