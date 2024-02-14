@@ -728,11 +728,41 @@ class _TeamScreenState extends State<TeamScreen> {
     List<String> userStatsNames = users.map((user) => '$user\_stats').toList();
     print(userStatsNames);
 
-    // Get the challenges collection reference
+// Get the challenges collection reference
     CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
 
-    // Fetch documents from the challenges collection
+// Fetch documents from the challenges collection
     QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': challengeTitle}).get();
+
+// List to store input fields
+    List<String> allInputFields = [];
+
+// Iterate through each document
+    for (QueryDocumentSnapshot document in challengesSnapshot.docs) {
+      // Check if data is not null for the document
+      if (document.exists) {
+        Map<String, dynamic>? data = document.data() as Map<String, dynamic>?;
+
+        // Iterate through each field in the document
+        if (data != null) {
+          data.forEach((key, value) {
+            // Check if the field contains "_quotes"
+            if (key.toString().contains('_quotes')) {
+                // Add the "input" field in each array to the list
+                value.forEach((item) {
+                  if (item['input'] != null) {
+                    allInputFields.add(item['input']);
+                  }
+                });
+            }
+          });
+        }
+      }
+    }
+
+// Print the list of all input fields
+    print('All Input Fields: $allInputFields');
+
 
 
 
@@ -878,6 +908,44 @@ class _TeamScreenState extends State<TeamScreen> {
                             popupChallengeDataList.length - 1,
                                 (index) => ListTile(
                               title: Text(popupChallengeDataList[index + 1]['challengeTitle']),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close the dialog
+                        },
+                        child: Text('Close'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            child: Text('View List'),
+          ),
+        if (allInputFields.isNotEmpty)
+          ElevatedButton(
+            onPressed: () {
+              // Show a dialog with the title at index 0 and the rest as a list
+              showDialog(
+                context: context, // Replace 'context' with your actual context variable
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text(popupChallengeDataList.isNotEmpty ? popupChallengeDataList[0]['challengeTitle'] : ''),
+                    content: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: 200, // Adjust the height constraint as needed
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: List.generate(
+                            allInputFields.length,
+                                (index) => ListTile(
+                              title: Text(allInputFields[index]),
                             ),
                           ),
                         ),
@@ -1166,6 +1234,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                         onTap: () {
                                           // Handle the edit action, e.g., navigate to edit team screen
                                           print('Edit team tapped for team: $teamId');
+
                                         },
                                         child: const Icon(Icons.chat),
                                       ),
@@ -1196,6 +1265,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                       ),
                                     ],
                                   ),
+
                                   const SizedBox(height: 8),
                                   Container(
                                     decoration: BoxDecoration(
@@ -1205,6 +1275,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                     child: ExpansionTile(
                                       title: Text('Challenges'),
                                       children: [
+
                                         FutureBuilder<List<String>>(
                                           future: _getChallengeTitles(teamId),
                                           builder: (context, challengeTitlesSnapshot) {
@@ -1214,8 +1285,10 @@ class _TeamScreenState extends State<TeamScreen> {
                                               } else {
                                                 // Display list of challenge titles
                                                 return Column(
+
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: challengeTitlesSnapshot.data!.map((challengeTitle) {
+
                                                     // Add this line to print the challengeDocRef
                                                     return Container(
                                                       decoration: BoxDecoration(
@@ -1228,6 +1301,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                           children: [
                                                             Text('$challengeTitle'),
                                                             FutureBuilder<Widget>(
+
                                                               future: challengeStreaksAndPoints(challengeTitle, teamId),
                                                               builder: (context, snapshot) {
                                                                 if (snapshot.connectionState == ConnectionState.waiting) {

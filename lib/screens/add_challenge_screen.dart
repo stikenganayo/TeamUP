@@ -27,6 +27,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
   String selectedChallengeType = "CheckBox";
   String selectedGoal = "times";
   bool enableUserTyping = false;
+  bool communityChallengePost = false;
 
   List<String> timeUnitOptions = [
     "Per Second",
@@ -136,6 +137,21 @@ class _CreateChallengeState extends State<CreateChallenge> {
                       },
                       child: Text(showGoalField ? 'Remove Goal' : 'Set a Goal'),
                     ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: communityChallengePost,
+                          onChanged: (value) {
+                            setState(() {
+                              communityChallengePost = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Post to Community Challenges'),
+                      ],
+                    ),
                     if (showGoalField) const SizedBox(height: 10),
                     if (showGoalField) _buildGoalField(),
                     const SizedBox(height: 20),
@@ -236,13 +252,20 @@ class _CreateChallengeState extends State<CreateChallenge> {
             child: TextFormField(
               style: TextStyle(fontSize: 16),
               onChanged: (value) {
-                // Update the challengeTitle in the current data
-                data.challengeTitle = value;
-                setState(() {});
+                setState(() {
+                  // Update the challengeTitle in the current data
+                  data.challengeTitle = value;
+                  // Check if the title is not already in the list, then add it
+                  if (!challengeDataList.any((element) => element.challengeTitle == value)) {
+                    // If not present, add it to the beginning of the list
+                    challengeDataList.insert(0, ChallengeData(challengeTitle: value, controller: TextEditingController()));
+                  }
+                });
               },
               decoration: InputDecoration(
                 hintText: 'Challenge Title',
               ),
+              initialValue: data.challengeTitle,
             ),
           ),
         Row(
@@ -252,9 +275,10 @@ class _CreateChallengeState extends State<CreateChallenge> {
             Flexible(
               child: TextFormField(
                 onChanged: (value) {
-                  // Update the challengeTitle in the current data
-                  data.challengeTitle = value;
-                  setState(() {});
+                  setState(() {
+                    // Update the challengeTitle in the current data
+                    data.challengeTitle = value;
+                  });
                 },
                 decoration: const InputDecoration(
                   hintText: 'Challenge',
@@ -271,20 +295,10 @@ class _CreateChallengeState extends State<CreateChallenge> {
                 setState(() {
                   // If there is a challengeTitle, add it to the list before adding the new ChallengeData
                   if (data.challengeTitle.isNotEmpty) {
-                    challengeDataList.add(
-                      ChallengeData(
-                        challengeTitle: data.challengeTitle,
-                        controller: TextEditingController(),
-                      ),
-                    );
+                    challengeDataList.add(ChallengeData(challengeTitle: data.challengeTitle, controller: TextEditingController()));
                   }
                   // Add the new ChallengeData to the list
-                  challengeDataList.add(
-                    ChallengeData(
-                      challengeTitle: "",
-                      controller: TextEditingController(),
-                    ),
-                  );
+                  challengeDataList.add(ChallengeData(challengeTitle: "", controller: TextEditingController()));
                 });
               },
             ),
@@ -304,6 +318,10 @@ class _CreateChallengeState extends State<CreateChallenge> {
       ],
     );
   }
+
+
+
+
 
 
   Widget _buildFrequencySection() {
@@ -425,6 +443,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                     ),
                 ],
               ),
+
             ],
           ),
         ),
@@ -472,6 +491,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'accepted': 0,
             'userTyping' : enableUserTyping,
             'challengeType' : dropdownValue,
+            'communityChallenge' : communityChallengePost,
           };
 
           DocumentReference challengeDocRef =
