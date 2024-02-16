@@ -18,24 +18,18 @@ class StoriesScreen extends StatefulWidget {
 }
 
 class _StoriesScreenState extends State<StoriesScreen> {
-  List<Map<String, dynamic>> communityEvents = [
-  ]; // Hold community events details
-  List<Map<String, dynamic>> communityChallenges = [
-  ]; // Hold community challenges details
+  List<Map<String, dynamic>> communityEvents = [];
+  List<Map<String, dynamic>> communityChallenges = [];
   List<Map<String, dynamic>> communityCoaches = [];
   late User? currentUser;
-
-
 
   @override
   void initState() {
     super.initState();
     _loadCommunityEvents();
     _loadCommunityChallenges();
-    _loadCommunityCoaches(); // Call to load coaches' data
+    _loadCommunityCoaches();
   }
-
-
 
   Future<String?> _loadCurrentUserName() async {
     currentUser = FirebaseAuth.instance.currentUser;
@@ -43,7 +37,6 @@ class _StoriesScreenState extends State<StoriesScreen> {
       print('Current User Email: ${currentUser!.email}');
 
       try {
-        // Fetch the user document based on the current user's email
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUser!.email)
@@ -52,12 +45,11 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
         if (userQuerySnapshot.docs.isNotEmpty) {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+          Map<String, dynamic> userData =
+          userSnapshot.data() as Map<String, dynamic>;
 
-          // Print all data inside the current user's document
           print('User Data: $userData');
 
-          // Check for the 'name' field in the user data
           if (userData.containsKey('name')) {
             String userName = userData['name'] as String;
             return userName;
@@ -71,7 +63,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
         print('Error loading user document: $e');
       }
     }
-    return null; // Return null if any error occurs or if user is not found
+    return null;
   }
 
   Future<void> _loadCommunityEvents() async {
@@ -81,32 +73,30 @@ class _StoriesScreenState extends State<StoriesScreen> {
           .where('communityEvent', isEqualTo: true)
           .get();
 
-      List<Map<String, dynamic>> events = []; // Temporary list to hold events
+      List<Map<String, dynamic>> events = [];
 
-      // Extract details from community events
       for (DocumentSnapshot doc in communityEventsSnapshot.docs) {
         if (doc.exists) {
-          // Format the date using DateFormat
-          String formattedDate = DateFormat('MMMM dd, yyyy').format(
-              doc['startDate'].toDate());
+          String formattedDate =
+          DateFormat('MMMM dd, yyyy').format(doc['startDate'].toDate());
 
           Map<String, dynamic> eventDetails = {
-            'eventId': doc.id, // Add event ID
+            'eventId': doc.id,
             'eventTitle': doc['eventTitle'] ?? '',
-            'startDate': formattedDate, // Use formatted date
+            'startDate': formattedDate,
             'startTime': doc['startTime'] ?? '',
             'eventLocation': doc['eventLocation'] ?? '',
             'CurrentUserName': doc['CurrentUserName'],
-            'attending': doc['attending'] ?? 0, // Default to 0 if not set
-            'isGoing': false, // Track button state
+            'attending': doc['attending'] ?? 0,
+            'isGoing': false,
+            'background': doc['background'] ?? '', // Added background field
           };
           events.add(eventDetails);
         }
       }
 
       setState(() {
-        communityEvents =
-            events; // Update the state with community event details
+        communityEvents = events;
       });
     } catch (e) {
       print('Error loading community events: $e');
@@ -115,21 +105,19 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
   Future<void> _updateAttendance(String eventId, bool going) async {
     try {
-      final eventRef = FirebaseFirestore.instance.collection('events').doc(
-          eventId);
+      final eventRef =
+      FirebaseFirestore.instance.collection('events').doc(eventId);
 
       await eventRef.update({
         'attending': FieldValue.increment(going ? 1 : -1),
-        // Increment or decrement attending count
       });
 
-      // Update UI
       setState(() {
-        final eventIndex = communityEvents.indexWhere((
-            event) => event['eventId'] == eventId);
+        final eventIndex = communityEvents.indexWhere(
+                (event) => event['eventId'] == eventId);
         if (eventIndex != -1) {
           communityEvents[eventIndex]['attending'] += going ? 1 : -1;
-          communityEvents[eventIndex]['isGoing'] = going; // Update button state
+          communityEvents[eventIndex]['isGoing'] = going;
         }
       });
     } catch (e) {
@@ -139,31 +127,25 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
   Future<void> _acceptChallenge(String challengeId, bool accept) async {
     try {
-      final challengeRef = FirebaseFirestore.instance.collection('challenges').doc(
-          challengeId);
+      final challengeRef =
+      FirebaseFirestore.instance.collection('challenges').doc(challengeId);
 
       await challengeRef.update({
-        'accepted': FieldValue.increment(accept ? 1 : -1), // Increment or decrement accepted count
+        'accepted': FieldValue.increment(accept ? 1 : -1),
       });
 
-      // Update UI
       setState(() {
-        final challengeIndex = communityChallenges.indexWhere((challenge) => challenge['challengeId'] == challengeId);
+        final challengeIndex = communityChallenges.indexWhere(
+                (challenge) => challenge['challengeId'] == challengeId);
         if (challengeIndex != -1) {
           communityChallenges[challengeIndex]['accepted'] += accept ? 1 : -1;
-          communityChallenges[challengeIndex]['isGoing'] = accept; // Update isGoing based on accept value
+          communityChallenges[challengeIndex]['isGoing'] = accept;
         }
       });
     } catch (e) {
       print('Error updating acceptance: $e');
     }
   }
-
-
-
-
-
-
 
   Future<void> _loadCommunityChallenges() async {
     try {
@@ -173,45 +155,41 @@ class _StoriesScreenState extends State<StoriesScreen> {
           .where('communityChallenge', isEqualTo: true)
           .get();
 
-      List<Map<String, dynamic>> challenges = [
-      ]; // Temporary list to hold challenges
+      List<Map<String, dynamic>> challenges = [];
 
-      // Extract details from community challenges
       for (DocumentSnapshot doc in communityChallengesSnapshot.docs) {
         if (doc.exists) {
           List<Map<String, dynamic>> challengeDataList = [];
           if (doc['challengeDataList'] != null) {
-            var data = doc['challengeDataList'][0]; // Get only the first item from challengeDataList
+            var data = doc['challengeDataList'][0];
             challengeDataList.add({
               'challengeTitle': data['challengeTitle'] ?? '',
             });
           }
 
           Map<String, dynamic> challengeDetails = {
-            'challengeId': doc.id, // Add event ID
+            'challengeId': doc.id,
             'challengeDataList': challengeDataList,
             'CurrentUserName': doc['CurrentUserName'] ?? '',
-            'accepted': doc['accepted'] ?? 0, // Default to 0 if not set
-            'isGoing': false, // Track button state
+            'accepted': doc['accepted'] ?? 0,
+            'isGoing': false,
           };
           challenges.add(challengeDetails);
         }
       }
 
       setState(() {
-        communityChallenges =
-            challenges; // Update the state with community challenge details
+        communityChallenges = challenges;
       });
     } catch (e) {
       print('Error loading community challenges: $e');
     }
   }
-  void _showAddCoachDialog(BuildContext context) {
 
+  void _showAddCoachDialog(BuildContext context) {
     String description = '';
     String yearsOfExperience = '';
     String coach = _loadCurrentUserName() as String;
-
 
     showDialog(
       context: context,
@@ -248,8 +226,9 @@ class _StoriesScreenState extends State<StoriesScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                // Saving data to Firestore
-                FirebaseFirestore.instance.collection('community_coaches').add({
+                FirebaseFirestore.instance
+                    .collection('community_coaches')
+                    .add({
                   'coach': coach,
                   'description': description,
                   'years_of_experience': yearsOfExperience,
@@ -306,10 +285,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
             top: 100,
             left: 0,
             right: 0,
-            height: MediaQuery
-                .of(context)
-                .size
-                .height - 100 - (Platform.isIOS ? 90 : 60),
+            height: MediaQuery.of(context).size.height - 100 - (Platform.isIOS ? 90 : 60),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
@@ -331,66 +307,137 @@ class _StoriesScreenState extends State<StoriesScreen> {
                     child: Row(
                       children: communityEvents.map((event) =>
                           SizedBox(
-                            width: MediaQuery
-                                .of(context)
-                                .size
-                                .width * 0.4,
+                            width: MediaQuery.of(context).size.width * 0.4,
                             height: 300,
                             child: Card(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment
-                                            .start,
-                                        children: [
-                                          Text(event['eventTitle']),
-                                          Text('Date: ${event['startDate']}'),
-                                          Text(
-                                              'Start Time: ${event['startTime']}'),
-                                          Text(
-                                              'Location: ${event['eventLocation']}'),
-                                          Text(
-                                              'Host: ${event['CurrentUserName']}'),
-                                          Text(
-                                              'Attending: ${event['attending']}'),
-                                        ],
-                                      ),
-                                    ),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: NetworkImage(event['background']), // Use the background URL
+                                    fit: BoxFit.cover,
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          if (event['isGoing']) {
-                                            _updateAttendance(
-                                                event['eventId'], false);
-                                          } else {
-                                            _updateAttendance(
-                                                event['eventId'], true);
-                                          }
-                                        },
-                                        child: Text(event['isGoing']
-                                            ? 'Spot Reserved. Press to cancel'
-                                            : 'RSVP'),
-                                        style: ButtonStyle(
-                                          backgroundColor: event['isGoing']
-                                              ? MaterialStateProperty.all(
-                                              Colors.green)
-                                              : null,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              event['eventTitle'],
+                                              style: TextStyle(
+                                                color: Colors.black, // Making the text bright red
+                                                fontWeight: FontWeight.bold, // Making the text bold
+                                                fontSize: 18, // Increasing the font size
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.grey, // Shadow color
+                                                    offset: Offset(2, 2), // Shadow offset
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Date: ${event['startDate']}',
+                                              style: TextStyle(
+                                                color: Colors.black, // Making the text bright red
+                                                fontWeight: FontWeight.bold, // Making the text bold
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.grey, // Shadow color
+                                                    offset: Offset(2, 2), // Shadow offset
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Start Time: ${event['startTime']}',
+                                              style: TextStyle(
+                                                color: Colors.black, // Making the text bright red
+                                                fontWeight: FontWeight.bold, // Making the text bold
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.grey, // Shadow color
+                                                    offset: Offset(2, 2), // Shadow offset
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Location: ${event['eventLocation']}',
+                                              style: TextStyle(
+                                                color: Colors.black, // Making the text bright red
+                                                fontWeight: FontWeight.bold, // Making the text bold
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.grey, // Shadow color
+                                                    offset: Offset(2, 2), // Shadow offset
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Host: ${event['CurrentUserName']}',
+                                              style: TextStyle(
+                                                color: Colors.black, // Making the text bright red
+                                                fontWeight: FontWeight.bold, // Making the text bold
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.grey, // Shadow color
+                                                    offset: Offset(2, 2), // Shadow offset
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Text(
+                                              'Attending: ${event['attending']}',
+                                              style: TextStyle(
+                                                color: Colors.black, // Making the text bright red
+                                                fontWeight: FontWeight.bold, // Making the text bold
+                                                shadows: [
+                                                  Shadow(
+                                                    color: Colors.grey, // Shadow color
+                                                    offset: Offset(2, 2), // Shadow offset
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            if (event['isGoing']) {
+                                              _updateAttendance(event['eventId'], false);
+                                            } else {
+                                              _updateAttendance(event['eventId'], true);
+                                            }
+                                          },
+                                          child: Text(event['isGoing']
+                                              ? 'Spot Reserved. Press to cancel'
+                                              : 'RSVP'),
+                                          style: ButtonStyle(
+                                            backgroundColor: event['isGoing']
+                                                ? MaterialStateProperty.all(Colors.green)
+                                                : null,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          )).toList(),
+                          ),
+                      ).toList(),
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -401,76 +448,66 @@ class _StoriesScreenState extends State<StoriesScreen> {
                     child: Row(
                       children: communityChallenges.map((challenge) =>
                           SizedBox(
-                            width: MediaQuery
-                                .of(context)
-                                .size
-                                .width * 0.4,
+                            width: MediaQuery.of(context).size.width * 0.4,
                             height: 300,
                             child: Card(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment
-                                            .start,
-                                        children: [
-                                          SizedBox(
-                                            width: double.infinity,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment
-                                                  .start,
-                                              children: challenge['challengeDataList']
-                                                  .map<Widget>((challengeData) {
-                                                return Text(
-                                                    challengeData['challengeTitle']);
-                                              }).toList(),
+                              child: Container(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: challenge['challengeDataList']
+                                                    .map<Widget>((challengeData) {
+                                                  return Text(challengeData['challengeTitle']);
+                                                }).toList(),
+                                              ),
                                             ),
-                                          ),
-                                          Text(
-                                              'Host: ${challenge['CurrentUserName']}'),
-                                          Text(
-                                              'Accepted: ${challenge['accepted']}'),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          if (challenge['isGoing']) {
-                                            _acceptChallenge(
-                                                challenge['challengeId'], false);
-                                          } else {
-                                            _acceptChallenge(
-                                                challenge['challengeId'], true);
-                                          }
-                                        },
-                                        child: Text(challenge['isGoing']
-                                            ? 'Accepted Challenge. Press to cancel'
-                                            : 'Accept'),
-                                        style: ButtonStyle(
-                                          backgroundColor: challenge['isGoing']
-                                              ? MaterialStateProperty.all(
-                                              Colors.green)
-                                              : null,
+                                            Text('Host: ${challenge['CurrentUserName']}'),
+                                            Text('Accepted: ${challenge['accepted']}'),
+                                          ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            if (challenge['isGoing']) {
+                                              _acceptChallenge(challenge['challengeId'], false);
+                                            } else {
+                                              _acceptChallenge(challenge['challengeId'], true);
+                                            }
+                                          },
+                                          child: Text(challenge['isGoing']
+                                              ? 'Accepted Challenge. Press to cancel'
+                                              : 'Accept'),
+                                          style: ButtonStyle(
+                                            backgroundColor: challenge['isGoing']
+                                                ? MaterialStateProperty.all(Colors.green)
+                                                : null,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          )).toList(),
+                          ),
+                      ).toList(),
                     ),
                   ),
-                  // const SizedBox(height: 28),
-                  // Style.sectionTitle('Community Coaches'),
                   const SizedBox(height: 28),
                   Row(
                     children: [
@@ -478,13 +515,12 @@ class _StoriesScreenState extends State<StoriesScreen> {
                         child: Row(
                           children: [
                             Style.sectionTitle('Community Coaches'),
-                            SizedBox(width: 10), // Adjust the width as needed
+                            SizedBox(width: 10),
                           ],
                         ),
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          // Add your button functionality here
                           _showAddCoachDialog(context);
                         },
                         child: Text('Be a Community Coach'),
@@ -497,10 +533,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                     child: Row(
                       children: communityCoaches.map((coach) =>
                           SizedBox(
-                            width: MediaQuery
-                                .of(context)
-                                .size
-                                .width * 0.4,
+                            width: MediaQuery.of(context).size.width * 0.4,
                             child: Card(
                               child: Padding(
                                 padding: const EdgeInsets.all(8.0),
@@ -529,7 +562,6 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                     SizedBox(height: 8),
                                     Text('Years of Experience: ${coach['years_of_experience']}'),
                                     SizedBox(height: 8),
-
                                   ],
                                 ),
                               ),
@@ -538,7 +570,6 @@ class _StoriesScreenState extends State<StoriesScreen> {
                       ).toList(),
                     ),
                   ),
-
                   SizedBox(height: 28),
                 ],
               ),
