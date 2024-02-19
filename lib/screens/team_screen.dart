@@ -580,6 +580,14 @@ class _TeamScreenState extends State<TeamScreen> {
       int countOfArraysForDifferentDate = 0;
       int userTyping = 0;
       int challengeType = 0;
+      int emotionalCategory = 0;
+      int environmentalCategory = 0;
+      int financialCategory = 0;
+      int intellectualCategory = 0;
+      int occupationalCategory = 0;
+      int physicalCategory = 0;
+      int socialCategory = 0;
+      int spiritualCategory = 0;
 
       // Iterate through the documents and display confirmation message
       challengesSnapshot.docs.forEach((challengeDoc) {
@@ -629,18 +637,78 @@ class _TeamScreenState extends State<TeamScreen> {
           loopDate = loopDate.subtract(Duration(days: 1));
         }
 
+
+        userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
         // Debugging statements
         print('Challenge data: $challengeData');
         print('User Typing field: ${challengeData['userTyping']}');
         print('Challenge Type: ${challengeData['challengeType']}');
+        print('emotionalCategory: ${challengeData['emotionalCategory']}');
 
 // Assuming userTyping is a boolean field
-        userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
+
+
+
+        if (challengeData['emotionalCategory'] == true) {
+          emotionalCategory = 1;
+        } else {
+          emotionalCategory = 0;
+        }
+        if (challengeData['environmentalCategory'] == true) {
+          environmentalCategory = 1;
+        } else {
+          environmentalCategory = 0;
+        }
+        if (challengeData['financialCategory'] == true) {
+          financialCategory = 1;
+        } else {
+          financialCategory = 0;
+        }
+        if (challengeData['intellectualCategory'] == true) {
+          intellectualCategory = 1;
+        } else {
+          intellectualCategory = 0;
+        }
+        if (challengeData['occupationalCategory'] == true) {
+          occupationalCategory = 1;
+        } else {
+          occupationalCategory = 0;
+        }
+        if (challengeData['physicalCategory'] == true) {
+          physicalCategory = 1;
+        } else {
+          physicalCategory = 0;
+        }
+        if (challengeData['socialCategory'] == true) {
+          socialCategory = 1;
+        } else {
+          socialCategory = 0;
+        }
+        if (challengeData['spiritualCategory'] == true) {
+          spiritualCategory = 1;
+        } else {
+          spiritualCategory = 0;
+        }
+
+
+
+        // environmentalCategory = challengeData['environmentalCategory'] == 'true' ? 1 : 0;
+        // financialCategory = challengeData['financialCategory'] == 'true' ? 1 : 0;
+        // intellectualCategory = challengeData['intellectualCategory'] == 'true' ? 1 : 0;
+        // occupationalCategory = challengeData['occupationalCategory'] == 'true' ? 1 : 0;
+        // physicalCategory = challengeData['physicalCategory'] == 'true' ? 1 : 0;
+        // socialCategory = challengeData['socialCategory'] == 'true' ? 1 : 0;
+        // spiritualCategory = challengeData['spiritualCategory'] == 'true' ? 1 : 0;
+        print('emotionalCategory Status: $emotionalCategory');
+
+
+
         print('User Typing for $userName: $userTyping');
 
         challengeType = challengeData['challengeType'] == 'Challenge yourself - get your teammates to verify' ? 1 : (challengeData['challengeType'] == 'Challenge your teammates - you verify' ? 2 : 0);
 
         print(challengeType);
+
 
 
       });
@@ -658,13 +726,21 @@ class _TeamScreenState extends State<TeamScreen> {
         'adjustedUserCount': adjustedUserCount,
         'userTyping': userTyping,
         'challengeType': challengeType,
+        'emotionalCategory' : emotionalCategory,
+        'environmentalCategory' : environmentalCategory,
+        'financialCategory' : financialCategory,
+        'intellectualCategory' : intellectualCategory,
+        'occupationalCategory' : occupationalCategory,
+        'physicalCategory' : physicalCategory,
+        'socialCategory' : socialCategory,
+        'spiritualCategory' : spiritualCategory,
       };
 
       return result;
     } catch (e) {
       // Handle exceptions here, if needed
       print('Error in _displayUserPoints: $e');
-      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0, 'challengeType': 0}; // Return default values or handle the error accordingly
+      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0, 'challengeType': 0, 'emotionalCategory': 0, 'environmentalCategory': 0, 'financialCategory': 0, 'intellectualCategory': 0, 'occupationalCategory': 0, 'physicalCategory': 0, 'socialCategory': 0, 'spiritualCategory': 0}; // Return default values or handle the error accordingly
     }
   }
 
@@ -725,6 +801,15 @@ class _TeamScreenState extends State<TeamScreen> {
 
 // List to store input fields
     List<String> allInputFields = [];
+
+    int emotionalCategory = 0;
+    int environmentalCategory = 0;
+    int financialCategory = 0;
+    int intellectualCategory = 0;
+    int occupationalCategory = 0;
+    int physicalCategory = 0;
+    int socialCategory = 0;
+    int spiritualCategory = 0;
 
 // Iterate through each document
     for (QueryDocumentSnapshot document in challengesSnapshot.docs) {
@@ -866,6 +951,49 @@ class _TeamScreenState extends State<TeamScreen> {
       // Print the entire array
       print("Challenge Data List: $challengeDataList");
 
+      if (challengeData['emotionalCategory'] == true) {
+        emotionalCategory = 1;
+      } else {
+        emotionalCategory = 0;
+      }
+      if (challengeData['environmentalCategory'] == true) {
+        environmentalCategory = 1;
+      } else {
+        environmentalCategory = 0;
+      }
+      if (challengeData['financialCategory'] == true) {
+        financialCategory = 1;
+      } else {
+        financialCategory = 0;
+      }
+      if (challengeData['intellectualCategory'] == true) {
+        intellectualCategory = 1;
+      } else {
+        intellectualCategory = 0;
+      }
+      if (challengeData['occupationalCategory'] == true) {
+        occupationalCategory = 1;
+      } else {
+        occupationalCategory = 0;
+      }
+      if (challengeData['physicalCategory'] == true) {
+        physicalCategory = 1;
+      } else {
+        physicalCategory = 0;
+      }
+      if (challengeData['socialCategory'] == true) {
+        socialCategory = 1;
+      } else {
+        socialCategory = 0;
+      }
+      if (challengeData['spiritualCategory'] == true) {
+        spiritualCategory = 1;
+      } else {
+        spiritualCategory = 0;
+      }
+
+
+
       // Check if the array has more than one element
       if (challengeDataList.length > 1) {
         hasMultipleChallenges = true;
@@ -914,7 +1042,7 @@ class _TeamScreenState extends State<TeamScreen> {
                 },
               );
             },
-            child: Text('View List'),
+            child: Text('Tasks'),
           ),
         if (allInputFields.isNotEmpty)
           ElevatedButton(
@@ -952,14 +1080,63 @@ class _TeamScreenState extends State<TeamScreen> {
                 },
               );
             },
-            child: Text('View List'),
+            child: Text('History'),
           ),
 
 
         SizedBox(width: 8), // Add some space between the button and the icons/text
         Icon(Icons.local_fire_department_sharp),
         Text(' $minUserCount'),
-        Icon(Icons.directions_run),
+        SizedBox(width: 8), // Add some space between the button and the icons/text
+        // Icon(Icons.directions_run),
+        if (emotionalCategory == 1)
+          Image.asset(
+            'assets/images/Emotional-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (environmentalCategory == 1)
+          Image.asset(
+            'assets/images/Environmental-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (financialCategory == 1)
+          Image.asset(
+            'assets/images/Financial-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (intellectualCategory == 1)
+          Image.asset(
+            'assets/images/Intellectual-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (occupationalCategory == 1)
+          Image.asset(
+            'assets/images/Occupational-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (physicalCategory == 1)
+          Image.asset(
+            'assets/images/Physical-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (socialCategory == 1)
+          Image.asset(
+            'assets/images/Social-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (spiritualCategory == 1)
+          Image.asset(
+            'assets/images/Spiritual-mini.png',
+            width: 20,
+            height: 20,
+          ),
         Text(' $totalUserPoints'),
       ],
     );
@@ -1181,76 +1358,75 @@ class _TeamScreenState extends State<TeamScreen> {
                   const Stories(), // Add the Stories widget here
                   const SizedBox(height: 20),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Show a loading indicator while creating a team
-                              showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (BuildContext context) {
-                                  return Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                },
-                              );
+                      Flexible(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            // Show a loading indicator while creating a team
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (BuildContext context) {
+                                return Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              },
+                            );
 
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                  const SearchScreen(initialTabIndex: 1),
-                                ),
-                              );
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SearchScreen(initialTabIndex: 1),
+                              ),
+                            );
 
-                              // Introduce a delay of 1 second before reloading the team list
-                              await Future.delayed(Duration(seconds: 4));
+                            // Introduce a delay of 1 second before reloading the team list
+                            // await Future.delayed(Duration(seconds: 4));
 
-                              // After creating a team and the delay, reload the team list
-                              _loadCurrentUser();
+                            // After creating a team and the delay, reload the team list
+                            _loadCurrentUser();
 
-                              // Close the loading indicator dialog
-                              Navigator.pop(context);
-                            },
-                            child: Text('Create Team'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateEvent(),
-                                ),
-                              );
-                              // Handle the "Create an event/activity" button tap
-                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
-                            },
-                            child: Text('Create Event'),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateChallenge(),
-                                ),
-                              );
-                              // Handle the "Create a team" button tap
-                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
-                            },
-                            child: Text('Create Challenge'),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
+                            // Close the loading indicator dialog
+                            Navigator.pop(context);
+                          },
+                          child: Text('Create Team'),
+                        ),
+                      ),
+                      SizedBox(width: 8), // Add spacing between buttons
+                      Flexible(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CreateEvent(),
+                              ),
+                            );
+                            // Handle the "Create an event/activity" button tap
+                            // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
+                          },
+                          child: Text('Create Event'),
+                        ),
+                      ),
+                      SizedBox(width: 8), // Add spacing between buttons
+                      Flexible(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CreateChallenge(),
+                              ),
+                            );
+                            // Handle the "Create a team" button tap
+                            // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
+                          },
+                          child: Text('Create Challenge'),
+                        ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 30),
                   Style.sectionTitle('Teams'),
                   const SizedBox(height: 10),
@@ -1460,6 +1636,16 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                     int countOfArraysForConsistencyDates = result['countOfArraysForConsistencyDates'] as int? ?? 0;
                                                                                                     int userTyping = result['userTyping'] as int? ?? 0;
                                                                                                     int challengeType = result['challengeType'] as int? ?? 0;
+                                                                                                    int emotionalCategory = result['emotionalCategory'] as int? ?? 0;
+                                                                                                    int environmentalCategory = result['environmentalCategory'] as int? ?? 0;
+                                                                                                    int financialCategory = result['financialCategory'] as int? ?? 0;
+                                                                                                    int intellectualCategory = result['intellectualCategory'] as int? ?? 0;
+                                                                                                    int occupationalCategory = result['occupationalCategory'] as int? ?? 0;
+                                                                                                    int physicalCategory = result['physicalCategory'] as int? ?? 0;
+                                                                                                    int socialCategory = result['socialCategory'] as int? ?? 0;
+                                                                                                    int spiritualCategory = result['spiritualCategory'] as int? ?? 0;
+
+
 
                                                                                                     print(countOfArraysForCurrentDate);
                                                                                                     print(adjustedUserCount);
@@ -1483,10 +1669,55 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                           ),
                                                                                                           Row(
                                                                                                             children: [
-                                                                                                              const Icon(
-                                                                                                                Icons.directions_run,
-                                                                                                                color: Colors.black26,
-                                                                                                              ),
+                                                                                                              if (emotionalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Emotional-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (environmentalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Environmental-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (financialCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Financial-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (intellectualCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Intellectual-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (occupationalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Occupational-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (physicalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Physical-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (socialCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Social-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (spiritualCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Spiritual-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+
                                                                                                               SizedBox(width: 8),
                                                                                                               Text('$countOfArraysForDifferentDate'),
                                                                                                               SizedBox(width: 16),

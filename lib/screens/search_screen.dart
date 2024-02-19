@@ -433,7 +433,7 @@ class _SearchContentState extends State<SearchContent> {
                   onPressed: () => _addUser(user),
                   child: Text(isPending ? 'Pending' : 'Add'),
                   style: ElevatedButton.styleFrom(
-                    primary: isPending ? Colors.grey : null,
+                    backgroundColor: isPending ? Colors.grey : null,
                   ),
                 ),
               );

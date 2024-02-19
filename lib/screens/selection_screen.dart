@@ -381,7 +381,7 @@ class _SelectionScreenState extends State<SelectionScreen> {
               },
               child: Text('Post Request'),
               style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                backgroundColor: Colors.green,
               ),
             ),
           ),

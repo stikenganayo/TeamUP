@@ -158,7 +158,7 @@ class _allFriendsScreenState extends State<allFriendsScreen> {
               },
               child: Text('Confirm Team'),
               style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                backgroundColor: Colors.green,
               ),
             ),
           ],
@@ -274,7 +274,7 @@ class _allFriendsScreenState extends State<allFriendsScreen> {
                                   selectedFriends.contains(snapshot.data) ? 'Added' : 'Add',
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  primary: selectedFriends.contains(snapshot.data)
+                                  backgroundColor: selectedFriends.contains(snapshot.data)
                                       ? Colors.grey
                                       : Colors.blue,
                                 ),
@@ -301,7 +301,7 @@ class _allFriendsScreenState extends State<allFriendsScreen> {
               onPressed: _showTeamNameDialog,
               child: Text('Create Team'),
               style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                backgroundColor: Colors.green,
               ),
             )
                 : SizedBox.shrink(),

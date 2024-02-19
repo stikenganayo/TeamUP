@@ -274,7 +274,7 @@ class LoginAndSignUpButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      style: ElevatedButton.styleFrom(primary: color),
+      style: ElevatedButton.styleFrom(backgroundColor: color),
       onPressed: onPress,
       child: Text(
         text,

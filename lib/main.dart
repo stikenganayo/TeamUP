@@ -55,7 +55,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-
   int _currentScreen = 2;
   final PageController _pageController = PageController(initialPage: 2);
 
@@ -82,7 +81,6 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -101,7 +99,6 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Style.white,
       body: PageView(
@@ -112,7 +109,7 @@ class _MainPageState extends State<MainPage> {
             _currentScreen = index;
           });
         },
-        children: <Widget> [
+        children: <Widget>[
           // showSignUpScreen ? SignUpScreen() : Container(), // Display SignUpScreen conditionally
           // TemporaryScreen(color: _colors[0]),
           const ChatScreen(friendName: '',),
@@ -123,48 +120,43 @@ class _MainPageState extends State<MainPage> {
           const EngagementsScreen(),
           const StoriesScreen(),
           // TemporaryScreen(color: _colors[4]),
-
         ],
       ),
-      bottomNavigationBar: SizedBox(
-          height: Platform.isIOS ? 90 : 60,
-          child: BottomNavigationBar(
-            selectedItemColor: Colors.red,
-            unselectedItemColor: Colors.black,
-            backgroundColor: Colors.white,
-            type: BottomNavigationBarType.fixed,
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            currentIndex: _currentScreen,
-            onTap: (int index) {
-              _pageController.jumpToPage(index);
-            },
-            items: const <BottomNavigationBarItem> [
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.person_2_fill, size: 28),
-                label: '',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.person_3_fill, size: 28),
-                label: '',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.camera_fill, size: 28),
-                label: '',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.diversity_2_rounded, size: 28),
-                label: '',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_filled, size: 28),
-                label: '',
-              ),
-            ],
-            //currentIndex: 0,
-
-          )
-
+      bottomNavigationBar: Expanded(
+        child: BottomNavigationBar(
+          selectedItemColor: Colors.red,
+          unselectedItemColor: Colors.black,
+          backgroundColor: Colors.white,
+          type: BottomNavigationBarType.fixed,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          currentIndex: _currentScreen,
+          onTap: (int index) {
+            _pageController.jumpToPage(index);
+          },
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.person_2_fill, size: 28),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.person_3_fill, size: 28),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.camera_fill, size: 28),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.diversity_2_rounded, size: 28),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled, size: 28),
+              label: '',
+            ),
+          ],
+        ),
       ),
     );
   }

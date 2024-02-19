@@ -28,6 +28,16 @@ class _CreateChallengeState extends State<CreateChallenge> {
   String selectedGoal = "times";
   bool enableUserTyping = false;
   bool communityChallengePost = false;
+  bool emotionalCategory = false;
+  bool environmentalCategory = false;
+  bool financialCategory = false;
+  bool intellectualCategory = false;
+  bool occupationalCategory = false;
+  bool physicalCategory = false;
+  bool socialCategory = false;
+  bool spiritualCategory = false;
+
+
 
   List<String> timeUnitOptions = [
     "Per Second",
@@ -41,6 +51,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
 
   List<String> goalOptions = ["times", "seconds", "minutes", "hours", "days"];
   String dropdownValue = 'Challenge everyone including you';
+
 
   late List<InputFieldData> inputFieldsDataList;
 
@@ -76,7 +87,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
           children: [
             SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(4.0),
                 child: Column(
                   children: <Widget>[
 
@@ -105,6 +116,166 @@ class _CreateChallengeState extends State<CreateChallenge> {
                           child: Text(value),
                         );
                       }).toList(),
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: emotionalCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              emotionalCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Emotional-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Emotional'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: environmentalCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              environmentalCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Environmental-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Environmental'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: financialCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              financialCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Financial-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Financial'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: intellectualCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              intellectualCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Intellectual-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Intellectual'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: occupationalCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              occupationalCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Occupational-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Occupational'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: physicalCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              physicalCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Physical-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Physical'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: socialCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              socialCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Social-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Social'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: spiritualCategory,
+                          onChanged: (value) {
+                            setState(() {
+                              spiritualCategory = value!;
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                        Image.asset(
+                          'assets/images/Spiritual-mini.png',
+                          width: 40,
+                          height: 40,
+                        ),
+                        const SizedBox(width: 10),
+                        const Text('Spiritual'),
+                      ],
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -492,6 +663,14 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'userTyping' : enableUserTyping,
             'challengeType' : dropdownValue,
             'communityChallenge' : communityChallengePost,
+            'emotionalCategory' : emotionalCategory,
+          'environmentalCategory' : environmentalCategory,
+          'financialCategory' : financialCategory,
+          'intellectualCategory' : intellectualCategory,
+          'occupationalCategory' : occupationalCategory,
+          'physicalCategory' : physicalCategory,
+          'socialCategory' : socialCategory,
+          'spiritualCategory' : spiritualCategory,
           };
 
           DocumentReference challengeDocRef =

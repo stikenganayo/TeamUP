@@ -10,7 +10,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  List<FriendData> friends = [];
 
   String username = 'John Doe'; // Set the default name
   String userEmail = ''; // Store user email
@@ -21,44 +20,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
 
   bool _isEditing = false;
+  late User? currentUser;
+
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _loadFriendsData();
   }
+
+  Future<String?> _loadCurrentUserName() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('Current User Email: ${currentUser!.email}');
+
+      try {
+        // Fetch the user document based on the current user's email
+        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser!.email)
+            .limit(1)
+            .get();
+
+        if (userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<
+              String,
+              dynamic>;
+
+          // Print all data inside the current user's document
+          print('User Data: $userData');
+
+          // Check for the 'name' field in the user data
+          if (userData.containsKey('name')) {
+            String userName = userData['name'] as String;
+            return userName;
+          } else {
+            print('Name field not found in user document');
+          }
+        } else {
+          print('User document not found for the current user');
+        }
+      } catch (e) {
+        print('Error loading user document: $e');
+      }
+    }
+    return null; // Return null if any error occurs or if user is not found
+  }
+
 
   Future<void> _loadUserData() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
+        String? currentUserName = await _loadCurrentUserName();
         setState(() {
-          username = user.displayName ?? username;
+          username = currentUserName ?? user.displayName ?? username;
           userEmail = user.email ?? '';
           _nameController.text = username;
         });
       }
     } catch (e) {
       print('Error loading user data: $e');
-    }
-  }
-
-  Future<void> _loadFriendsData() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        QuerySnapshot<Map<String, dynamic>> friendsQuery = await FirebaseFirestore.instance
-            .collection('user_friends')
-            .where('user_email', isEqualTo: user.email)
-            .get();
-
-        setState(() {
-          friends = friendsQuery.docs.map((doc) => FriendData.fromMap(doc.data() as Map<String, dynamic>)).toList();
-        });
-      }
-    } catch (e) {
-      print('Error loading friends data: $e');
     }
   }
 
@@ -103,7 +126,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _isEditing
                   ? TextFormField(
                 controller: _nameController,
-                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.bold),
                 decoration: const InputDecoration(
                   hintText: 'Enter your name',
                   labelText: 'Name',
@@ -111,7 +135,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
                   : Text(
                 username,
-                style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               Text(
@@ -128,6 +153,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Total Streaks: $totalStreaks',
                 style: const TextStyle(fontSize: 18),
               ),
+              const SizedBox(height: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Wellness Distribution',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  for (final streak in streaks)
+                    Row(
+                      children: [
+                        Image.asset(streak['icon'], width: 40, height: 40),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              streak['name'],
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 5),
+                            FutureBuilder<int>(
+                              future: getWellnessPoints(
+                                  streak['name'].toString().toLowerCase()),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return CircularProgressIndicator();
+                                } else if (snapshot.hasData) {
+                                  int completionCount = snapshot.data!;
+                                  return Text(
+                                    'Completion Count: $completionCount',
+                                    style: const TextStyle(fontSize: 14),
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return Text('Error: ${snapshot.error}');
+                                } else {
+                                  return Text('Unknown error occurred');
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                ],
+              ),
               const SizedBox(height: 30),
               const Align(
                 alignment: Alignment.centerLeft,
@@ -136,16 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                 ),
               ),
-              SizedBox(
-                height: 100,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: friends.length,
-                  itemBuilder: (context, index) {
-                    return _buildFriendTile(friends[index]);
-                  },
-                ),
-              ),
+
               const SizedBox(height: 30),
             ],
           ),
@@ -154,90 +220,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildFriendTile(FriendData friend) {
-    return GestureDetector(
-      onLongPress: () {
-        _showRemoveFriendMenu(context, friend.friendEmail);
-      },
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue,
-              child: Icon(
-                Icons.person,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              friend.friendEmail,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showRemoveFriendMenu(BuildContext context, String friendEmail) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ListTile(
-              title: Text(
-                'Remove Friend',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _removeFriend(friendEmail);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _removeFriend(String friendEmail) async {
+  // Function to calculate wellness points
+  Future<int> getWellnessPoints(String category) async {
+    int wellnessPoints = 0;
+    category = category.toLowerCase();
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('user_friends')
-            .where('user_email', isEqualTo: user.email)
-            .where('friend_email', isEqualTo: friendEmail)
-            .get()
-            .then((QuerySnapshot<Map<String, dynamic>> snapshot) {
-          snapshot.docs.forEach((doc) {
-            doc.reference.delete();
-          });
-        });
+      String? currentUserName = await _loadCurrentUserName();
+      if (currentUserName != null) {
+        // Fetch all challenge documents
+        QuerySnapshot challengeSnapshot = await FirebaseFirestore.instance
+            .collection('challenges')
+            .get();
 
-        _loadFriendsData();
+        // Iterate through each challenge document
+        for (DocumentSnapshot challengeDoc in challengeSnapshot.docs) {
+          Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+          // Check if the category field is true
+          if (challengeData['${category}Category'] == true) {
+            print('Category ${category} is true in challenge document: ${challengeDoc.id}');
+
+            // Construct the path for the user's stats
+            String userStatsPath = currentUserName + '_stats';
+            print('User stats path: $userStatsPath');
+
+            // Check if the user's stats exist within the challenge data
+            if (challengeData.containsKey(userStatsPath)) {
+              print('User stats found in challenge data');
+
+              // Get the user stats directly
+              List<dynamic>? userStats = challengeData[userStatsPath];
+
+              // Set to store encountered date fields
+              Set<String> encounteredDateFields = {};
+
+              // Count the completions for the current user
+              if (userStats != null) {
+                for (var data in userStats) {
+                  if (data is Map<String, dynamic> &&
+                      data.containsKey('confirmed_completion') &&
+                      data.containsKey('date')) {
+                    String? dateField = data['date'];
+                    if (dateField != null && !encounteredDateFields.contains(dateField)) {
+                      wellnessPoints++;
+                      encounteredDateFields.add(dateField); // Add the current date field to the set
+                    }
+                  }
+                }
+              }
+
+            } else {
+              print('User stats not found in challenge data');
+            }
+
+          } else {
+            print('Category ${category} is not true in challenge document: ${challengeDoc.id}');
+          }
+        }
       }
     } catch (e) {
-      print('Error removing friend: $e');
+      print('Error calculating wellness points: $e');
     }
+    print('Wellness Points: $wellnessPoints');
+    return wellnessPoints;
   }
+
+
+
 }
 
-class FriendData {
-  final String friendEmail;
-
-  FriendData({
-    required this.friendEmail,
-  });
-
-  factory FriendData.fromMap(Map<String, dynamic> map) {
-    return FriendData(
-      friendEmail: map['friend_email'] ?? '',
-    );
-  }
-}
+  final List<Map<String, dynamic>> streaks = [
+  {'name': 'Emotional', 'icon': 'assets/images/Emotional-mini.png'},
+  {'name': 'Environmental', 'icon': 'assets/images/Environmental-mini.png'},
+  {'name': 'Financial', 'icon': 'assets/images/Financial-mini.png'},
+  {'name': 'Intellectual', 'icon': 'assets/images/Intellectual-mini.png'},
+  {'name': 'Occupational', 'icon': 'assets/images/Occupational-mini.png'},
+  {'name': 'Physical', 'icon': 'assets/images/Physical-mini.png'},
+  {'name': 'Social', 'icon': 'assets/images/Social-mini.png'},
+  {'name': 'Spiritual', 'icon': 'assets/images/Spiritual-mini.png'},
+];
