@@ -19,6 +19,7 @@ class _CreateEventState extends State<CreateEvent> {
   String eventLocation = "";
   String eventDescription = "";
   bool canPostEvent = false;
+  bool isRecurringEvent = false;
 
   TextEditingController eventDescriptionController = TextEditingController();
   FocusNode eventDescriptionFocusNode = FocusNode();
@@ -26,6 +27,8 @@ class _CreateEventState extends State<CreateEvent> {
   late User? currentUser;
   List<String> selectedFriends = [];
   List<String> selectedTeams = [];
+  List<String> selectedDays = [];
+  List<String> eventDates = [];
 
   bool _isDisposed = false;
 
@@ -144,38 +147,86 @@ class _CreateEventState extends State<CreateEvent> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  children: <Widget>[
-                    TextButton(
-                      onPressed: () => _selectStartDate(context),
-                      child: const Text(
-                        'Select Start Date',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Text(
-                      '${startDate.toLocal()}'.split(' ')[0],
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      isRecurringEvent = !isRecurringEvent;
+                    });
+                  },
+                  child: Text(
+                    isRecurringEvent ? 'Cancel Recurring Event' : 'Recurring Event?',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
-                Row(
-                  children: <Widget>[
-                    TextButton(
-                      onPressed: () => _selectEndDate(context),
-                      child: const Text(
-                        'Select End Date',
-                        style: TextStyle(fontSize: 16),
+                // Show checkboxes if it's a recurring event
+                if (isRecurringEvent) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Select Days:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8.0,
+                    children: [
+                      for (String day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+                        FilterChip(
+                          label: Text(day),
+                          selected: selectedDays.contains(day),
+                          onSelected: (isSelected) {
+                            setState(() {
+                              if (isSelected) {
+                                selectedDays.add(day);
+                              } else {
+                                selectedDays.remove(day);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Visibility(
+                  visible: !isRecurringEvent,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: <Widget>[
+                          TextButton(
+                            onPressed: () => _selectStartDate(context),
+                            child: const Text(
+                              'Select Start Date',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Text(
+                            '${startDate.toLocal()}'.split(' ')[0],
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 20),
-                    Text(
-                      '${endDate.toLocal()}'.split(' ')[0],
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
+                      Row(
+                        children: <Widget>[
+                          TextButton(
+                            onPressed: () => _selectEndDate(context),
+                            child: const Text(
+                              'Select End Date',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Text(
+                            '${endDate.toLocal()}'.split(' ')[0],
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+
                 Row(
                   children: <Widget>[
                     TextButton(
@@ -220,6 +271,8 @@ class _CreateEventState extends State<CreateEvent> {
                   decoration: const InputDecoration(
                       labelText: 'Event Location'),
                 ),
+
+
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -232,7 +285,7 @@ class _CreateEventState extends State<CreateEvent> {
                       },
                     ),
                     Text(
-                      'Post to community page',
+                      'Post to community page', 
                       style: TextStyle(fontSize: 16),
                     ),
                   ],
@@ -319,8 +372,7 @@ class _CreateEventState extends State<CreateEvent> {
 
 
                 ElevatedButton(
-                  onPressed: canPostEvent
-                      ? () async {
+                  onPressed: () async {
                     if (_isDisposed) return; // Check if the widget is disposed
                     try {
                       await postEvent();
@@ -332,8 +384,7 @@ class _CreateEventState extends State<CreateEvent> {
                         print('Error posting event: $e');
                       }
                     }
-                  }
-                      : null,
+                  },
                   child: const Text('Create Event'),
                 ),
               ],
@@ -381,6 +432,9 @@ class _CreateEventState extends State<CreateEvent> {
               'selectedTeams': selectedTeams,
               'attending': 0,
               'communityEvent': canPostEvent,
+              'isRecurringEvent': isRecurringEvent,
+              'selectedDays': selectedDays, // Add selected days to the database
+              'eventDates': eventDates,
             });
 
             print('Event Posted:');
@@ -454,6 +508,12 @@ class _CreateEventState extends State<CreateEvent> {
                       'eventTitle': eventTitle,
                       'eventDocRef': eventDocRef.id, // Store a reference to the event document
                       'status': 'pending',
+                      'isRecurringEvent': isRecurringEvent,
+                      'selectedDays': selectedDays, // Add selected days to the database
+                      'attending': 0,
+                      'startTime': startTime.format(context),
+                      'endTime': endTime.format(context),
+                      'eventCreator': userData['name'], // Store the user's name
                     }
                   ])
                 });

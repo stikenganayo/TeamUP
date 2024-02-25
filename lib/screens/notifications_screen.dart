@@ -196,6 +196,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'Created By': eventData['CurrentUserName'],
         'status': event['status'] ?? '',
         'eventDocRef': eventDocRef,
+        'selectedTeam': eventData['selectedTeams'],
         'attending': eventData['attending'],
       });
 
@@ -799,6 +800,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               Text(
                                 'Attending: ${eventDetails[eventIndex]['attending']}',
                               ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Team: ${eventDetails[eventIndex]['selectedTeam'].join(', ')}',
+                              ),
+
                               SizedBox(height: 8),
                               Text(
                                 'Status: ${eventDetails[eventIndex]['status']}',

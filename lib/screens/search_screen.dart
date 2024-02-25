@@ -20,7 +20,7 @@ class SearchScreen extends StatelessWidget {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Add Friends'),
-              Tab(text: 'Create Team'),
+              Tab(text: 'Create Team/Community'),
             ],
           ),
         ),
