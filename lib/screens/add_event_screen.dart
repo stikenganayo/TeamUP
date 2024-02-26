@@ -514,6 +514,7 @@ class _CreateEventState extends State<CreateEvent> {
                       'startTime': startTime.format(context),
                       'endTime': endTime.format(context),
                       'eventCreator': userData['name'], // Store the user's name
+                      'startDate' : startDate,
                     }
                   ])
                 });
