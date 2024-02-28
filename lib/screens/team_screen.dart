@@ -603,6 +603,9 @@ class _TeamScreenState extends State<TeamScreen> {
               if (stats.contains(currentDate)) {
                 // Update attending count by the number of users with the same date
                 attendingCount += 1;
+              } else {
+                // Clear attending count since there are no users for the current date
+                attendingCount = 0;
               }
             });
 
@@ -625,10 +628,64 @@ class _TeamScreenState extends State<TeamScreen> {
   }
 
 
+  Future<void> _setAttendField(String teamId) async {
+    try {
+      // Get the current date in the "month day year" format
+      String currentDate = DateFormat('MMMM dd yyyy').format(DateTime.now());
+
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        List<dynamic> userEvents = teamSnapshot.get('user_events');
+
+        // Iterate through each event
+        for (var event in userEvents) {
+          if (event is Map<String, dynamic>) {
+            // Initialize attending count for the event
+            int attendingCount = 0;
+
+            // Iterate through each field ending with _stats
+            event.keys.where((key) => key.endsWith('_stats')).forEach((statKey) {
+              List<String> stats = (event[statKey] as List<dynamic>).cast<String>();
+
+              // Check if the current date matches any date within the field's array
+              if (!stats.contains(currentDate)) {
+                // Update attending count by the number of users with the same date
+                print("are you setting to zero?");
+                attendingCount = 0;
+                // Update the attending count for this event in user_events
+                event['attending'] = attendingCount;
+              }
+            });
+
+
+          }
+        }
+
+        // Update the Firestore document with the modified user_events
+        await teamSnapshot.reference.update({
+          'user_events': userEvents,
+        });
+
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading or updating team document: $e');
+    }
+  }
+
+
 
 
 
   Future<Map<String, dynamic>> _getEvents(String teamId) async {
+    // await _setAttendField(teamId);
+
     try {
       // Get the current day and formatted date
       String currentDay = DateFormat('EEE').format(DateTime.now());
@@ -652,6 +709,7 @@ class _TeamScreenState extends State<TeamScreen> {
             // Find the first event that matches the current day or startDate
             Map<String, dynamic>? firstMatchingEvent;
             for (var event in userEvents) {
+
               List<String> selectedDays = List<String>.from(event['selectedDays']);
               print('Selected days for event: $selectedDays');
               if (selectedDays.contains(currentDay)) {
