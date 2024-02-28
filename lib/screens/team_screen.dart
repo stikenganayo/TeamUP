@@ -645,7 +645,7 @@ class _TeamScreenState extends State<TeamScreen> {
         // Iterate through each event
         for (var event in userEvents) {
           if (event is Map<String, dynamic>) {
-            // Initialize attending count for the event
+            // Initialize attending count for the event outside of the loop
             int attendingCount = 0;
 
             // Iterate through each field ending with _stats
@@ -653,16 +653,14 @@ class _TeamScreenState extends State<TeamScreen> {
               List<String> stats = (event[statKey] as List<dynamic>).cast<String>();
 
               // Check if the current date matches any date within the field's array
-              if (!stats.contains(currentDate)) {
+              if (stats.contains(currentDate)) {
                 // Update attending count by the number of users with the same date
-                print("are you setting to zero?");
-                attendingCount = 0;
-                // Update the attending count for this event in user_events
-                event['attending'] = attendingCount;
+                attendingCount += stats.where((date) => date == currentDate).length;
               }
             });
 
-
+            // Update the attending count for this event in user_events
+            event['attending'] = attendingCount;
           }
         }
 
@@ -670,7 +668,6 @@ class _TeamScreenState extends State<TeamScreen> {
         await teamSnapshot.reference.update({
           'user_events': userEvents,
         });
-
       } else {
         print('Team document not found for $teamId');
       }
@@ -684,7 +681,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
 
   Future<Map<String, dynamic>> _getEvents(String teamId) async {
-    // await _setAttendField(teamId);
+    await _setAttendField(teamId);
 
     try {
       // Get the current day and formatted date
