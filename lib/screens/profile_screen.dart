@@ -144,15 +144,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 10),
-              Text(
-                'Total Points: $totalPoints',
-                style: const TextStyle(fontSize: 18),
+              FutureBuilder<int>(
+                future: getTotalPoints(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator(); // While waiting for the result, show a loading indicator
+                  } else if (snapshot.hasData) {
+                    int totalPoints = snapshot.data!;
+                    return Text(
+                      'Total Points: $totalPoints',
+                      style: const TextStyle(fontSize: 18),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    return Text('Unknown error occurred');
+                  }
+                },
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Total Streaks: $totalStreaks',
-                style: const TextStyle(fontSize: 18),
-              ),
+              
               const SizedBox(height: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,6 +230,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<int> getTotalPoints() async {
+    int totalWellnessPoints = 0;
+
+    try {
+      String? currentUserName = await _loadCurrentUserName();
+      if (currentUserName != null) {
+        // Fetch all challenge documents
+        QuerySnapshot challengeSnapshot = await FirebaseFirestore.instance
+            .collection('challenges')
+            .get();
+
+        // Iterate through each challenge document
+        for (DocumentSnapshot challengeDoc in challengeSnapshot.docs) {
+          Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+          // Iterate through each category field
+          for (String key in challengeData.keys) {
+            if (key.endsWith('Category') && challengeData[key] == true) {
+              String category = key.substring(0, key.length - 8); // Remove 'Category' suffix
+
+              // Fetch user stats path
+              String userStatsPath = currentUserName + '_stats';
+
+              // Check if the user's stats exist within the challenge data
+              if (challengeData.containsKey(userStatsPath)) {
+                print('User stats found in challenge data');
+
+                // Get the user stats directly
+                List<dynamic>? userStats = challengeData[userStatsPath];
+
+                // Set to store encountered date fields
+                Set<String> encounteredDateFields = {};
+
+                // Count the completions for the current user
+                if (userStats != null) {
+                  for (var data in userStats) {
+                    if (data is Map<String, dynamic> &&
+                        data.containsKey('confirmed_completion') &&
+                        data.containsKey('date')) {
+                      String? dateField = data['date'];
+                      if (dateField != null && !encounteredDateFields.contains(dateField)) {
+                        totalWellnessPoints++;
+                        encounteredDateFields.add(dateField); // Add the current date field to the set
+                      }
+                    }
+                  }
+                }
+              } else {
+                print('User stats not found in challenge data');
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error calculating total wellness points: $e');
+    }
+
+    print('Total Wellness Points: $totalWellnessPoints');
+    return totalWellnessPoints;
+  }
+
+
+
+
+
+
   // Function to calculate wellness points
   Future<int> getWellnessPoints(String category) async {
     int wellnessPoints = 0;
@@ -284,10 +361,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     print('Wellness Points: $wellnessPoints');
     return wellnessPoints;
   }
-
-
-
 }
+
+
 
   final List<Map<String, dynamic>> streaks = [
   {'name': 'Emotional', 'icon': 'assets/images/Emotional-mini.png'},
