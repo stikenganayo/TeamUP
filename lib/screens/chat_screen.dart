@@ -5,7 +5,6 @@ import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import '../style.dart';
 import '../widgets/stories.dart';
-import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({Key? key, required String friendName}) : super(key: key);
@@ -38,7 +37,6 @@ class _ChatScreenState extends State<ChatScreen> {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
           Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
-          // Print user's friends
           if (userData.containsKey('friends')) {
             List<dynamic> friends = userData['friends'];
 
@@ -53,7 +51,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 DocumentSnapshot friendSnapshot = friendQuerySnapshot.docs.first;
                 Map<String, dynamic> friendData = friendSnapshot.data() as Map<String, dynamic>;
 
-                // Add the name of the friend to the list
                 if (friendData.containsKey('name')) {
                   String friendName = friendData['name'] as String;
                   setState(() {
@@ -86,7 +83,6 @@ class _ChatScreenState extends State<ChatScreen> {
       print('Current User Email: ${currentUser!.email}');
 
       try {
-        // Fetch the user document based on the current user's email
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUser!.email)
@@ -97,10 +93,8 @@ class _ChatScreenState extends State<ChatScreen> {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
           Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
 
-          // Print all data inside the current user's document
           print('User Data: $userData');
 
-          // Check for the 'name' field in the user data
           if (userData.containsKey('name')) {
             String userName = userData['name'] as String;
             return userName;
@@ -114,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
         print('Error loading user document: $e');
       }
     }
-    return null; // Return null if any error occurs or if user is not found
+    return null;
   }
 
   @override
@@ -142,9 +136,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   const SizedBox(height: 28),
                   Style.sectionTitle('Friends'),
                   SizedBox(
-                    height: 300, // Set the height according to your requirement
+                    height: 300,
                     child: ListView.builder(
-                      itemCount: userNames.isNotEmpty ? userNames.length * 2 - 1 : 0, // Check if userNames is not empty
+                      itemCount: userNames.isNotEmpty ? userNames.length * 2 - 1 : 0,
                       itemBuilder: (context, index) {
                         if (index.isOdd) {
                           return Divider(
@@ -156,7 +150,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         final userNameIndex = index ~/ 2;
                         return GestureDetector(
                           onTap: () {
-                            // Navigate to chat screen
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -173,7 +166,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       },
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -183,8 +175,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 }
-
-
 
 class ChatDetailScreen extends StatefulWidget {
   final String friendName;
@@ -197,7 +187,7 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
-  List<String> _messages = []; // List to store messages
+  List<String> _messages = [];
 
   @override
   void initState() {
@@ -207,11 +197,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Future<void> _loadMessages() async {
     try {
-      // Get the current user's email
       String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
 
       if (currentUserEmail != null) {
-        // Fetch the user document based on the current user's email
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUserEmail)
@@ -225,7 +213,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
 
           setState(() {
-            // Populate the _messages list with messages
             _messages = messages.map<String>((messageData) {
               final sender = messageData['sender'];
               final message = messageData['message'];
@@ -260,23 +247,47 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 final backgroundColor = isCurrentUserMessage ? Colors.blue[400] : Colors.grey[200];
                 final textColor = isCurrentUserMessage ? Colors.white : Colors.black;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                  child: Align(
-                    alignment: isCurrentUserMessage ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      padding: EdgeInsets.all(12.0),
-                      decoration: BoxDecoration(
-                        color: backgroundColor,
-                        borderRadius: BorderRadius.circular(16.0),
-                      ),
-                      child: Text(
-                        message,
-                        style: TextStyle(color: textColor),
+                if (message.contains('IMAGE_URL:')) {
+                  final imageUrl = message.replaceAll('IMAGE_URL:', '').trim();
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                    child: Align(
+                      alignment: isCurrentUserMessage ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        padding: EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: backgroundColor,
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                        child: Image.network(
+                          imageUrl,
+                          width: 200,
+                          height: 200,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                    child: Align(
+                      alignment: isCurrentUserMessage ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        padding: EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color: backgroundColor,
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                        child: Text(
+                          message,
+                          style: TextStyle(color: textColor),
+                        ),
+                      ),
+                    ),
+                  );
+                }
               },
             ),
           ),
@@ -310,11 +321,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String message = _messageController.text.trim();
     if (message.isNotEmpty) {
       try {
-        // Get the current user's email
         String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
 
         if (currentUserEmail != null) {
-          // Fetch the current user's document based on their email
           QuerySnapshot currentUserQuerySnapshot = await FirebaseFirestore.instance
               .collection('users')
               .where('email', isEqualTo: currentUserEmail)
@@ -325,11 +334,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             DocumentSnapshot currentUserSnapshot = currentUserQuerySnapshot.docs.first;
             String currentUserId = currentUserSnapshot.id;
 
-            // Get the current user's name
             String? currentUserName = currentUserSnapshot.get('name');
 
             if (currentUserName != null) {
-              // Fetch the friend's document based on the friend's name
               QuerySnapshot friendQuerySnapshot = await FirebaseFirestore.instance
                   .collection('users')
                   .where('name', isEqualTo: widget.friendName)
@@ -340,14 +347,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 DocumentSnapshot friendSnapshot = friendQuerySnapshot.docs.first;
                 String friendUserId = friendSnapshot.id;
 
-                // Create a map representing the message data
                 Map<String, dynamic> messageData = {
                   'sender': currentUserName,
                   'receiver': widget.friendName,
                   'message': message,
                 };
 
-                // Update the current user's document to add the message with the friend's name
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(currentUserId)
@@ -355,7 +360,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   'message_with_${widget.friendName}': FieldValue.arrayUnion([messageData]),
                 });
 
-                // Update the friend's document to add the message with the current user's name
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(friendUserId)
@@ -364,7 +368,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 });
 
                 setState(() {
-                  // Add the message to the _messages list
                   _messages.add('$currentUserName: $message');
                   _messageController.clear();
                 });
@@ -386,4 +389,3 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 }
-
