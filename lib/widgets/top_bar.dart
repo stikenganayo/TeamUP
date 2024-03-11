@@ -4,6 +4,7 @@ import 'package:snapchat_ui_clone/widgets/custom_icon.dart';
 import 'package:snapchat_ui_clone/screens/search_screen.dart';
 import 'package:snapchat_ui_clone/screens/profile_screen.dart';
 import '../screens/calendar_screen.dart';
+import '../screens/notifications_screen.dart';
 import '../style.dart';
 
 class TopBar extends StatefulWidget {
@@ -88,6 +89,18 @@ class _TopBarState extends State<TopBar> {
               children: [
                 const SizedBox(height: 10),
                 GestureDetector(
+                  onTap: () {
+                    // Navigate to the NotificationsScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+                    );
+                  },
+                  child: Icon(Icons.notifications, color: color, size: 28),
+                ),
+                const SizedBox(height: 15),
+                const SizedBox(height: 10),
+                GestureDetector(
                   onTap: widget.onFlipCamera, // Trigger the camera flip function here
                   child: Icon(Icons.repeat, color: color, size: 28),
                 ),
@@ -105,7 +118,24 @@ class _TopBarState extends State<TopBar> {
               ],
             ),
           )
-              : CustomIcon(child: Icon(Icons.more_horiz, color: color, size: 28), isCameraPage: false),
+              : InkWell(
+            onTap: () {
+              // Navigate to the NotificationsScreen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NotificationsScreen()),
+              );
+            },
+            child: CustomIcon(
+              child: Icon(Icons.notifications, color: color, size: 28),
+              isCameraPage: false,
+            ),
+          ),
+
+
+
+
+
         ),
         if (widget.text != null)
           Positioned(

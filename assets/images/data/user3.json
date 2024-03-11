@@ -1,0 +1,76 @@
+{
+  "data": [
+    {
+      "user": "user3",
+      "description": "hello123",
+      "UserTeams": {
+        "a": {
+          "teamname": "GorocketGo",
+          "description": "Description for sub-challenge A under teammates",
+          "teammates": [
+            {
+              "name": "rosy12",
+              "title": "Title for Activity A1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "beetleA2",
+              "title": "Title for Activity A2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "b": {
+          "teamname": "Team Go",
+          "description": "Description for sub-challenge B under teammates",
+          "teammates": [
+            {
+              "name": "GrowB1",
+              "title": "Title for Activity B1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "Awesome123",
+              "title": "Title for Activity B2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        },
+        "c": {
+          "teamname": "jzpartayy",
+          "description": "Description for sub-challenge C under teammates",
+          "teammates": [
+            {
+              "name": "rockey3",
+              "title": "Title for Activity C1",
+              "subCategory": {
+                "name": "Subcategory 1",
+                "title": "Title for Subcategory 1"
+              }
+            },
+            {
+              "name": "stalloneee",
+              "title": "Title for Activity C2",
+              "subCategory": {
+                "name": "Subcategory 2",
+                "title": "Title for Subcategory 2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -112,14 +112,14 @@ class _LoginScreenState extends State<LoginScreen> {
           context: context,
           builder: (context) {
             return AlertDialog(
-                title: Text("Login Failed"),
-                content: Text("An error occurred during login."),
-                actions: <Widget>[
+              title: Text("Login Failed"),
+              content: Text("An error occurred during login."),
+              actions: <Widget>[
                 TextButton(
-                onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text("OK"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("OK"),
                 )],
             );
           },
@@ -266,20 +266,20 @@ class LoginAndSignUpButton extends StatelessWidget {
   final VoidCallback onPress;
 
   const LoginAndSignUpButton({
-  required this.color,
-  required this.text,
-  required this.onPress,
-});
+    required this.color,
+    required this.text,
+    required this.onPress,
+  });
 
-@override
-Widget build(BuildContext context) {
-  return ElevatedButton(
-    style: ElevatedButton.styleFrom(primary: color),
-    onPressed: onPress,
-    child: Text(
-      text,
-      style: TextStyle(color: Colors.white),
-    ),
-  );
-}
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(backgroundColor: color),
+      onPressed: onPress,
+      child: Text(
+        text,
+        style: TextStyle(color: Colors.white),
+      ),
+    );
+  }
 }

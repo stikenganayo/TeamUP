@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'search_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -9,29 +10,80 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Placeholder data for friends and teams
-  List<String> friends = ['Friend 1', 'Friend 2', 'Friend 3', 'Friend 4', ''];
-  List<String> teams = ['Team A', 'Team B', 'Team C', 'Team D', ''];
 
-  // Placeholder icons for friends and teams
-  List<IconData> friendIcons = [Icons.person, Icons.face, Icons.child_care, Icons.pets, Icons.add];
-  List<IconData> teamIcons = [Icons.group, Icons.sports_basketball, Icons.sports_soccer, Icons.emoji_events, Icons.add];
-
-  // Placeholder colors for icons
-  List<Color> friendIconColors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.grey];
-  List<Color> teamIconColors = [Colors.red, Colors.teal, Colors.yellow, Colors.deepOrange, Colors.grey];
-
-  // Placeholder data for the user profile
-  String username = 'John Doe';
+  String username = 'John Doe'; // Set the default name
+  String userEmail = ''; // Store user email
   int totalPoints = 1000;
   int totalStreaks = 5;
   String profilePictureUrl = 'https://csncollision.com/wp-content/uploads/2019/10/placeholder-circle.png';
 
-  // Add a TextEditingController for the name editing field
   final TextEditingController _nameController = TextEditingController();
 
-  // Add a flag to track whether the name is being edited
-  bool _isEditingName = false;
+  bool _isEditing = false;
+  late User? currentUser;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<String?> _loadCurrentUserName() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('Current User Email: ${currentUser!.email}');
+
+      try {
+        // Fetch the user document based on the current user's email
+        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser!.email)
+            .limit(1)
+            .get();
+
+        if (userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<
+              String,
+              dynamic>;
+
+          // Print all data inside the current user's document
+          print('User Data: $userData');
+
+          // Check for the 'name' field in the user data
+          if (userData.containsKey('name')) {
+            String userName = userData['name'] as String;
+            return userName;
+          } else {
+            print('Name field not found in user document');
+          }
+        } else {
+          print('User document not found for the current user');
+        }
+      } catch (e) {
+        print('Error loading user document: $e');
+      }
+    }
+    return null; // Return null if any error occurs or if user is not found
+  }
+
+
+  Future<void> _loadUserData() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        String? currentUserName = await _loadCurrentUserName();
+        setState(() {
+          username = currentUserName ?? user.displayName ?? username;
+          userEmail = user.email ?? '';
+          _nameController.text = username;
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -50,193 +102,276 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.edit),
             onPressed: () {
               setState(() {
-                _isEditingName = !_isEditingName; // Toggle the editing flag
-                if (_isEditingName) {
-                  _nameController.text = username; // Set initial value to the current username
+                _isEditing = !_isEditing;
+                if (_isEditing) {
+                  _nameController.text = username;
                 }
               });
             },
           ),
         ],
       ),
-    body: SingleChildScrollView( // Wrap the content in a SingleChildScrollView
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(height: 40),
-            CircleAvatar(
-              radius: 60,
-              backgroundImage: NetworkImage(profilePictureUrl),
-              backgroundColor: Colors.red,
-            ),
-            const SizedBox(height: 20),
-            _isEditingName
-              ? TextFormField(
-                  controller: _nameController,
-                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your name',
-                    labelText: 'Name',
-                    ),
-                  )
-                : Text(
-                  ' $username',
-                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(height: 40),
+              CircleAvatar(
+                radius: 60,
+                backgroundImage: NetworkImage(profilePictureUrl),
+                backgroundColor: Colors.red,
+              ),
+              const SizedBox(height: 20),
+              _isEditing
+                  ? TextFormField(
+                controller: _nameController,
+                style: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.bold),
+                decoration: const InputDecoration(
+                  hintText: 'Enter your name',
+                  labelText: 'Name',
                 ),
-            const SizedBox(height: 10),
-            Text(
-              'Total Points: $totalPoints',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Total Streaks: $totalStreaks',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 30), // Increase the spacing between the user info and friends section
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                ' Friends:',
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+              )
+                  : Text(
+                username,
+                style: const TextStyle(
+                    fontSize: 30, fontWeight: FontWeight.bold),
               ),
-            ),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: friends.length,
-                itemBuilder: (context, index) {
-                  // Check if the icon represents the "add" icon
-                  if (friendIcons[index] == Icons.add) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SearchScreen()), // Navigate to the search screen
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: friendIconColors[index],
-                              child: Icon(
-                                friendIcons[index],
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              friends[index],
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
+              const SizedBox(height: 10),
+              Text(
+                userEmail,
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 10),
+              FutureBuilder<int>(
+                future: getTotalPoints(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator(); // While waiting for the result, show a loading indicator
+                  } else if (snapshot.hasData) {
+                    int totalPoints = snapshot.data!;
+                    return Text(
+                      'Total Points: $totalPoints',
+                      style: const TextStyle(fontSize: 18),
                     );
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
                   } else {
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: friendIconColors[index],
-                            child: Icon(
-                              friendIcons[index],
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            friends[index],
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    );
+                    return Text('Unknown error occurred');
                   }
                 },
               ),
-            ),
-            const SizedBox(height: 30), // Increase the spacing between the friends and teams section
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Teams:',
-                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-              ),
-            ),
-            SizedBox(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: teams.length,
-                itemBuilder: (context, index) {
-                  // Check if the icon represents the "add" icon
-                  if (teamIcons[index] == Icons.add) {
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SearchScreen()), // Navigate to the search screen
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
+              
+              const SizedBox(height: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Wellness Distribution',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  for (final streak in streaks)
+                    Row(
+                      children: [
+                        Image.asset(streak['icon'], width: 40, height: 40),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: teamIconColors[index],
-                              child: Icon(
-                                teamIcons[index],
-                                color: Colors.white,
-                              ),
+                            Text(
+                              streak['name'],
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 5),
-                            Text(
-                              teams[index],
-                              style: const TextStyle(fontSize: 16),
+                            FutureBuilder<int>(
+                              future: getWellnessPoints(
+                                  streak['name'].toString().toLowerCase()),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return CircularProgressIndicator();
+                                } else if (snapshot.hasData) {
+                                  int completionCount = snapshot.data!;
+                                  return Text(
+                                    'Completion Count: $completionCount',
+                                    style: const TextStyle(fontSize: 14),
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return Text('Error: ${snapshot.error}');
+                                } else {
+                                  return Text('Unknown error occurred');
+                                }
+                              },
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  } else {
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: teamIconColors[index],
-                            child: Icon(
-                              teamIcons[index],
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            teams[index],
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                },
+                      ],
+                    ),
+                ],
               ),
-            ),
-            const SizedBox(height: 30), // Increase the spacing between the teams section and the bottom
-          ],
+              const SizedBox(height: 30),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  ' Friends:',
+                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
+
+  Future<int> getTotalPoints() async {
+    int totalWellnessPoints = 0;
+
+    try {
+      String? currentUserName = await _loadCurrentUserName();
+      if (currentUserName != null) {
+        // Fetch all challenge documents
+        QuerySnapshot challengeSnapshot = await FirebaseFirestore.instance
+            .collection('challenges')
+            .get();
+
+        // Iterate through each challenge document
+        for (DocumentSnapshot challengeDoc in challengeSnapshot.docs) {
+          Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+          // Iterate through each category field
+          for (String key in challengeData.keys) {
+            if (key.endsWith('Category') && challengeData[key] == true) {
+              String category = key.substring(0, key.length - 8); // Remove 'Category' suffix
+
+              // Fetch user stats path
+              String userStatsPath = currentUserName + '_stats';
+
+              // Check if the user's stats exist within the challenge data
+              if (challengeData.containsKey(userStatsPath)) {
+                print('User stats found in challenge data');
+
+                // Get the user stats directly
+                List<dynamic>? userStats = challengeData[userStatsPath];
+
+                // Set to store encountered date fields
+                Set<String> encounteredDateFields = {};
+
+                // Count the completions for the current user
+                if (userStats != null) {
+                  for (var data in userStats) {
+                    if (data is Map<String, dynamic> &&
+                        data.containsKey('confirmed_completion') &&
+                        data.containsKey('date')) {
+                      String? dateField = data['date'];
+                      if (dateField != null && !encounteredDateFields.contains(dateField)) {
+                        totalWellnessPoints++;
+                        encounteredDateFields.add(dateField); // Add the current date field to the set
+                      }
+                    }
+                  }
+                }
+              } else {
+                print('User stats not found in challenge data');
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error calculating total wellness points: $e');
+    }
+
+    print('Total Wellness Points: $totalWellnessPoints');
+    return totalWellnessPoints;
+  }
+
+
+
+
+
+
+  // Function to calculate wellness points
+  Future<int> getWellnessPoints(String category) async {
+    int wellnessPoints = 0;
+    category = category.toLowerCase();
+    try {
+      String? currentUserName = await _loadCurrentUserName();
+      if (currentUserName != null) {
+        // Fetch all challenge documents
+        QuerySnapshot challengeSnapshot = await FirebaseFirestore.instance
+            .collection('challenges')
+            .get();
+
+        // Iterate through each challenge document
+        for (DocumentSnapshot challengeDoc in challengeSnapshot.docs) {
+          Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
+
+          // Check if the category field is true
+          if (challengeData['${category}Category'] == true) {
+            print('Category ${category} is true in challenge document: ${challengeDoc.id}');
+
+            // Construct the path for the user's stats
+            String userStatsPath = currentUserName + '_stats';
+            print('User stats path: $userStatsPath');
+
+            // Check if the user's stats exist within the challenge data
+            if (challengeData.containsKey(userStatsPath)) {
+              print('User stats found in challenge data');
+
+              // Get the user stats directly
+              List<dynamic>? userStats = challengeData[userStatsPath];
+
+              // Set to store encountered date fields
+              Set<String> encounteredDateFields = {};
+
+              // Count the completions for the current user
+              if (userStats != null) {
+                for (var data in userStats) {
+                  if (data is Map<String, dynamic> &&
+                      data.containsKey('confirmed_completion') &&
+                      data.containsKey('date')) {
+                    String? dateField = data['date'];
+                    if (dateField != null && !encounteredDateFields.contains(dateField)) {
+                      wellnessPoints++;
+                      encounteredDateFields.add(dateField); // Add the current date field to the set
+                    }
+                  }
+                }
+              }
+
+            } else {
+              print('User stats not found in challenge data');
+            }
+
+          } else {
+            print('Category ${category} is not true in challenge document: ${challengeDoc.id}');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error calculating wellness points: $e');
+    }
+    print('Wellness Points: $wellnessPoints');
+    return wellnessPoints;
+  }
 }
+
+
+
+  final List<Map<String, dynamic>> streaks = [
+  {'name': 'Emotional', 'icon': 'assets/images/Emotional-mini.png'},
+  {'name': 'Environmental', 'icon': 'assets/images/Environmental-mini.png'},
+  {'name': 'Financial', 'icon': 'assets/images/Financial-mini.png'},
+  {'name': 'Intellectual', 'icon': 'assets/images/Intellectual-mini.png'},
+  {'name': 'Occupational', 'icon': 'assets/images/Occupational-mini.png'},
+  {'name': 'Physical', 'icon': 'assets/images/Physical-mini.png'},
+  {'name': 'Social', 'icon': 'assets/images/Social-mini.png'},
+  {'name': 'Spiritual', 'icon': 'assets/images/Spiritual-mini.png'},
+];

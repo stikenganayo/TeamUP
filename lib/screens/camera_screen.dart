@@ -2,16 +2,23 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:snapchat_ui_clone/widgets/top_bar.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:firebase_core/firebase_core.dart';
+import '../widgets/top_bar.dart';
 import '../style.dart';
 import '../widgets/custom_icon.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'image_list_screen.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({Key? key, required this.cameraController, required this.initCamera})
-      : super(key: key);
+  const CameraScreen({
+    Key? key,
+    required this.cameraController,
+    required this.initCamera,
+  }) : super(key: key);
 
   final CameraController? cameraController;
   final Future<void> Function({required bool frontCamera}) initCamera;
@@ -29,27 +36,23 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _flipCamera() async {
-    setState(() {
-      _isFrontCamera = !_isFrontCamera;
-    });
-
+    _isFrontCamera = !_isFrontCamera;
     await widget.initCamera(frontCamera: _isFrontCamera);
+    setState(() {});
   }
 
   Future<void> takePictureAndShow() async {
     try {
-      // Set flash to torch only for capturing the picture
       widget.cameraController!.setFlashMode(FlashMode.torch);
 
       XFile? image = await widget.cameraController!.takePicture();
 
-      // Reset flash mode to its previous state after capturing the picture
       widget.cameraController!.setFlashMode(_flashMode);
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PictureScreen(imagePath: image.path),
+          builder: (context) => DisplayImageScreen(imagePath: image.path),
         ),
       );
     } catch (e) {
@@ -57,15 +60,6 @@ class _CameraScreenState extends State<CameraScreen> {
         print("Error capturing picture: $e");
       }
     }
-  }
-
-  void _openImageListScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ImageListScreen(),
-      ),
-    );
   }
 
   @override
@@ -114,7 +108,14 @@ class _CameraScreenState extends State<CameraScreen> {
           child: Row(
             children: [
               GestureDetector(
-                onTap: _openImageListScreen, // Open the new screen
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ImageListScreen(),
+                    ),
+                  );
+                },
                 child: const CustomIcon(
                   child: Icon(
                     CupertinoIcons.photo_on_rectangle,
@@ -142,40 +143,47 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 }
 
-class PictureScreen extends StatelessWidget {
+class DisplayImageScreen extends StatelessWidget {
   final String imagePath;
 
-  const PictureScreen({Key? key, required this.imagePath}) : super(key: key);
+  const DisplayImageScreen({Key? key, required this.imagePath}) : super(key: key);
 
-  Future<void> _savePictureToDevice(BuildContext context) async {
+  Future<void> _savePictureToDevice(BuildContext context, String imagePath) async {
     try {
       final Directory? picturesDir = await getExternalStorageDirectory();
       if (picturesDir == null) {
-        // Handle the case when getExternalStorageDirectory returns null
         if (kDebugMode) {
           print("Error: External storage directory is not available.");
         }
         return;
       }
 
-      final String savePath = "${picturesDir.path}/TeamUP/${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final String savePath =
+          "${picturesDir.path}/TeamUP/${DateTime.now().millisecondsSinceEpoch}.jpg";
 
-      // Create the directory if it doesn't exist
       final savedDir = Directory(savePath);
       if (!savedDir.existsSync()) {
         savedDir.createSync(recursive: true);
       }
 
-      // Copy the image to the specified save path
       final File imageFile = File(imagePath);
-      await imageFile.copy(savePath);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Picture saved to: $savePath"),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      // Initialize Firebase (ensure this is done elsewhere in your app)
+      await Firebase.initializeApp();
+
+      // Upload image to Firebase Storage
+      final storageRef = firebase_storage.FirebaseStorage.instance.ref();
+      final imageFileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final imageStorageRef = storageRef.child("images/$imageFileName");
+
+      await imageStorageRef.putFile(imageFile);
+
+      // Get the download URL of the uploaded image
+      final imageUrl = await imageStorageRef.getDownloadURL();
+
+      // Save the image URL to Firestore
+      await FirebaseFirestore.instance.collection('images').add({'url': imageUrl});
+
     } catch (e) {
       if (kDebugMode) {
         print("Error saving picture: $e");
@@ -186,46 +194,45 @@ class PictureScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context); // Navigate back when the back button is pressed
-          },
-        ),
-        title: const Text(''),
-      ),
-      body: Container(
-        color: Colors.white, // Set the background color to white
-        child: Image.file(File(imagePath)),
-      ),
-      extendBody: true,
-      bottomNavigationBar: SizedBox(
-        height: Platform.isIOS ? 90 : 60,
-        child: BottomNavigationBar(
-          currentIndex: 0,
-          selectedItemColor: Colors.red,
-          onTap: (index) {
-            if (index == 0) {
-              // Call the save function when the "Save" icon is clicked
-              _savePictureToDevice(context);
-            }
-          },
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.arrow_down_circle_fill, size: 28),
-              label: 'Save',
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.file(File(imagePath), fit: BoxFit.cover),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              color: Colors.black.withOpacity(0.7),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      _savePictureToDevice(context, imagePath);
+                    },
+                    icon: Icon(Icons.save, color: Colors.white),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // TODO: Add functionality to send the image
+                      // You can use _sendImage() or any other method you prefer.
+                    },
+                    icon: Icon(Icons.send, color: Colors.white),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // TODO: Add functionality to post the image
+                      // You can use _postImage() or any other method you prefer.
+                    },
+                    icon: Icon(Icons.post_add, color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.plus_app_fill, size: 28),
-              label: 'Story',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.arrowshape_turn_up_right_circle_fill, size: 28),
-              label: 'Send',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
