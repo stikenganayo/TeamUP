@@ -241,6 +241,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'status': challenge['status'] ?? '',
         'challengeDocRef': challengeDocRef,
         'accepted': challengeData['accepted'],
+        'challengeLength' : challengeData['challengeLength']
       });
 
     } else {
@@ -671,6 +672,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             children: [
                               Text(
                                 'Description: ${challengeDetails[challengeIndex]['Description']}',
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Challenge Length: ${challengeDetails[challengeIndex]['challengeLength']}',
                               ),
                               SizedBox(height: 8),
                               Text(

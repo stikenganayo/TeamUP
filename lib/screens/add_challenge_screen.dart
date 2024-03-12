@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:snapchat_ui_clone/screens/prebuilt_activity_template_screen.dart';
 import 'package:snapchat_ui_clone/screens/select_teams_screen.dart';
 import 'package:snapchat_ui_clone/screens/selection_screen.dart';
+import 'dart:math' as math;
 
 class CreateChallenge extends StatefulWidget {
   const CreateChallenge({Key? key}) : super(key: key);
@@ -37,6 +38,10 @@ class _CreateChallengeState extends State<CreateChallenge> {
   bool socialCategory = false;
   bool spiritualCategory = false;
 
+  bool isRecurringEvent = false;
+  List<String> selectedDays = [];
+  int selectedValue = 0;
+  bool _showCircularSlider = false;
 
 
   List<String> timeUnitOptions = [
@@ -98,6 +103,124 @@ class _CreateChallengeState extends State<CreateChallenge> {
                           .toList(),
                     ),
                     const SizedBox(height: 20),
+                    const SizedBox(height: 20),
+// Show checkboxes for recurring events
+                    const SizedBox(height: 20),
+// Show checkboxes for recurring events
+
+
+
+                    const SizedBox(height: 20),
+                    Text(
+                      'Select Challenge Length',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      '${selectedValue == 0 ? "Infinity" : selectedValue.toStringAsFixed(2)} Days', // Display selectedValue or "Infinite" if selectedValue is 0
+                      style: TextStyle(fontSize: 16),
+                    ),
+
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                int newValue = selectedValue;
+                                return AlertDialog(
+                                  title: Text("Type in challenge length"),
+                                  content: TextFormField(
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (value) {
+                                      newValue = int.tryParse(value) ?? selectedValue;
+                                    },
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: Text('Cancel'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text('Confirm'),
+                                      onPressed: () {
+                                        setState(() {
+                                          selectedValue = newValue;
+                                        });
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          child: Text(
+                            'Insert Number',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedValue = double.infinity as int;
+                            });
+                          },
+                          child: Text(
+                            'Set as Infinite',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+// Show checkboxes for recurring events
+                    TextButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return StatefulBuilder(
+                              builder: (BuildContext context, setState) {
+                                return AlertDialog(
+                                  title: Text('Select Value'),
+                                  content: SizedBox(
+                                    height: 220, // Adjust height as needed
+                                    child: CircularSlider(
+                                      onClose: (value) {
+                                        setState(() {
+                                          selectedValue = value as int; // Update the value in the parent widget
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        setState(() {}); // Refresh the screen
+                                      },
+                                      child: Text('Close'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                      child: Text('Use Circular slider to select challenge length'),
+                    ),
+
+
+
+
+
                     DropdownButton<String>(
                       value: dropdownValue,
                       onChanged: (String? newValue) {
@@ -671,6 +794,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
           'physicalCategory' : physicalCategory,
           'socialCategory' : socialCategory,
           'spiritualCategory' : spiritualCategory,
+          'challengeLength' : selectedValue,
           };
 
           DocumentReference challengeDocRef =
@@ -717,6 +841,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                         .toList(),
                     'players': players,
                     'userTyping' : enableUserTyping,
+                    'challengeLength' : selectedValue
                     // Add the list of players to the team challenge
                   }
                 ]),
@@ -753,6 +878,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                             .toList(),
                         'players': players,
                         'userTyping' : enableUserTyping,
+                        'challengeLength' : selectedValue
                       }
                     ])
                   });
@@ -865,4 +991,124 @@ Future<void> deletePostedChallenge(DocumentReference challengeDocRef) async {
 class InputFieldData {
   int numberOfFields = 1;
   String unit = "Second";
+}
+
+
+class CircularSlider extends StatefulWidget {
+  final void Function(double) onClose;
+
+  const CircularSlider({Key? key, required this.onClose}) : super(key: key);
+
+  @override
+  _CircularSliderState createState() => _CircularSliderState();
+}
+
+class _CircularSliderState extends State<CircularSlider> {
+  double _startAngle = -math.pi / 2;
+  double _endAngle = -math.pi / 2;
+  double _value = 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 200,
+            height: 200,
+            child: GestureDetector(
+              onPanStart: (details) {
+                RenderBox renderBox = context.findRenderObject() as RenderBox;
+                Offset center = renderBox.localToGlobal(renderBox.size.center(Offset.zero));
+                _startAngle = math.atan2(details.globalPosition.dy - center.dy, details.globalPosition.dx - center.dx);
+              },
+              onPanUpdate: (details) {
+                RenderBox renderBox = context.findRenderObject() as RenderBox;
+                Offset center = renderBox.localToGlobal(renderBox.size.center(Offset.zero));
+                double newAngle = math.atan2(details.globalPosition.dy - center.dy, details.globalPosition.dx - center.dx);
+                double angleDiff = newAngle - _startAngle;
+
+                // Calculate the new value
+                double newValue = _value + angleDiff;
+
+                // Check if the new value will be negative
+                if (_value <= 0 && newValue < 0) {
+                  return; // Prevent going into negative values
+                }
+
+                // Normalize the angle between 0 and 2*pi
+                double normalizedAngle = (newAngle - _startAngle + 2 * math.pi) % (2 * math.pi);
+
+                setState(() {
+                  _endAngle = newAngle;
+                  if (angleDiff < -math.pi) {
+                    angleDiff += 2 * math.pi;
+                  } else if (angleDiff > math.pi) {
+                    angleDiff -= 2 * math.pi;
+                  }
+                  _value += angleDiff;
+                  _startAngle = newAngle;
+                });
+              },
+              onPanEnd: (_) {
+                widget.onClose(_value); // Call the onClose callback with the selected value
+              },
+              child: CustomPaint(
+                painter: CircularSliderPainter(angle: _value),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 100,
+            child: Text(
+              'Value: ${(_value / (2 * math.pi) * 100).toStringAsFixed(0)}',
+              style: TextStyle(fontSize: 24.0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+class CircularSliderPainter extends CustomPainter {
+  final double angle;
+
+  CircularSliderPainter({required this.angle});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint backgroundPaint = Paint()
+      ..color = Colors.grey[300]!
+      ..strokeWidth = 10.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final Paint progressPaint = Paint()
+      ..color = Colors.blue
+      ..strokeWidth = 10.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final double radius = size.width / 2;
+    final Offset center = Offset(size.width / 2, size.height / 2);
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      angle % (2 * math.pi),
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
+  }
 }

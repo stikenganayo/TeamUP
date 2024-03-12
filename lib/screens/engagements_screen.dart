@@ -1,18 +1,14 @@
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:snapchat_ui_clone/screens/team_select.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
+import 'package:intl/intl.dart'; // Import intl package for date formatting
 import '../style.dart';
-import '../widgets/stories.dart';
+import '../widgets/discover_grid.dart';
+import '../widgets/team_stories.dart';
 import '../widgets/subscriptions.dart';
-import 'add_challenge_screen.dart';
-import 'add_event_screen.dart';
-import 'calendar_screen.dart';
-import 'events_filter_page.dart';
+import 'events_filter_page.dart'; // Import your EventsFilter screen
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
 class EngagementsScreen extends StatefulWidget {
   const EngagementsScreen({Key? key}) : super(key: key);
@@ -22,22 +18,23 @@ class EngagementsScreen extends StatefulWidget {
 }
 
 class _EngagementsScreenState extends State<EngagementsScreen> {
+  List<Map<String, dynamic>> communityEvents = [];
+  List<Map<String, dynamic>> communityChallenges = [];
+  List<Map<String, dynamic>> communityCoaches = [];
   late User? currentUser;
-  List<Map<String, dynamic>> challengeDetails = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentUser();
+    _loadCommunityChallenges();
   }
 
-  Future<void> _loadCurrentUser() async {
-    try {
-      currentUser = FirebaseAuth.instance.currentUser;
+  Future<String?> _loadCurrentUserName() async {
+    currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      print('Current User Email: ${currentUser!.email}');
 
-      if (currentUser != null) {
-        print('Current User Email: ${currentUser!.email}');
-
+      try {
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('email', isEqualTo: currentUser!.email)
@@ -46,114 +43,145 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
 
         if (userQuerySnapshot.docs.isNotEmpty) {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          await _addChallengeDetailsFromUser(userSnapshot);
+          Map<String, dynamic> userData =
+          userSnapshot.data() as Map<String, dynamic>;
+
+          print('User Data: $userData');
+
+          if (userData.containsKey('name')) {
+            String userName = userData['name'] as String;
+            return userName;
+          } else {
+            print('Name field not found in user document');
+          }
         } else {
           print('User document not found for the current user');
         }
+      } catch (e) {
+        print('Error loading user document: $e');
       }
-    } catch (e) {
-      print('Error loading user document: $e');
     }
+    return null;
   }
 
-  Future<void> _addChallengeDetailsFromUser(DocumentSnapshot userSnapshot) async {
-    List<dynamic> teamChallenges = userSnapshot['team_challenges'];
+  Future<void> _loadCommunityChallenges() async {
+    try {
+      QuerySnapshot communityChallengesSnapshot = await FirebaseFirestore
+          .instance
+          .collection('challenges')
+          .get();
 
-    for (Map<String, dynamic> challenge in teamChallenges) {
-      await _addChallengeDetails(challenge);
-    }
+      List<Map<String, dynamic>> challenges = [];
 
-    setState(() {});
-  }
+      for (DocumentSnapshot doc in communityChallengesSnapshot.docs) {
+        if (doc.exists) {
+          List<Map<String, dynamic>> challengeDataList = [];
+          if (doc['challengeDataList'] != null) {
+            var data = doc['challengeDataList'][0];
+            challengeDataList.add({
+              'challengeTitle': data['challengeTitle'] ?? '',
+            });
+          }
 
-  Future<void> _addChallengeDetails(Map<String, dynamic> challenge) async {
-    String challengeDocRef = challenge['challengeDocRef'];
+          Map<String, dynamic> challengeDetails = {
+            'challengeId': doc.id,
+            'challengeDataList': challengeDataList,
+            'CurrentUserName': doc['CurrentUserName'] ?? '',
+            'accepted': doc['accepted'] ?? 0,
+            'isGoing': false,
+          };
+          challenges.add(challengeDetails);
+        }
+      }
 
-    DocumentSnapshot challengeSnapshot = await FirebaseFirestore.instance
-        .collection('challenge_templates')
-        .doc(challengeDocRef)
-        .get();
-
-    if (challengeSnapshot.exists) {
-      Map<String, dynamic> challengeData =
-      challengeSnapshot.data() as Map<String, dynamic>;
-
-      print('Challenge Title: ${challengeData['template_name']}');
-      print('Description: ${challengeData['frequency']}');
-      print('Status: ${challenge['status']}');
-
-      challengeDetails.add({
-        'title': challengeData['template_name'],
-        'Description': challengeData['frequency'],
-        'status': challenge['status'] ?? '',
-        'challengeDocRef': challengeDocRef,
+      setState(() {
+        communityChallenges = challenges;
       });
-    } else {
-      print('Challenge document not found for challengeDocRef: $challengeDocRef');
+    } catch (e) {
+      print('Error loading community challenges: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Stack(
-          children: [
-            // Top bar
-            const TopBar(isCameraPage: false, text: 'Engagements'),
-            Positioned(
-              top: 100,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height - 100 - (Platform.isIOS ? 90 : 60),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Stories
-                    Style.sectionTitle('Team Stories'),
-                    const Stories(),
-                    const SizedBox(height: 18),
-                    // Select A Challenge
-                    Style.sectionTitle('Challenges'),
-                    const SizedBox(height: 18),
-                    // Display Challenges
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: challengeDetails.length,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                          ),
-                          child: ListTile(
-                            title: Text('Title: ${challengeDetails[index]['title']}'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Description: ${challengeDetails[index]['Description']}'),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Status: ${challengeDetails[index]['status']}',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+    return Container(
+      decoration: BoxDecoration(
+        color: Style.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          const TopBar(isCameraPage: false, text: 'Community'),
+          Positioned(
+            top: 100,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height -
+                100 -
+                (Platform.isIOS ? 90 : 60),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Style.sectionTitle('Community Stories   '),
+                    ],
+                  ),
+                  const Stories(),
+                  const SizedBox(height: 28),
+                  Style.sectionTitle('Challenges To Try'),
+                  const SizedBox(height: 28),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: communityChallenges.map((challenge) =>
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.4,
+                            height: 300,
+                            child: Card(
+                              child: Container(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: challenge['challengeDataList']
+                                                  .map<Widget>((challengeData) {
+                                                return Text(challengeData['challengeTitle']);
+                                              }).toList(),
+                                            ),
+                                          ),
+                                          Text('Host: ${challenge['CurrentUserName']}'),
+                                          Text('Accepted: ${challenge['accepted']}'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        );
-                      },
+                      ).toList(),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 28),
+                  const SizedBox(height: 28),
+                  SizedBox(height: 28),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

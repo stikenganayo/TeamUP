@@ -1,18 +1,19 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+class UserProfileScreen extends StatefulWidget {
+  final String user;
+
+  const UserProfileScreen(this.user, {Key? key}) : super(key: key);
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  _UserProfileScreenState createState() => _UserProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-
-  String username = 'John Doe'; // Set the default name
-  String userEmail = ''; // Store user email
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  late String username; // Set the default name
+  late String userEmail = ''; // Store user email
   int totalPoints = 1000;
   int totalStreaks = 5;
   String profilePictureUrl = 'https://csncollision.com/wp-content/uploads/2019/10/placeholder-circle.png';
@@ -22,61 +23,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
   late User? currentUser;
 
-
   @override
   void initState() {
     super.initState();
     _loadUserData();
   }
 
-  Future<String?> _loadCurrentUserName() async {
-    currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      print('Current User Email: ${currentUser!.email}');
-
-      try {
-        // Fetch the user document based on the current user's email
-        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: currentUser!.email)
-            .limit(1)
-            .get();
-
-        if (userQuerySnapshot.docs.isNotEmpty) {
-          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          Map<String, dynamic> userData = userSnapshot.data() as Map<
-              String,
-              dynamic>;
-
-          // Print all data inside the current user's document
-          print('User Data: $userData');
-
-          // Check for the 'name' field in the user data
-          if (userData.containsKey('name')) {
-            String userName = userData['name'] as String;
-            return userName;
-          } else {
-            print('Name field not found in user document');
-          }
-        } else {
-          print('User document not found for the current user');
-        }
-      } catch (e) {
-        print('Error loading user document: $e');
-      }
-    }
-    return null; // Return null if any error occurs or if user is not found
-  }
-
-
   Future<void> _loadUserData() async {
     try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        String? currentUserName = await _loadCurrentUserName();
+      String? currentUserName = widget.user;
+      if (currentUserName != null) {
         setState(() {
-          username = currentUserName ?? user.displayName ?? username;
-          userEmail = user.email ?? '';
+          username = currentUserName;
           _nameController.text = username;
         });
       }
@@ -184,7 +142,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
 
-
               const SizedBox(height: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int totalWellnessPoints = 0;
 
     try {
-      String? currentUserName = await _loadCurrentUserName();
+      String? currentUserName = widget.user;
       if (currentUserName != null) {
         // Fetch all challenge documents
         QuerySnapshot challengeSnapshot = await FirebaseFirestore.instance
@@ -314,17 +271,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return totalWellnessPoints;
   }
 
-
-
-
-
-
   // Function to calculate wellness points
   Future<int> getWellnessPoints(String category) async {
     int wellnessPoints = 0;
     category = category.toLowerCase();
     try {
-      String? currentUserName = await _loadCurrentUserName();
+      String? currentUserName = widget.user;
       if (currentUserName != null) {
         // Fetch all challenge documents
         QuerySnapshot challengeSnapshot = await FirebaseFirestore.instance
@@ -385,9 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-
-
-  final List<Map<String, dynamic>> streaks = [
+final List<Map<String, dynamic>> streaks = [
   {'name': 'Emotional', 'icon': 'assets/images/Emotional-mini.png'},
   {'name': 'Environmental', 'icon': 'assets/images/Environmental-mini.png'},
   {'name': 'Financial', 'icon': 'assets/images/Financial-mini.png'},
