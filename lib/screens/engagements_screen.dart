@@ -87,8 +87,16 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
             'challengeId': doc.id,
             'challengeDataList': challengeDataList,
             'CurrentUserName': doc['CurrentUserName'] ?? '',
-            'accepted': doc['accepted'] ?? 0,
+            'challengeLength': doc['challengeLength'] ?? '',
             'isGoing': false,
+            'emotionalCategory': doc['emotionalCategory'] ?? '',
+            'environmentalCategory': doc['environmentalCategory'] ?? '',
+            'financialCategory': doc['financialCategory'] ?? '',
+            'intellectualCategory': doc['intellectualCategory'] ?? '',
+            'occupationalCategory': doc['occupationalCategory'] ?? '',
+            'physicalCategory': doc['physicalCategory'] ?? '',
+            'socialCategory': doc['socialCategory'] ?? '',
+            'spiritualCategory': doc['spiritualCategory'] ?? '',
           };
           challenges.add(challengeDetails);
         }
@@ -142,32 +150,127 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
                             width: MediaQuery.of(context).size.width * 0.4,
                             height: 300,
                             child: Card(
-                              child: Container(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          SizedBox(
-                                            width: double.infinity,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: challenge['challengeDataList']
-                                                  .map<Widget>((challengeData) {
-                                                return Text(challengeData['challengeTitle']);
-                                              }).toList(),
+                              child: Stack(
+                                children: [
+                                  Positioned(
+                                    top: 4,
+                                    left: 4,
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        if (challenge['emotionalCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Emotional-mini.png',
+                                              width: 24,
+                                              height: 24,
                                             ),
                                           ),
-                                          Text('Host: ${challenge['CurrentUserName']}'),
-                                          Text('Accepted: ${challenge['accepted']}'),
-                                        ],
-                                      ),
+                                        if (challenge['environmentalCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Environmental-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                        if (challenge['financialCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Financial-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                        if (challenge['intellectualCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Intellectual-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                        if (challenge['occupationalCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Occupational-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                        if (challenge['physicalCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Physical-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                        if (challenge['socialCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Social-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                        if (challenge['spiritualCategory'] == true)
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: Image.asset(
+                                              'assets/images/Spiritual-mini.png',
+                                              width: 24,
+                                              height: 24,
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+
+                                  Container(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              SizedBox(height: 30),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: challenge['challengeDataList']
+                                                      .map<Widget>((challengeData) {
+                                                    return Text(challengeData['challengeTitle']);
+                                                  }).toList(),
+                                                ),
+                                              ),
+                                              Text('Host: ${challenge['CurrentUserName']}'),
+                                              Text('Challenge Length: ${challenge['challengeLength']}'),
+                                              SizedBox(height: 10), // Added spacing
+                                              ElevatedButton( // Added button
+                                                onPressed: () {
+                                                  // Handle button press
+                                                  // You can add your logic here
+                                                },
+                                                child: Text('Use Challenge'),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -185,4 +288,17 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
       ),
     );
   }
+
+
+
 }
+final List<Map<String, dynamic>> streaks = [
+  {'name': 'Emotional', 'icon': 'assets/images/Emotional-mini.png'},
+  {'name': 'Environmental', 'icon': 'assets/images/Environmental-mini.png'},
+  {'name': 'Financial', 'icon': 'assets/images/Financial-mini.png'},
+  {'name': 'Intellectual', 'icon': 'assets/images/Intellectual-mini.png'},
+  {'name': 'Occupational', 'icon': 'assets/images/Occupational-mini.png'},
+  {'name': 'Physical', 'icon': 'assets/images/Physical-mini.png'},
+  {'name': 'Social', 'icon': 'assets/images/Social-mini.png'},
+  {'name': 'Spiritual', 'icon': 'assets/images/Spiritual-mini.png'},
+];
