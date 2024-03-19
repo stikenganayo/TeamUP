@@ -5,6 +5,8 @@ import 'package:snapchat_ui_clone/screens/prebuilt_activity_template_screen.dart
 import 'package:snapchat_ui_clone/screens/select_teams_screen.dart';
 import 'package:snapchat_ui_clone/screens/selection_screen.dart';
 import 'dart:math' as math;
+import 'package:intl/intl.dart'; // Import the intl package for date formatting
+
 
 class CreateChallenge extends StatefulWidget {
   const CreateChallenge({Key? key}) : super(key: key);
@@ -17,6 +19,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
   List<ChallengeData> challengeDataList = [
     ChallengeData(challengeTitle: "", controller: TextEditingController())
   ];
+
+  // String currentDate = DateFormat("MMMM dd, yyyy").format(DateTime.now());
+  DateTime startDate = DateTime.now().toLocal();
+
+
   List<String> selectedFriends = [];
   List<String> selectedTeams = [];
 
@@ -65,6 +72,23 @@ class _CreateChallengeState extends State<CreateChallenge> {
         challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
   }
 
+
+  Future<void> _selectStartDate(BuildContext context) async {
+    final DateTime pickedDate = (await showDatePicker(
+      context: context,
+      initialDate: startDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    ))!;
+    if (pickedDate != null && pickedDate != startDate) {
+      setState(() {
+        startDate = pickedDate;
+      });
+    }
+  }
+
+
+
   @override
   void initState() {
     super.initState();
@@ -108,7 +132,23 @@ class _CreateChallengeState extends State<CreateChallenge> {
                     const SizedBox(height: 20),
 // Show checkboxes for recurring events
 
+                    Row(
+                      children: <Widget>[
+                        TextButton(
+                          onPressed: () => _selectStartDate(context),
+                          child: const Text(
+                            'Select Start Date',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Text(
+                          DateFormat('MMMM dd yyyy').format(startDate),
+                          style: TextStyle(fontSize: 16),
+                        ),
 
+                      ],
+                    ),
 
                     const SizedBox(height: 20),
                     Text(
@@ -795,6 +835,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
           'socialCategory' : socialCategory,
           'spiritualCategory' : spiritualCategory,
           'challengeLength' : selectedValue,
+            'startDate': startDate,
           };
 
           DocumentReference challengeDocRef =
@@ -841,7 +882,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
                         .toList(),
                     'players': players,
                     'userTyping' : enableUserTyping,
-                    'challengeLength' : selectedValue
+                    'challengeLength' : selectedValue,
+                    'startDate': startDate,
                     // Add the list of players to the team challenge
                   }
                 ]),

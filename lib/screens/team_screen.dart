@@ -264,57 +264,112 @@ class _TeamScreenState extends State<TeamScreen> {
   }
 
 
-  // Future<String?> _getChallengeLength(String teamId, String challengeTitle) async {
-  //   try {
-  //     // Fetch the team document based on the team ID
-  //     DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
-  //         .collection('teams')
-  //         .doc(teamId)
-  //         .get();
-  //
-  //     if (teamSnapshot.exists) {
-  //       Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
-  //
-  //       // Print the team name directly from the teamData
-  //       if (teamData.containsKey('team_challenges')) {
-  //         List<dynamic> teamChallenges = teamData['team_challenges'];
-  //
-  //         print('Team Challenges: $teamChallenges');
-  //
-  //         // Find the challenge with the specified title
-  //         Map<String, dynamic>? targetChallenge;
-  //         for (var challenge in teamChallenges) {
-  //           if (challenge.containsKey('template_name') &&
-  //               challenge['template_name'].isNotEmpty &&
-  //               challenge['template_name'][0].containsKey('challengeTitle')) {
-  //             String title =
-  //             challenge['template_name'][0]['challengeTitle'];
-  //             if (title == challengeTitle) {
-  //               targetChallenge = challenge;
-  //               break;
-  //             }
-  //           }
-  //         }
-  //
-  //         // Return the challengeLength if the target challenge is found
-  //         if (targetChallenge != null &&
-  //             targetChallenge.containsKey('challengeLength')) {
-  //           return targetChallenge['challengeLength'].toString();
-  //         } else {
-  //           print('Challenge with title $challengeTitle not found or does not have a challengeLength field.');
-  //         }
-  //       } else {
-  //         print('Team challenges field not found in team document');
-  //       }
-  //     } else {
-  //       print('Team document not found for $teamId');
-  //     }
-  //   } catch (e) {
-  //     print('Error loading team or challenge document: $e');
-  //   }
-  //
-  //   return null; // Default value if anything goes wrong or challenge not found
-  // }
+  Future<String?> _getChallengeLength(String teamId, String challengeTitle) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Print the team name directly from the teamData
+        if (teamData.containsKey('team_challenges')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+
+          print('Team Challenges: $teamChallenges');
+
+          // Find the challenge with the specified title
+          Map<String, dynamic>? targetChallenge;
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'].isNotEmpty &&
+                challenge['template_name'][0].containsKey('challengeTitle')) {
+              String title =
+              challenge['template_name'][0]['challengeTitle'];
+              if (title == challengeTitle) {
+                targetChallenge = challenge;
+                break;
+              }
+            }
+          }
+
+          // Return the challengeLength if the target challenge is found
+          if (targetChallenge != null &&
+              targetChallenge.containsKey('challengeLength')) {
+            return targetChallenge['challengeLength'].toString();
+          } else {
+            print('Challenge with title $challengeTitle not found or does not have a challengeLength field.');
+          }
+        } else {
+          print('Team challenges field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team or challenge document: $e');
+    }
+
+    return null; // Default value if anything goes wrong or challenge not found
+  }
+
+
+  Future<String?> _getChallengeStartDate(String teamId, String challengeTitle) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Print the team name directly from the teamData
+        if (teamData.containsKey('team_challenges')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+
+          print('Team Challenges: $teamChallenges');
+
+          // Find the challenge with the specified title
+          Map<String, dynamic>? targetChallenge;
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'].isNotEmpty &&
+                challenge['template_name'][0].containsKey('challengeTitle')) {
+              String title =
+              challenge['template_name'][0]['challengeTitle'];
+              if (title == challengeTitle) {
+                targetChallenge = challenge;
+                break;
+              }
+            }
+          }
+
+          // Return the challengeLength if the target challenge is found
+          if (targetChallenge != null &&
+              targetChallenge.containsKey('startDate')) {
+            String value = targetChallenge['startDate'].toString();
+              print("are you working? $value");
+            return targetChallenge['startDate'].toString();
+          } else {
+            print('Challenge with title $challengeTitle not found or does not have a challengeLength field.');
+          }
+        } else {
+          print('Team challenges field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team or challenge document: $e');
+    }
+
+    return null; // Default value if anything goes wrong or challenge not found
+  }
 
 
 
@@ -371,6 +426,92 @@ class _TeamScreenState extends State<TeamScreen> {
 
     return [];
   }
+
+
+  Future<Map<String, dynamic>> _getStatusAndStartDateForChallenge(String teamId, String challengeTitle) async {
+    List<String> statusList = [];
+    String? startDate;
+
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Check for the 'team_challenges' field and 'team_name' field in the team data
+        if (teamData.containsKey('team_challenges') && teamData.containsKey('team_name')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+          String teamName = teamData['team_name'];
+
+          // Find the challenge with the matching title
+          Map<String, dynamic>? selectedChallenge;
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'] is List &&
+                challenge['template_name'][0].containsKey('challengeTitle') &&
+                challenge['template_name'][0]['challengeTitle'] == challengeTitle) {
+              selectedChallenge = challenge;
+              break;
+            }
+          }
+
+          // Find the challengeDocRef and players
+          if (selectedChallenge != null && selectedChallenge.containsKey('challengeDocRef')) {
+            // Find the list of players for the current challenge
+            if (selectedChallenge.containsKey('players') &&
+                selectedChallenge['players'] is List) {
+              List<String> players = List.from(selectedChallenge['players']);
+
+              // Iterate through each player
+              for (var player in players) {
+                // Find the user document based on the player's name
+                var userDocument = await FirebaseFirestore.instance
+                    .collection('users')
+                    .where('name', isEqualTo: player)
+                    .get();
+
+                if (userDocument.docs.isNotEmpty) {
+                  var userDocData = userDocument.docs.first.data();
+
+                  // Find the user's status in the current challenge
+                  if (userDocData.containsKey('team_challenges') &&
+                      userDocData['team_challenges'] is List) {
+                    List<dynamic> userChallenges = List.from(userDocData['team_challenges']);
+
+                    for (var userChallenge in userChallenges) {
+                      if (userChallenge is Map &&
+                          userChallenge.containsKey('challengeDocRef') &&
+                          userChallenge['challengeDocRef'] == selectedChallenge['challengeDocRef']) {
+                        // Match found, add the status to the list
+                        if (userChallenge.containsKey('status')) {
+                          statusList.add('${player}: ${userChallenge['status']}');
+                        }
+
+                        break; // Break out of the loop after finding the matching challenge
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Get the challenge start date
+        startDate = await _getChallengeStartDate(teamId, challengeTitle);
+
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+    }
+
+    return {'statusList': statusList, 'startDate': startDate};
+  }
+
 
 
 
@@ -833,7 +974,13 @@ class _TeamScreenState extends State<TeamScreen> {
       'selectedDays': []
     }; // Returning empty values if no event found or error occurred
   }
+  bool isStartDateAhead(String startDate, String currentDate) {
+    DateFormat format = DateFormat("MMMM dd yyyy");
+    DateTime start = format.parse(startDate);
+    DateTime current = format.parse(currentDate);
 
+    return start.isBefore(current) || start.isAtSameMomentAs(current);
+  }
 
 
   Future<Map<String, int>> _displayUserPoints(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
@@ -2036,8 +2183,31 @@ class _TeamScreenState extends State<TeamScreen> {
                                                         title: Column(
                                                           crossAxisAlignment: CrossAxisAlignment.start,
                                                           children: [
-                                                            // Text(_getChallengeLength(teamId, challengeTitle) as String),
+                                                            FutureBuilder<String?>(
+                                                              future: _getChallengeLength(teamId, challengeTitle),
+                                                              builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                                  return CircularProgressIndicator(); // Or any loading indicator
+                                                                } else if (snapshot.hasError) {
+                                                                  return Text('Error: ${snapshot.error}');
+                                                                } else {
+                                                                  // Handle the case where data is successfully fetched
+                                                                  if (snapshot.data != null) {
+                                                                    // Use snapshot.data as String
+                                                                    return Text(
+                                                                      '${snapshot.data} Day Challenge',
+                                                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                                                    );
+                                                                  } else {
+                                                                    return Text('');
+                                                                  }
+                                                                }
+                                                              },
+                                                            ),
+
+
                                                             Text('$challengeTitle'),
+
 
                                                             Row(
                                                               children: [
@@ -2047,7 +2217,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                     if (snapshot.connectionState == ConnectionState.waiting) {
                                                                       return CircularProgressIndicator(); // Show a loading indicator while fetching data
                                                                     } else if (snapshot.hasError) {
-                                                                      return Text('Error loading data'); // Show an error message if there's an error
+                                                                      return const Text('Error loading data'); // Show an error message if there's an error
                                                                     } else {
                                                                       return snapshot.data!; // Display the fetched data
                                                                     }
@@ -2060,21 +2230,32 @@ class _TeamScreenState extends State<TeamScreen> {
                                                         ),
 
                                                         children: [
-                                                          FutureBuilder<List<String>>(
-                                                            future: _getStatusForChallenge(teamId, challengeTitle),
-                                                            builder: (context, statusListSnapshot) {
-                                                              if (statusListSnapshot.connectionState == ConnectionState.done) {
-                                                                if (statusListSnapshot.hasError || statusListSnapshot.data == null) {
+                                                          FutureBuilder<Map<String, dynamic>>(
+                                                            future: _getStatusAndStartDateForChallenge(teamId, challengeTitle),
+                                                            builder: (context, snapshot) {
+                                                              if (snapshot.connectionState == ConnectionState.done) {
+                                                                if (snapshot.hasError || snapshot.data == null) {
                                                                   return Text('Error loading status for $challengeTitle');
                                                                 } else {
+                                                                  List<String> statusList = snapshot.data!['statusList'];
+                                                                  String? startDate = snapshot.data!['startDate'];
+
                                                                   // Check if there is any status containing 'pending'
-                                                                  bool containsPending = statusListSnapshot.data!.any((userStatus) => userStatus.contains('pending'));
+                                                                  bool containsPending = statusList.any((userStatus) => userStatus.contains('pending'));
+
+                                                                  // Now you have both statusList and startDate available
+                                                                  print("Start date: $startDate");
+                                                                  String currentDate = _formatCurrentDate();
+                                                                  print(currentDate);
+                                                                  var result = isStartDateAhead(startDate!, _formatCurrentDate());
+                                                                  print("Start date: $startDate");
 
                                                                   // Display list of users only if there is no 'pending' status
-                                                                  if (!containsPending) {
+                                                                  if (!containsPending && result == true) {
+
                                                                     return Column(
                                                                       crossAxisAlignment: CrossAxisAlignment.start,
-                                                                      children: statusListSnapshot.data!.map((userStatus) {
+                                                                      children: statusList.map((userStatus) {
                                                                         // Split the userStatus into user and status
                                                                         List<String> parts = userStatus.split(':');
                                                                         String user = parts[0].trim();
@@ -2340,8 +2521,40 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                       }).toList(),
                                                                     );
                                                                   } else {
-                                                                    // Return a message indicating that there are 'pending' statuses
-                                                                    return Text('This challenge contains pending statuses.');
+                                                                    if (containsPending)
+                                                                      return const Text(
+                                                                          'This challenge contains pending statuses.');
+                                                                    if (result == false)
+                                                                      return const Text(
+                                                                          "This challege has not started yet");
+                                                                    // return FutureBuilder<String?>(
+                                                                    //   future: _getChallengeLength(teamId, challengeTitle),
+                                                                    //   builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                                                                    //     if (snapshot.connectionState == ConnectionState.waiting) {
+                                                                    //       return CircularProgressIndicator(); // Or any loading indicator
+                                                                    //     } else if (snapshot.hasError) {
+                                                                    //       return Text('Error: ${snapshot.error}');
+                                                                    //     } else {
+                                                                    //       // Handle the case where data is successfully fetched
+                                                                    //       if (snapshot.data != null) {
+                                                                    //         // Use snapshot.data as String
+                                                                    //         return Text(
+                                                                    //           '${snapshot.data} Day Challenge',
+                                                                    //           style: TextStyle(fontWeight: FontWeight.bold),
+                                                                    //         );
+                                                                    //       } else {
+                                                                    //         return Text('');
+                                                                    //       }
+                                                                    //     }
+                                                                    //   },
+                                                                    // );
+                                                                    // if (date == false)
+                                                                    //   return Text("Challenge start date is March 20, 2024");
+                                                                    // // Return a message indicating that there are 'pending' statuses
+                                                                    // else {
+                                                                      return const Text(
+                                                                          'This challenge contains pending statuses.');
+
                                                                   }
                                                                 }
                                                               } else {
