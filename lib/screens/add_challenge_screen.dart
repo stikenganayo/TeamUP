@@ -786,6 +786,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
   }
 
   void postChallenge(BuildContext context) async {
+
+
+
     try {
       User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -804,6 +807,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
           Map<String, dynamic> userData =
           userSnapshot.data() as Map<String, dynamic>;
+
+          String formattedStartDate = DateFormat('MMMM dd yyyy').format(startDate);
+
 
           Map<String, dynamic> challengeData = {
             'CurrentUserEmail': currentUser.email,
@@ -835,7 +841,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
           'socialCategory' : socialCategory,
           'spiritualCategory' : spiritualCategory,
           'challengeLength' : selectedValue,
-            'startDate': startDate,
+            'startDate': formattedStartDate,
           };
 
           DocumentReference challengeDocRef =
@@ -883,7 +889,7 @@ class _CreateChallengeState extends State<CreateChallenge> {
                     'players': players,
                     'userTyping' : enableUserTyping,
                     'challengeLength' : selectedValue,
-                    'startDate': startDate,
+                    'startDate': formattedStartDate,
                     // Add the list of players to the team challenge
                   }
                 ]),
@@ -920,7 +926,8 @@ class _CreateChallengeState extends State<CreateChallenge> {
                             .toList(),
                         'players': players,
                         'userTyping' : enableUserTyping,
-                        'challengeLength' : selectedValue
+                        'challengeLength' : selectedValue,
+                        'startDate': formattedStartDate,
                       }
                     ])
                   });
