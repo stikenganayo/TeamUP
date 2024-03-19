@@ -26,7 +26,6 @@ class _SelectionScreenState extends State<SelectionScreen> {
     if (currentUser != null) {
       print('Current User Email: ${currentUser!.email}');
 
-
       try {
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
             .collection('users')
@@ -113,7 +112,6 @@ class _SelectionScreenState extends State<SelectionScreen> {
     return null;
   }
 
-
   void _searchUsers(String query) {
     setState(() {
       filteredFriendsList = friendsList
@@ -141,13 +139,12 @@ class _SelectionScreenState extends State<SelectionScreen> {
     }
   }
 
-
-
   void _removeUser(String friendName) {
     setState(() {
       selectedFriends.remove(friendName);
     });
   }
+
   Future<List<String>> _getTeamIds() async {
     try {
       // Fetch the user document based on the current user's email
@@ -238,106 +235,107 @@ class _SelectionScreenState extends State<SelectionScreen> {
         ),
       ),
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Teams Section Title
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Teams:',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          FutureBuilder<List<String>>(
-            future: _getTeamIds(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                if (snapshot.hasError || snapshot.data == null) {
-                  return ListTile(
-                    title: Text('Error loading team IDs'),
-                  );
-                } else {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: snapshot.data!.map((teamId) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.all(Radius.circular(8)),
-                            ),
-                            child: ListTile(
-                              title: FutureBuilder<String?>(
-                                future: _getTeamName(teamId),
-                                builder: (context, teamNameSnapshot) {
-                                  if (teamNameSnapshot.connectionState ==
-                                      ConnectionState.done) {
-                                    if (teamNameSnapshot.hasError ||
-                                        teamNameSnapshot.data == null) {
-                                      return ListTile(
-                                        title: Text('Error loading team name for $teamId'),
-                                      );
-                                    } else {
-                                      return Text('${teamNameSnapshot.data}');
-                                    }
-                                  } else {
-                                    return CircularProgressIndicator();
-                                  }
-                                },
-                              ),
-                              onTap: () {
-                                _toggleTeam(teamId);
-                              },
-                              trailing: Checkbox(
-                                value: selectedTeams.contains(teamNameMap[teamId]),
-                                onChanged: (value) {
-                                  _toggleTeam(teamId);
-                                },
-                                activeColor: Colors.blue,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      );
-                    }).toList(),
-                  );
-                }
-              } else {
-                return ListTile(
-                  title: CircularProgressIndicator(),
-                );
-              }
-            },
-          ),
-
-          // Friends Section
-          const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text(
-              'Friends:',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (query) {
-                _searchUsers(query);
-                _searchTeams(query);
-              },
-              decoration: const InputDecoration(
-                labelText: 'Search for friends or teams',
-                suffixIcon: Icon(Icons.search),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Teams Section Title
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'Teams:',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
-          ),
-          Expanded(
-            child: ListView(
+            FutureBuilder<List<String>>(
+              future: _getTeamIds(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  if (snapshot.hasError || snapshot.data == null) {
+                    return ListTile(
+                      title: Text('Error loading team IDs'),
+                    );
+                  } else {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: snapshot.data!.map((teamId) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.all(Radius.circular(8)),
+                              ),
+                              child: ListTile(
+                                title: FutureBuilder<String?>(
+                                  future: _getTeamName(teamId),
+                                  builder: (context, teamNameSnapshot) {
+                                    if (teamNameSnapshot.connectionState ==
+                                        ConnectionState.done) {
+                                      if (teamNameSnapshot.hasError ||
+                                          teamNameSnapshot.data == null) {
+                                        return ListTile(
+                                          title: Text('Error loading team name for $teamId'),
+                                        );
+                                      } else {
+                                        return Text('${teamNameSnapshot.data}');
+                                      }
+                                    } else {
+                                      return CircularProgressIndicator();
+                                    }
+                                  },
+                                ),
+                                onTap: () {
+                                  _toggleTeam(teamId);
+                                },
+                                trailing: Checkbox(
+                                  value: selectedTeams.contains(teamNameMap[teamId]),
+                                  onChanged: (value) {
+                                    _toggleTeam(teamId);
+                                  },
+                                  activeColor: Colors.blue,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        );
+                      }).toList(),
+                    );
+                  }
+                } else {
+                  return ListTile(
+                    title: CircularProgressIndicator(),
+                  );
+                }
+              },
+            ),
+
+            // Friends Section
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'Friends:',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (query) {
+                  _searchUsers(query);
+                  _searchTeams(query);
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Search for friends or teams',
+                  suffixIcon: Icon(Icons.search),
+                ),
+              ),
+            ),
+            ListView(
+              shrinkWrap: true,
               children: filteredFriendsList.map((friendEmail) {
                 return FutureBuilder(
                   future: _getFriendName(friendEmail),
@@ -372,49 +370,49 @@ class _SelectionScreenState extends State<SelectionScreen> {
                 );
               }).toList(),
             ),
-          ),
-          SizedBox(height: 20),
-          Center(
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, {'friends': selectedFriends, 'teams': selectedTeams});
-              },
-              child: Text('Post Request'),
-              style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+            SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, {'friends': selectedFriends, 'teams': selectedTeams});
+                },
+                child: Text('Post Request'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                ),
               ),
             ),
-          ),
 
-          SizedBox(height: 20),
+            SizedBox(height: 20),
 
-          Text('Selected Friends and Teams:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Wrap(
-            alignment: WrapAlignment.center,
-            children: [
-              ...selectedFriends.map((friendName) {
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Chip(
-                    label: Text(friendName),
-                    onDeleted: () => _removeUser(friendName),
-                    backgroundColor: Colors.grey,
-                  ),
-                );
-              }),
-              ...selectedTeams.map((teamName) {
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Chip(
-                    label: Text(teamName),
-                    onDeleted: () => _removeTeam(teamName),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              }),
-            ],
-          ),
-        ],
+            Text('Selected Friends and Teams:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Wrap(
+              alignment: WrapAlignment.center,
+              children: [
+                ...selectedFriends.map((friendName) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Chip(
+                      label: Text(friendName),
+                      onDeleted: () => _removeUser(friendName),
+                      backgroundColor: Colors.grey,
+                    ),
+                  );
+                }),
+                ...selectedTeams.map((teamName) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Chip(
+                      label: Text(teamName),
+                      onDeleted: () => _removeTeam(teamName),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

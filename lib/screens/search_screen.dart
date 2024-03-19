@@ -20,7 +20,7 @@ class SearchScreen extends StatelessWidget {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Add Friends'),
-              Tab(text: 'Create Team'),
+              Tab(text: 'Create Team/Community'),
             ],
           ),
         ),
@@ -433,7 +433,7 @@ class _SearchContentState extends State<SearchContent> {
                   onPressed: () => _addUser(user),
                   child: Text(isPending ? 'Pending' : 'Add'),
                   style: ElevatedButton.styleFrom(
-                    primary: isPending ? Colors.grey : null,
+                    backgroundColor: isPending ? Colors.grey : null,
                   ),
                 ),
               );

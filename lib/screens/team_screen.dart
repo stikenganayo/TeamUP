@@ -381,7 +381,7 @@ class _TeamScreenState extends State<TeamScreen> {
                       }
                     }
                   }
-                } 
+                }
               }
             }
           }
@@ -558,6 +558,224 @@ class _TeamScreenState extends State<TeamScreen> {
     }
   }
 
+  Future<void> _incrementAttendField(String teamId, String currentUserLoggedIn) async {
+    try {
+      // Get the current date in the "month day year" format
+      String currentDate = DateFormat('MMMM dd yyyy').format(DateTime.now());
+
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        List<dynamic> userEvents = teamSnapshot.get('user_events');
+
+        // Iterate through each event
+        for (var event in userEvents) {
+          if (event is Map<String, dynamic>) {
+            // Initialize attending count for the event
+            int attendingCount = 0;
+
+            // Initialize the statsCounts map to store counts for each stats field
+            Map<String, int> statsCounts = {};
+
+            // Create the new field currentUserLoggedIn_stats and store the current date as an array
+            String currentUserStatsField = '${currentUserLoggedIn}_stats';
+            List<String>? currentUserStats = event[currentUserStatsField]?.cast<String>();
+
+            // Update the date field in _stats if currentDate is not already present
+            if (currentUserStats == null || !currentUserStats.contains(currentDate)) {
+              if (currentUserStats == null) {
+                event[currentUserStatsField] = [currentDate];
+              } else {
+                currentUserStats.add(currentDate);
+                event[currentUserStatsField] = currentUserStats;
+              }
+            }
+
+            // Iterate through each field ending with _stats
+            event.keys.where((key) => key.endsWith('_stats')).forEach((statKey) {
+              List<String> stats = (event[statKey] as List<dynamic>).cast<String>();
+
+              // Check if the current date matches any date within the field's array
+              if (stats.contains(currentDate)) {
+                // Update attending count by the number of users with the same date
+                attendingCount += 1;
+              } else {
+                // Clear attending count since there are no users for the current date
+                attendingCount = 0;
+              }
+            });
+
+            // Update the attending count for this event in user_events
+            event['attending'] = attendingCount;
+          }
+        }
+
+        // Update the Firestore document with the modified user_events
+        await teamSnapshot.reference.update({
+          'user_events': userEvents,
+        });
+
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading or updating team document: $e');
+    }
+  }
+
+
+  Future<void> _setAttendField(String teamId) async {
+    try {
+      // Get the current date in the "month day year" format
+      String currentDate = DateFormat('MMMM dd yyyy').format(DateTime.now());
+
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        List<dynamic> userEvents = teamSnapshot.get('user_events');
+
+        // Iterate through each event
+        for (var event in userEvents) {
+          if (event is Map<String, dynamic>) {
+            // Initialize attending count for the event outside of the loop
+            int attendingCount = 0;
+
+            // Iterate through each field ending with _stats
+            event.keys.where((key) => key.endsWith('_stats')).forEach((statKey) {
+              List<String> stats = (event[statKey] as List<dynamic>).cast<String>();
+
+              // Check if the current date matches any date within the field's array
+              if (stats.contains(currentDate)) {
+                // Update attending count by the number of users with the same date
+                attendingCount += stats.where((date) => date == currentDate).length;
+              }
+            });
+
+            // Update the attending count for this event in user_events
+            event['attending'] = attendingCount;
+          }
+        }
+
+        // Update the Firestore document with the modified user_events
+        await teamSnapshot.reference.update({
+          'user_events': userEvents,
+        });
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading or updating team document: $e');
+    }
+  }
+
+
+
+
+
+  Future<Map<String, dynamic>> _getEvents(String teamId) async {
+    await _setAttendField(teamId);
+
+    try {
+      // Get the current day and formatted date
+      String currentDay = DateFormat('EEE').format(DateTime.now());
+      String currentFormattedDate = DateFormat('MMMM dd yyyy').format(DateTime.now());
+      print('Current day: $currentDay');
+      print('Current formatted date: $currentFormattedDate');
+
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Check for the 'user_events' field in the team data
+        if (teamData.containsKey('user_events')) {
+          List<dynamic> userEvents = teamData['user_events'];
+          if (userEvents.isNotEmpty) {
+            // Find the first event that matches the current day or startDate
+            Map<String, dynamic>? firstMatchingEvent;
+            for (var event in userEvents) {
+
+              List<String> selectedDays = List<String>.from(event['selectedDays']);
+              print('Selected days for event: $selectedDays');
+              if (selectedDays.contains(currentDay)) {
+                // Extract event data
+                firstMatchingEvent = {
+                  'startTime': event['startTime'],
+                  'endTime': event['endTime'],
+                  'eventTitle': event['eventTitle'],
+                  'selectedDays': event['selectedDays'],
+                  'attending': event['attending'],
+                  'eventCreator': event['eventCreator'],
+                };
+                // Concatenate dash after start time
+                firstMatchingEvent['startTime'] = '${firstMatchingEvent['startTime']}  -';
+                print('First matching event: $firstMatchingEvent');
+                break; // Stop searching once a matching event is found
+              } else {
+                // Check if it's a one-time event with startDate matching the current date
+                String startDate = DateFormat('MMMM dd yyyy').format((event['startDate'] as Timestamp).toDate());
+                if (startDate == currentFormattedDate) {
+                  // Extract event data
+                  firstMatchingEvent = {
+                    'startTime': event['startTime'],
+                    'endTime': event['endTime'],
+                    'eventTitle': event['eventTitle'],
+                    'selectedDays': event['selectedDays'],
+                    'attending': event['attending'],
+                    'eventCreator': event['eventCreator'],
+                  };
+                  // Concatenate dash after start time
+                  firstMatchingEvent['startTime'] = '${firstMatchingEvent['startTime']}  -';
+                  print('First matching event: $firstMatchingEvent');
+                  break; // Stop searching once a matching event is found
+                }
+              }
+            }
+            // Return the matching event data, or empty values if no match found
+            return firstMatchingEvent ?? {
+              'startTime': '',
+              'endTime': '',
+              'eventTitle': '',
+              'attending': '',
+              'eventCreator': '',
+              'selectedDays': []
+            };
+          } else {
+            print('No user events found in team document');
+          }
+        } else {
+          print('User events field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team document: $e');
+    }
+
+    return {
+      'startTime': '',
+      'endTime': '',
+      'eventTitle': '',
+      'attending': '',
+      'eventCreator': '',
+      'selectedDays': []
+    }; // Returning empty values if no event found or error occurred
+  }
+
+
 
   Future<Map<String, int>> _displayUserPoints(String userName, String userLoggedIn, String currentChallenge, String teamId) async {
     try {
@@ -580,6 +798,14 @@ class _TeamScreenState extends State<TeamScreen> {
       int countOfArraysForDifferentDate = 0;
       int userTyping = 0;
       int challengeType = 0;
+      int emotionalCategory = 0;
+      int environmentalCategory = 0;
+      int financialCategory = 0;
+      int intellectualCategory = 0;
+      int occupationalCategory = 0;
+      int physicalCategory = 0;
+      int socialCategory = 0;
+      int spiritualCategory = 0;
 
       // Iterate through the documents and display confirmation message
       challengesSnapshot.docs.forEach((challengeDoc) {
@@ -629,18 +855,78 @@ class _TeamScreenState extends State<TeamScreen> {
           loopDate = loopDate.subtract(Duration(days: 1));
         }
 
+
+        userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
         // Debugging statements
         print('Challenge data: $challengeData');
         print('User Typing field: ${challengeData['userTyping']}');
         print('Challenge Type: ${challengeData['challengeType']}');
+        print('emotionalCategory: ${challengeData['emotionalCategory']}');
 
 // Assuming userTyping is a boolean field
-        userTyping = challengeData['userTyping'] == 'true' ? 1 : 0;
+
+
+
+        if (challengeData['emotionalCategory'] == true) {
+          emotionalCategory = 1;
+        } else {
+          emotionalCategory = 0;
+        }
+        if (challengeData['environmentalCategory'] == true) {
+          environmentalCategory = 1;
+        } else {
+          environmentalCategory = 0;
+        }
+        if (challengeData['financialCategory'] == true) {
+          financialCategory = 1;
+        } else {
+          financialCategory = 0;
+        }
+        if (challengeData['intellectualCategory'] == true) {
+          intellectualCategory = 1;
+        } else {
+          intellectualCategory = 0;
+        }
+        if (challengeData['occupationalCategory'] == true) {
+          occupationalCategory = 1;
+        } else {
+          occupationalCategory = 0;
+        }
+        if (challengeData['physicalCategory'] == true) {
+          physicalCategory = 1;
+        } else {
+          physicalCategory = 0;
+        }
+        if (challengeData['socialCategory'] == true) {
+          socialCategory = 1;
+        } else {
+          socialCategory = 0;
+        }
+        if (challengeData['spiritualCategory'] == true) {
+          spiritualCategory = 1;
+        } else {
+          spiritualCategory = 0;
+        }
+
+
+
+        // environmentalCategory = challengeData['environmentalCategory'] == 'true' ? 1 : 0;
+        // financialCategory = challengeData['financialCategory'] == 'true' ? 1 : 0;
+        // intellectualCategory = challengeData['intellectualCategory'] == 'true' ? 1 : 0;
+        // occupationalCategory = challengeData['occupationalCategory'] == 'true' ? 1 : 0;
+        // physicalCategory = challengeData['physicalCategory'] == 'true' ? 1 : 0;
+        // socialCategory = challengeData['socialCategory'] == 'true' ? 1 : 0;
+        // spiritualCategory = challengeData['spiritualCategory'] == 'true' ? 1 : 0;
+        print('emotionalCategory Status: $emotionalCategory');
+
+
+
         print('User Typing for $userName: $userTyping');
 
         challengeType = challengeData['challengeType'] == 'Challenge yourself - get your teammates to verify' ? 1 : (challengeData['challengeType'] == 'Challenge your teammates - you verify' ? 2 : 0);
 
         print(challengeType);
+
 
 
       });
@@ -658,13 +944,21 @@ class _TeamScreenState extends State<TeamScreen> {
         'adjustedUserCount': adjustedUserCount,
         'userTyping': userTyping,
         'challengeType': challengeType,
+        'emotionalCategory' : emotionalCategory,
+        'environmentalCategory' : environmentalCategory,
+        'financialCategory' : financialCategory,
+        'intellectualCategory' : intellectualCategory,
+        'occupationalCategory' : occupationalCategory,
+        'physicalCategory' : physicalCategory,
+        'socialCategory' : socialCategory,
+        'spiritualCategory' : spiritualCategory,
       };
 
       return result;
     } catch (e) {
       // Handle exceptions here, if needed
       print('Error in _displayUserPoints: $e');
-      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0, 'challengeType': 0}; // Return default values or handle the error accordingly
+      return {'countOfArraysForCurrentDate': 0, 'countOfArraysForDifferentDate': 0, 'countOfArraysForConsistencyDates': 0, 'adjustedUserCount': 0, 'userTyping': 0, 'challengeType': 0, 'emotionalCategory': 0, 'environmentalCategory': 0, 'financialCategory': 0, 'intellectualCategory': 0, 'occupationalCategory': 0, 'physicalCategory': 0, 'socialCategory': 0, 'spiritualCategory': 0}; // Return default values or handle the error accordingly
     }
   }
 
@@ -725,6 +1019,15 @@ class _TeamScreenState extends State<TeamScreen> {
 
 // List to store input fields
     List<String> allInputFields = [];
+
+    int emotionalCategory = 0;
+    int environmentalCategory = 0;
+    int financialCategory = 0;
+    int intellectualCategory = 0;
+    int occupationalCategory = 0;
+    int physicalCategory = 0;
+    int socialCategory = 0;
+    int spiritualCategory = 0;
 
 // Iterate through each document
     for (QueryDocumentSnapshot document in challengesSnapshot.docs) {
@@ -866,6 +1169,49 @@ class _TeamScreenState extends State<TeamScreen> {
       // Print the entire array
       print("Challenge Data List: $challengeDataList");
 
+      if (challengeData['emotionalCategory'] == true) {
+        emotionalCategory = 1;
+      } else {
+        emotionalCategory = 0;
+      }
+      if (challengeData['environmentalCategory'] == true) {
+        environmentalCategory = 1;
+      } else {
+        environmentalCategory = 0;
+      }
+      if (challengeData['financialCategory'] == true) {
+        financialCategory = 1;
+      } else {
+        financialCategory = 0;
+      }
+      if (challengeData['intellectualCategory'] == true) {
+        intellectualCategory = 1;
+      } else {
+        intellectualCategory = 0;
+      }
+      if (challengeData['occupationalCategory'] == true) {
+        occupationalCategory = 1;
+      } else {
+        occupationalCategory = 0;
+      }
+      if (challengeData['physicalCategory'] == true) {
+        physicalCategory = 1;
+      } else {
+        physicalCategory = 0;
+      }
+      if (challengeData['socialCategory'] == true) {
+        socialCategory = 1;
+      } else {
+        socialCategory = 0;
+      }
+      if (challengeData['spiritualCategory'] == true) {
+        spiritualCategory = 1;
+      } else {
+        spiritualCategory = 0;
+      }
+
+
+
       // Check if the array has more than one element
       if (challengeDataList.length > 1) {
         hasMultipleChallenges = true;
@@ -914,7 +1260,7 @@ class _TeamScreenState extends State<TeamScreen> {
                 },
               );
             },
-            child: Text('View List'),
+            child: Text('Tasks'),
           ),
         if (allInputFields.isNotEmpty)
           ElevatedButton(
@@ -952,14 +1298,63 @@ class _TeamScreenState extends State<TeamScreen> {
                 },
               );
             },
-            child: Text('View List'),
+            child: Text('History'),
           ),
 
 
         SizedBox(width: 8), // Add some space between the button and the icons/text
         Icon(Icons.local_fire_department_sharp),
         Text(' $minUserCount'),
-        Icon(Icons.directions_run),
+        SizedBox(width: 8), // Add some space between the button and the icons/text
+        // Icon(Icons.directions_run),
+        if (emotionalCategory == 1)
+          Image.asset(
+            'assets/images/Emotional-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (environmentalCategory == 1)
+          Image.asset(
+            'assets/images/Environmental-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (financialCategory == 1)
+          Image.asset(
+            'assets/images/Financial-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (intellectualCategory == 1)
+          Image.asset(
+            'assets/images/Intellectual-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (occupationalCategory == 1)
+          Image.asset(
+            'assets/images/Occupational-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (physicalCategory == 1)
+          Image.asset(
+            'assets/images/Physical-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (socialCategory == 1)
+          Image.asset(
+            'assets/images/Social-mini.png',
+            width: 20,
+            height: 20,
+          ),
+        if (spiritualCategory == 1)
+          Image.asset(
+            'assets/images/Spiritual-mini.png',
+            width: 20,
+            height: 20,
+          ),
         Text(' $totalUserPoints'),
       ],
     );
@@ -1153,6 +1548,88 @@ class _TeamScreenState extends State<TeamScreen> {
       );
     }
   }
+  Future<void> _showStatsPopup(BuildContext context, String teamId) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> eventData =
+        teamSnapshot.data() as Map<String, dynamic>;
+
+        // Check if user_events field exists
+        if (eventData.containsKey('user_events')) {
+          List<dynamic> userEvents = eventData['user_events'];
+
+          // Get formatted current date
+          String formattedCurrentDate = _formatCurrentDate();
+
+          // Show a dialog with matching stats
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Teammates Going'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: userEvents
+                        .map((event) => _getMatchingStats(event, formattedCurrentDate))
+                        .expand((stats) => stats)
+                        .toList(),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Close'),
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          print('user_events field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error showing stats popup: $e');
+    }
+  }
+
+  List<Widget> _getMatchingStats(Map<String, dynamic> event, String currentDate) {
+    List<Widget> matchingStats = [];
+
+    if (event is Map<String, dynamic>) {
+      event.keys.where((key) => key.endsWith('_stats')).forEach((statKey) {
+        List<String> stats = (event[statKey] as List<dynamic>).cast<String>();
+
+        stats.forEach((dateString) {
+          // Compare date with current date
+          if (dateString == currentDate) {
+            matchingStats.add(Text(statKey.substring(0, statKey.length - 6)));
+          }
+        });
+      });
+    }
+
+    return matchingStats;
+  }
+
+  String _formatCurrentDate() {
+    // Get current date and format it to match the Firestore document date format
+    DateTime currentDate = DateTime.now();
+    String formattedDate = DateFormat('MMMM dd yyyy').format(currentDate);
+    return formattedDate;
+  }
+
 
 
   @override
@@ -1180,78 +1657,84 @@ class _TeamScreenState extends State<TeamScreen> {
                   Style.sectionTitle('Team Stories'),
                   const Stories(), // Add the Stories widget here
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
                     children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          // Show a loading indicator while creating a team
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (BuildContext context) {
+                              return Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            },
+                          );
+
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SearchScreen(initialTabIndex: 1),
+                            ),
+                          );
+
+                          // Introduce a delay of 1 second before reloading the team list
+                          // await Future.delayed(Duration(seconds: 4));
+
+                          // After creating a team and the delay, reload the team list
+                          _loadCurrentUser();
+
+                          // Close the loading indicator dialog
+                          Navigator.pop(context);
+                        },
+                        child: Text('Create Team OR Community'),
+                      ),
+                      SizedBox(height: 8), // Add spacing between the buttons row and the "Create Team OR Community" button
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center, // Align buttons in the center horizontally
                         children: [
-                          const SizedBox(width: 16),
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Show a loading indicator while creating a team
-                              showDialog(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (BuildContext context) {
-                                  return Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                },
-                              );
-
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                  const SearchScreen(initialTabIndex: 1),
-                                ),
-                              );
-
-                              // Introduce a delay of 1 second before reloading the team list
-                              await Future.delayed(Duration(seconds: 4));
-
-                              // After creating a team and the delay, reload the team list
-                              _loadCurrentUser();
-
-                              // Close the loading indicator dialog
-                              Navigator.pop(context);
-                            },
-                            child: Text('Create Team'),
+                          Flexible(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CreateEvent(),
+                                  ),
+                                );
+                                // Handle the "Create an event/activity" button tap
+                                // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
+                              },
+                              child: Text('Create Event'),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateEvent(),
-                                ),
-                              );
-                              // Handle the "Create an event/activity" button tap
-                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventActivityScreen()));
-                            },
-                            child: Text('Create Event'),
+                          SizedBox(width: 8), // Add spacing between buttons
+                          Flexible(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CreateChallenge(),
+                                  ),
+                                );
+                                // Handle the "Create a team" button tap
+                                // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
+                              },
+                              child: Text('Create Challenge'),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CreateChallenge(),
-                                ),
-                              );
-                              // Handle the "Create a team" button tap
-                              // e.g., Navigator.push(context, MaterialPageRoute(builder: (context) => CreateTeamScreen()));
-                            },
-                            child: Text('Create Challenge'),
-                          ),
-                          const SizedBox(width: 8),
                         ],
                       ),
                     ],
                   ),
+
+
                   const SizedBox(height: 30),
+              ExpansionTile(
+                title: Style.sectionTitle('Your Teams'),
+                children: [
                   Style.sectionTitle('Teams'),
                   const SizedBox(height: 10),
                   // Display the current list of friends IDs
@@ -1334,6 +1817,111 @@ class _TeamScreenState extends State<TeamScreen> {
                                           }
                                         },
                                       ),
+                                      FutureBuilder<Map<String, dynamic>>(
+                                        future: _getEvents(teamId),
+                                        builder: (context, eventSnapshot) {
+                                          if (eventSnapshot.connectionState == ConnectionState.done) {
+                                            if (eventSnapshot.hasError || eventSnapshot.data == null || eventSnapshot.data!.isEmpty) {
+                                              return Text('Unknown Event');
+                                            } else {
+                                              String eventTitle = eventSnapshot.data?['eventTitle'] ?? 'Unknown Title';
+                                              // Check if the event data is not empty before rendering
+                                              if (eventSnapshot.data!.isNotEmpty) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(left: 0),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          if (eventSnapshot.data?['eventCreator'] != '')
+                                                          const Text(
+                                                            'Events Today',
+                                                            style: TextStyle(
+                                                              fontSize: 14,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: Colors.black87,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 0), // Adding some space between the texts
+                                                          if (eventSnapshot.data?['eventCreator'] != '')
+                                                          IconButton(
+                                                            onPressed: () async {
+                                                              await _showStatsPopup(context, teamId);
+                                                            },
+                                                            icon: Icon(Icons.info),
+                                                          ),
+                                                        ],
+                                                      ),
+
+                                                      Text(
+                                                        '$eventTitle',
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                      if (eventSnapshot.data?['startTime'] != null && eventSnapshot.data?['endTime'] != null) // Check if both startTime and endTime are present
+                                                        Row(
+                                                          children: [
+                                                            Text(
+                                                              '${eventSnapshot.data?['startTime'] ?? 'Unknown'}',
+                                                              style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.black87,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(width: 5), // Adding some space between the texts
+                                                            Text(
+                                                              '${eventSnapshot.data?['endTime'] ?? 'Unknown'}',
+                                                              style: const TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.black87,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      if (eventSnapshot.data?['attending'] != '') // Check if attending data is present
+                                                        Text(
+                                                          'Attending: ${eventSnapshot.data?['attending']}',
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            color: Colors.black87,
+                                                          ),
+                                                        ),
+                                                      if (eventSnapshot.data?['eventCreator'] != '') // Check if attending data is present
+                                                        Text(
+                                                          'host: ${eventSnapshot.data?['eventCreator']}',
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            color: Colors.black87,
+                                                          ),
+                                                        ),
+                                                      if (eventSnapshot.data?['eventCreator'] != '') // Check if attending data is present
+                                                        ElevatedButton(
+                                                          onPressed: () async {
+                                                            String currentUserLoggedIn = await _loadCurrentUserName() as String;
+                                                            _incrementAttendField(teamId, currentUserLoggedIn);
+                                                            setState(() {});
+                                                          },
+                                                          child: Text('Attend?'),
+                                                        ),
+
+                                                    ],
+                                                  ),
+                                                );
+                                              } else {
+                                                return SizedBox(); // Return an empty SizedBox if event data is empty
+                                              }
+                                            }
+                                          } else {
+                                            return CircularProgressIndicator();
+                                          }
+                                        },
+                                      ),
+
+
+
                                     ],
                                   ),
 
@@ -1460,6 +2048,16 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                     int countOfArraysForConsistencyDates = result['countOfArraysForConsistencyDates'] as int? ?? 0;
                                                                                                     int userTyping = result['userTyping'] as int? ?? 0;
                                                                                                     int challengeType = result['challengeType'] as int? ?? 0;
+                                                                                                    int emotionalCategory = result['emotionalCategory'] as int? ?? 0;
+                                                                                                    int environmentalCategory = result['environmentalCategory'] as int? ?? 0;
+                                                                                                    int financialCategory = result['financialCategory'] as int? ?? 0;
+                                                                                                    int intellectualCategory = result['intellectualCategory'] as int? ?? 0;
+                                                                                                    int occupationalCategory = result['occupationalCategory'] as int? ?? 0;
+                                                                                                    int physicalCategory = result['physicalCategory'] as int? ?? 0;
+                                                                                                    int socialCategory = result['socialCategory'] as int? ?? 0;
+                                                                                                    int spiritualCategory = result['spiritualCategory'] as int? ?? 0;
+
+
 
                                                                                                     print(countOfArraysForCurrentDate);
                                                                                                     print(adjustedUserCount);
@@ -1483,10 +2081,55 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                           ),
                                                                                                           Row(
                                                                                                             children: [
-                                                                                                              const Icon(
-                                                                                                                Icons.directions_run,
-                                                                                                                color: Colors.black26,
-                                                                                                              ),
+                                                                                                              if (emotionalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Emotional-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (environmentalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Environmental-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (financialCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Financial-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (intellectualCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Intellectual-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (occupationalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Occupational-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (physicalCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Physical-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (socialCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Social-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+                                                                                                              if (spiritualCategory == 1)
+                                                                                                                Image.asset(
+                                                                                                                  'assets/images/Spiritual-mini.png',
+                                                                                                                  width: 30,
+                                                                                                                  height: 30,
+                                                                                                                ),
+
                                                                                                               SizedBox(width: 8),
                                                                                                               Text('$countOfArraysForDifferentDate'),
                                                                                                               SizedBox(width: 16),
@@ -1642,10 +2285,496 @@ class _TeamScreenState extends State<TeamScreen> {
 
                 ],
               ),
+                  const SizedBox(height: 30),
+                  ExpansionTile(
+                    title: Style.sectionTitle('Your Communities'),
+                    children: [
+                      ExpansionTile(
+                        title: Style.sectionTitle('Communities'),
+                        children: [
+                      const SizedBox(height: 10),
+                      // Display the current list of friends IDs
+
+                      FutureBuilder<List<String>>(
+                        future: _getTeamIds(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.done) {
+                            if (snapshot.hasError || snapshot.data == null) {
+                              return ListTile(
+                                title: Text('Error loading team IDs'),
+                              );
+                            } else {
+                              // Display team IDs and users
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: snapshot.data!.map((teamId) {
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          // Add an edit icon here
+                                          GestureDetector(
+                                            onTap: () {
+                                              // Handle the edit action, e.g., navigate to edit team screen
+                                              print('Edit team tapped for team: $teamId');
+
+                                            },
+                                            child: const Icon(Icons.chat),
+                                          ),
+                                          const SizedBox(width: 8), // Add some spacing between the icon and text
+                                          FutureBuilder<String>(
+                                            future: _getTeamName(teamId),
+                                            builder: (context, teamNameSnapshot) {
+                                              if (teamNameSnapshot.connectionState == ConnectionState.done) {
+                                                if (teamNameSnapshot.hasError || teamNameSnapshot.data == null) {
+                                                  return Text('Unknown Team');
+                                                } else {
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(left: 16),
+                                                    child: FutureBuilder<String>(
+                                                      future: _getTeamName(teamId),
+                                                      builder: (context, teamNameSnapshot) {
+                                                        if (teamNameSnapshot.connectionState == ConnectionState.done) {
+                                                          if (teamNameSnapshot.hasError || teamNameSnapshot.data == null) {
+                                                            return Text('Unknown Team');
+                                                          } else {
+                                                            return Row(
+                                                              children: [
+                                                                Text(
+                                                                  '${teamNameSnapshot.data}',
+                                                                  style: const TextStyle(
+                                                                    fontSize: 25, // Adjust the font size as needed
+                                                                    fontWeight: FontWeight.bold,
+                                                                    color: Colors.black, // Adjust the text color as needed
+                                                                  ),
+                                                                ),
+                                                                SizedBox(width: 5), // Adjust the spacing between text and icon
+                                                                IconButton(
+                                                                  icon: Icon(Icons.info),
+                                                                  onPressed: () {
+                                                                    openTeamDetailsDialog(context, teamId); // Call the function to open dialog
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            );
+                                                          }
+                                                        } else {
+                                                          return CircularProgressIndicator();
+                                                        }
+                                                      },
+                                                    ),
+                                                  );
+
+
+                                                }
+                                              } else {
+                                                return CircularProgressIndicator();
+                                              }
+                                            },
+                                          ),
+                                          // FutureBuilder<String>(
+                                          //   future: _getEvents(teamId),
+                                          //   builder: (context, eventTitleSnapshot) {
+                                          //     if (eventTitleSnapshot.connectionState == ConnectionState.done) {
+                                          //       if (eventTitleSnapshot.hasError || eventTitleSnapshot.data == null) {
+                                          //         return Text('Unknown Event');
+                                          //       } else {
+                                          //         return Padding(
+                                          //           padding: const EdgeInsets.only(left: 16),
+                                          //           child: Text(
+                                          //             '${eventTitleSnapshot.data}',
+                                          //             style: const TextStyle(
+                                          //               fontSize: 25, // Adjust the font size as needed
+                                          //               fontWeight: FontWeight.bold,
+                                          //               color: Colors.black, // Adjust the text color as needed
+                                          //             ),
+                                          //           ),
+                                          //         );
+                                          //       }
+                                          //     } else {
+                                          //       return CircularProgressIndicator();
+                                          //     }
+                                          //   },
+                                          // ),
+
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(color: Colors.grey[300]!),
+                                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                                        ),
+                                        child: ExpansionTile(
+                                          title: Text('Challenges'),
+                                          children: [
+
+                                            FutureBuilder<List<String>>(
+                                              future: _getChallengeTitles(teamId),
+                                              builder: (context, challengeTitlesSnapshot) {
+                                                if (challengeTitlesSnapshot.connectionState == ConnectionState.done) {
+                                                  if (challengeTitlesSnapshot.hasError || challengeTitlesSnapshot.data == null) {
+                                                    return Text('Error loading team challenges for $teamId');
+                                                  } else {
+                                                    // Display list of challenge titles
+                                                    return Column(
+
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: challengeTitlesSnapshot.data!.map((challengeTitle) {
+
+                                                        // Add this line to print the challengeDocRef
+                                                        return Container(
+                                                          decoration: BoxDecoration(
+                                                            border: Border.all(color: Colors.grey[300]!),
+                                                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                                                          ),
+                                                          child: ExpansionTile(
+                                                            title: Row(
+                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                              children: [
+                                                                Text('$challengeTitle'),
+                                                                FutureBuilder<Widget>(
+
+                                                                  future: challengeStreaksAndPoints(challengeTitle, teamId),
+                                                                  builder: (context, snapshot) {
+                                                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                                                      return CircularProgressIndicator(); // Show a loading indicator while fetching data
+                                                                    } else if (snapshot.hasError) {
+                                                                      return Text('Error loading data'); // Show an error message if there's an error
+                                                                    } else {
+                                                                      return snapshot.data!; // Display the fetched data
+                                                                    }
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            children: [
+                                                              FutureBuilder<List<String>>(
+                                                                future: _getStatusForChallenge(teamId, challengeTitle),
+                                                                builder: (context, statusListSnapshot) {
+                                                                  if (statusListSnapshot.connectionState == ConnectionState.done) {
+                                                                    if (statusListSnapshot.hasError || statusListSnapshot.data == null) {
+                                                                      return Text('Error loading status for $challengeTitle');
+                                                                    } else {
+                                                                      // Check if there is any status containing 'pending'
+                                                                      bool containsPending = statusListSnapshot.data!.any((userStatus) => userStatus.contains('pending'));
+
+                                                                      // Display list of users only if there is no 'pending' status
+                                                                      if (!containsPending) {
+                                                                        return Column(
+                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                          children: statusListSnapshot.data!.map((userStatus) {
+                                                                            // Split the userStatus into user and status
+                                                                            List<String> parts = userStatus.split(':');
+                                                                            String user = parts[0].trim();
+                                                                            String status = parts[1].trim();
+
+                                                                            // Define the color based on status
+                                                                            Color circleColor = status == 'Accept' ? Colors.green : Colors.red;
+
+                                                                            // Define the icon based on the userStatus
+                                                                            IconData icon = userStatus.contains('host') ? Icons.person : Icons.circle;
+
+                                                                            // Button text
+                                                                            String buttonText = 'Completed';
+
+
+
+                                                                            Future<String?> userNameFuture = _loadCurrentUserName();
+
+                                                                            return FutureBuilder<String?>(
+                                                                              future: userNameFuture,
+                                                                              builder: (context, userNameSnapshot) {
+                                                                                if (userNameSnapshot.connectionState == ConnectionState.done) {
+                                                                                  if (userNameSnapshot.hasError || userNameSnapshot.data == null) {
+                                                                                    return Text('Error loading current user name');
+                                                                                  } else {
+                                                                                    // Check if the current user's name matches the displayed user's name
+                                                                                    bool isCurrentUser = user == userNameSnapshot.data!;
+
+                                                                                    return Padding(
+                                                                                      padding: const EdgeInsets.only(left: 16),
+                                                                                      child: Column(
+                                                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                        children: [
+                                                                                          Row(
+                                                                                            children: [
+                                                                                              // Circle or person icon
+                                                                                              Icon(icon, color: circleColor, size: 12),
+                                                                                              const SizedBox(width: 8), // Add spacing between the icon and text
+                                                                                              Expanded(
+                                                                                                child: Column(
+                                                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                                  children: [
+                                                                                                    Text('$user: $status'),
+
+                                                                                                    FutureBuilder<Map<String, dynamic>>(
+                                                                                                      future: _displayUserPoints(user, userNameSnapshot.data!, challengeTitle, teamId),
+                                                                                                      builder: (context, displayTextSnapshot) {
+                                                                                                        if (displayTextSnapshot.connectionState == ConnectionState.done) {
+                                                                                                          Map<String, dynamic>? result = displayTextSnapshot.data;
+
+                                                                                                          // Check if the result is not null before accessing its values
+                                                                                                          if (result != null) {
+                                                                                                            int countOfArraysForCurrentDate = result['countOfArraysForCurrentDate'] as int? ?? 0;
+                                                                                                            int adjustedUserCount = result['adjustedUserCount'] as int? ?? 0;
+                                                                                                            int countOfArraysForDifferentDate = result['countOfArraysForDifferentDate'] as int? ?? 0;
+                                                                                                            int countOfArraysForConsistencyDates = result['countOfArraysForConsistencyDates'] as int? ?? 0;
+                                                                                                            int userTyping = result['userTyping'] as int? ?? 0;
+                                                                                                            int challengeType = result['challengeType'] as int? ?? 0;
+                                                                                                            int emotionalCategory = result['emotionalCategory'] as int? ?? 0;
+                                                                                                            int environmentalCategory = result['environmentalCategory'] as int? ?? 0;
+                                                                                                            int financialCategory = result['financialCategory'] as int? ?? 0;
+                                                                                                            int intellectualCategory = result['intellectualCategory'] as int? ?? 0;
+                                                                                                            int occupationalCategory = result['occupationalCategory'] as int? ?? 0;
+                                                                                                            int physicalCategory = result['physicalCategory'] as int? ?? 0;
+                                                                                                            int socialCategory = result['socialCategory'] as int? ?? 0;
+                                                                                                            int spiritualCategory = result['spiritualCategory'] as int? ?? 0;
+
+
+
+                                                                                                            print(countOfArraysForCurrentDate);
+                                                                                                            print(adjustedUserCount);
+                                                                                                            print("Status please: $userTyping");
+
+                                                                                                            // Add a condition to not display the Column when challengeType is 1
+                                                                                                            // Add a condition to not display the Column when challengeType is 1 and user is the same as userNameSnapshot.data!
+                                                                                                            if (!(challengeType == 1 && user != userNameSnapshot.data! || challengeType == 2 && user == userNameSnapshot.data!)){
+                                                                                                              print(countOfArraysForCurrentDate);
+                                                                                                              print(adjustedUserCount);
+                                                                                                              print("Status please: $userTyping");
+
+                                                                                                              // Now you can use these values as needed
+
+                                                                                                              return Column(
+                                                                                                                children: [
+                                                                                                                  Row(
+                                                                                                                    children: [
+                                                                                                                      Text('$countOfArraysForCurrentDate/$adjustedUserCount teammates confirmed completion'),
+                                                                                                                    ],
+                                                                                                                  ),
+                                                                                                                  Row(
+                                                                                                                    children: [
+                                                                                                                      if (emotionalCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Emotional-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (environmentalCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Environmental-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (financialCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Financial-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (intellectualCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Intellectual-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (occupationalCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Occupational-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (physicalCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Physical-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (socialCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Social-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+                                                                                                                      if (spiritualCategory == 1)
+                                                                                                                        Image.asset(
+                                                                                                                          'assets/images/Spiritual-mini.png',
+                                                                                                                          width: 30,
+                                                                                                                          height: 30,
+                                                                                                                        ),
+
+                                                                                                                      SizedBox(width: 8),
+                                                                                                                      Text('$countOfArraysForDifferentDate'),
+                                                                                                                      SizedBox(width: 16),
+                                                                                                                      const Icon(
+                                                                                                                        Icons.local_fire_department_sharp,
+                                                                                                                        color: Colors.yellow,
+                                                                                                                      ),
+                                                                                                                      SizedBox(width: 8),
+                                                                                                                      Text('$countOfArraysForConsistencyDates'),
+                                                                                                                    ],
+                                                                                                                  ),
+                                                                                                                  if (userTyping == 1)
+                                                                                                                    ElevatedButton(
+                                                                                                                      onPressed: () {
+                                                                                                                        // Handle button press here
+                                                                                                                        // For example, mark the user as completed
+                                                                                                                      },
+                                                                                                                      child: const Text("Hello"),
+                                                                                                                    ),
+                                                                                                                ],
+                                                                                                              );
+                                                                                                            } else {
+                                                                                                              // ChallengeType is 1 and user is the same as userNameSnapshot.data!, do not display the Column
+                                                                                                              return SizedBox.shrink();
+                                                                                                            }
+
+
+
+                                                                                                          } else {
+                                                                                                            // Handle the case where result is null
+                                                                                                            return Text('Error: Null result from _displayUserPoints');
+                                                                                                          }
+                                                                                                        } else {
+                                                                                                          return CircularProgressIndicator();
+                                                                                                        }
+                                                                                                      },
+                                                                                                    ),
+
+
+
+
+                                                                                                    // Add the new FutureBuilder for userTextInput
+                                                                                                    FutureBuilder<String>(
+                                                                                                      future: _userTextInput(user, userNameSnapshot.data!, challengeTitle, teamId), // Assuming _userTextInput returns a Future<String>
+                                                                                                      builder: (context, userTextInputSnapshot) {
+                                                                                                        if (userTextInputSnapshot.connectionState == ConnectionState.done) {
+                                                                                                          if (userTextInputSnapshot.hasError) {
+                                                                                                            return Text('Error loading user text input');
+                                                                                                          } else {
+                                                                                                            // Display the user text input
+                                                                                                            String userTypingStatus = userTextInputSnapshot.data ?? 'not_typing';
+
+                                                                                                            if (userTypingStatus == 'typing') {
+                                                                                                              // Display a button when user is typing
+                                                                                                              return ElevatedButton(
+                                                                                                                onPressed: () {
+                                                                                                                  _showTypeResponseDialog(user, userNameSnapshot.data!, challengeTitle, teamId);
+                                                                                                                  // Handle button press here
+                                                                                                                  // For example, open a text input field for the user to type a response
+                                                                                                                },
+                                                                                                                child: const Text('Type response'),
+                                                                                                              );
+                                                                                                            } else if (userTypingStatus == 'not_typing' || userTypingStatus == 'true' || userTypingStatus == 'false') {
+                                                                                                              return const Text('');
+                                                                                                            } else {
+                                                                                                              // Display a message when the user is not typing
+                                                                                                              return Text(userTypingStatus);
+                                                                                                            }
+
+                                                                                                          }
+                                                                                                        } else {
+                                                                                                          return CircularProgressIndicator();
+                                                                                                        }
+                                                                                                      },
+                                                                                                    ),
+                                                                                                  ],
+                                                                                                ),
+                                                                                              ),
+                                                                                              // Completed button (conditional rendering)
+                                                                                              if (!isCurrentUser)
+                                                                                                ElevatedButton(
+                                                                                                  onPressed: () {
+                                                                                                    // Handle button press here
+                                                                                                    // For example, mark the user as completed
+                                                                                                    _showConfirmationDialog(user, userNameSnapshot.data!, challengeTitle, teamId);
+                                                                                                  },
+                                                                                                  child: Text(buttonText),
+                                                                                                ),
+                                                                                            ],
+                                                                                          ),
+                                                                                          Divider(), // Line between users
+                                                                                        ],
+                                                                                      ),
+                                                                                    );
+                                                                                  }
+                                                                                } else {
+                                                                                  return CircularProgressIndicator();
+                                                                                }
+                                                                              },
+                                                                            );
+
+
+
+                                                                          }).toList(),
+                                                                        );
+                                                                      } else {
+                                                                        // Return a message indicating that there are 'pending' statuses
+                                                                        return Text('This challenge contains pending statuses.');
+                                                                      }
+                                                                    }
+                                                                  } else {
+                                                                    return CircularProgressIndicator();
+                                                                  }
+                                                                },
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    );
+                                                  }
+                                                } else {
+                                                  return CircularProgressIndicator();
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+
+
+                                      const SizedBox(height: 20),
+                                    ],
+                                  );
+                                }).toList(),
+                              );
+                            }
+                          } else {
+                            // Display loading indicator while fetching data
+                            return ListTile(
+                              title: CircularProgressIndicator(),
+                            );
+                          }
+                        },
+                      ),
+
+
+          ]
+
+
+                      )
+
+                    ],
+                  ),
+              ]
             ),
           ),
+
+
+    ),
+
         ],
+
       ),
+
     );
+
   }
+
 }
+

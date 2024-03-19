@@ -125,49 +125,170 @@ class _CreateTeamState extends State<CreateTeam> {
     });
   }
 
+  bool _isNameFilled = false;
+
   Future<void> _showTeamNameDialog() async {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Type Team name"),
-          content: TextField(
-            controller: _teamNameController,
-            decoration: InputDecoration(
-              labelText: 'Team Name',
-            ),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-
-                Navigator.of(context).pop(); // Close the dialog
-                Navigator.of(context).pop();
-                _createTeam(); // Create the team after closing the dialog
-                // Display a pop-up message at the bottom for 2 seconds
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Your team has successfully been created in the "Team Page"'),
-                    duration: Duration(seconds: 4),
-                    behavior: SnackBarBehavior.floating, // Set behavior to floating
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return Center(
+              child: AlertDialog(
+                title: Text("Type Team/Community name"),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _teamNameController,
+                        onChanged: (value) {
+                          setState(() {
+                            _isNameFilled = value.isNotEmpty;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Team/Community Name',
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _isNameFilled
+                            ? () {
+                          Navigator.of(context).pop(); // Close the dialog
+                          Navigator.of(context).pop();
+                          _createTeam(); // Create the team after closing the dialog
+                          // Display a pop-up message at the bottom for 2 seconds
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Your team has successfully been created in the "Teams Page"'),
+                              duration: Duration(seconds: 4),
+                              behavior: SnackBarBehavior.floating, // Set behavior to floating
+                            ),
+                          );
+                        }
+                            : null,
+                        child: Text('Confirm Team'),
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(MaterialState.disabled)) {
+                              return Colors.grey; // disabled color
+                            }
+                            return Colors.green; // enabled color
+                          }),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text('OR'),
+                      SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: _isNameFilled
+                            ? () {
+                          Navigator.of(context).pop(); // Close the dialog
+                          Navigator.of(context).pop();
+                          _createCommunity(); // Create the team after closing the dialog
+                          // Display a pop-up message at the bottom for 2 seconds
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Your Community has successfully been created in the "Teams Page"'),
+                              duration: Duration(seconds: 4),
+                              behavior: SnackBarBehavior.floating, // Set behavior to floating
+                            ),
+                          );
+                        }
+                            : null,
+                        child: Text('Confirm Community'),
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(MaterialState.disabled)) {
+                              return Colors.grey; // disabled color
+                            }
+                            return Colors.green; // enabled color
+                          }),
+                        ),
+                      ),
+                    ],
                   ),
-                );
-
-
-
-              },
-              child: Text('Confirm Team'),
-              style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                ),
               ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
+
+
+
+
   void _createTeam() async {
+    try {
+      // Fetch the current user's email UID
+      String currentUserEmailUid = currentUser != null ? currentUser!.email ?? "" : "";
+
+      // Fetch the user document based on the current user's email UID
+      QuerySnapshot currentUserQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUserEmailUid)
+          .limit(1)
+          .get();
+
+      if (currentUserQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot currentUserSnapshot = currentUserQuerySnapshot.docs.first;
+        String currentUserName = currentUserSnapshot['name'];
+
+        // Create a new document in the 'teams' collection
+        DocumentReference teamRef = await FirebaseFirestore.instance.collection('teams').add({
+          'team_name': _teamNameController.text, // Add the team name
+          'users': [...selectedFriends, currentUserName], // Add the current user's name to the 'users' array
+          // Add any additional information you want to store for the team
+        });
+
+        // Access the ID of the newly created team document
+        String teamId = teamRef.id;
+
+        // Update each user's 'team_ids' field with the new team ID if their name is present
+        for (String friendName in selectedFriends) {
+          // Fetch the user document based on the friend's name
+          QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .where('name', isEqualTo: friendName)
+              .limit(1)
+              .get();
+
+          if (userQuerySnapshot.docs.isNotEmpty) {
+            DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+            String userId = userSnapshot.id;
+
+            // Update the user's 'team_ids' field with the new team ID
+            await FirebaseFirestore.instance.collection('users').doc(userId).update({
+              'team_ids': FieldValue.arrayUnion([teamId]),
+            });
+          }
+        }
+
+        // Update the current user's 'team_ids' field with the new team ID
+        await FirebaseFirestore.instance.collection('users').doc(currentUserSnapshot.id).update({
+          'team_ids': FieldValue.arrayUnion([teamId]),
+        });
+
+        print('Team created successfully with ID: $teamId');
+
+        // Clear the selectedFriends list after creating the team
+        setState(() {
+          selectedFriends.clear();
+        });
+      } else {
+        print('User document not found for the current user');
+      }
+    } catch (e) {
+      print('Error creating team: $e');
+    }
+  }
+
+
+  void _createCommunity() async {
     try {
       // Fetch the current user's email UID
       String currentUserEmailUid = currentUser != null ? currentUser!.email ?? "" : "";
@@ -274,7 +395,7 @@ class _CreateTeamState extends State<CreateTeam> {
                                   selectedFriends.contains(snapshot.data) ? 'Added' : 'Add',
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  primary: selectedFriends.contains(snapshot.data)
+                                  backgroundColor: selectedFriends.contains(snapshot.data)
                                       ? Colors.grey
                                       : Colors.blue,
                                 ),
@@ -299,9 +420,9 @@ class _CreateTeamState extends State<CreateTeam> {
             child: selectedFriends.isNotEmpty
                 ? ElevatedButton(
               onPressed: _showTeamNameDialog,
-              child: Text('Create Team'),
+              child: Text('Create Team/Community'),
               style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                backgroundColor: Colors.green,
               ),
             )
                 : SizedBox.shrink(),

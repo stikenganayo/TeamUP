@@ -321,7 +321,7 @@ class _SelectTeamsScreenState extends State<SelectTeamsScreen> {
               },
               child: Text('Post Request'),
               style: ElevatedButton.styleFrom(
-                primary: Colors.green,
+                backgroundColor: Colors.green,
               ),
             ),
           ),

@@ -31,8 +31,7 @@ class _StatusButtonState extends State<StatusButton> {
         widget.onPressed(widget.buttonText);
       },
       style: ElevatedButton.styleFrom(
-        primary: isButtonActive ? Colors.green : null,
-        onPrimary: Colors.white,
+        foregroundColor: Colors.white, backgroundColor: isButtonActive ? Colors.green : null,
       ),
       child: Text(widget.buttonText),
     );
