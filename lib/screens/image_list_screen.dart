@@ -103,7 +103,7 @@ class _FullScreenImageState extends State<FullScreenImage> {
   Future<String?> _loadCurrentUserName() async {
     if (currentUser != null) {
       print('Current User Email: ${currentUser.email}');
-
+      print('Current User Doc: $currentUser');
       try {
         // Fetch the user document based on the current user's email
         QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
@@ -275,7 +275,7 @@ class _FullScreenImageState extends State<FullScreenImage> {
                 leading: Icon(Icons.event),
                 title: Text("Post to Friends Story"),
                 onTap: () {
-                  // Handle post to friends story
+                  _sendToStory(context); // Handle post to user's story
                   Navigator.pop(context);
                 },
               ),
@@ -293,6 +293,46 @@ class _FullScreenImageState extends State<FullScreenImage> {
       },
     );
   }
+
+  void _sendToStory(BuildContext context) async {
+    try {
+      User currentUser = FirebaseAuth.instance.currentUser!;
+      String currentUserEmail = currentUser.email!;
+
+      // Get the current image URL
+      String imageUrl = widget.imagePath;
+
+      // Update the current user's document to add the image URL to the story
+      await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: currentUserEmail)
+          .limit(1)
+          .get()
+          .then((querySnapshot) {
+        if (querySnapshot.docs.isNotEmpty) {
+          String userId = querySnapshot.docs.first.id;
+          FirebaseFirestore.instance.collection('users').doc(userId).update({
+            'story': FieldValue.arrayUnion([imageUrl]), // Wrap the imageUrl in an array
+          }).then((value) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Image posted to your story'),
+            ));
+          }).catchError((error) {
+            print("Error updating document: $error");
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Failed to post to story. Please try again.'),
+            ));
+          });
+        }
+      });
+    } catch (e) {
+      print('Error posting to story: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to post to story. Please try again.'),
+      ));
+    }
+  }
+
 
   void _showSendMenu(BuildContext context) async {
     List<String> userNames = [];

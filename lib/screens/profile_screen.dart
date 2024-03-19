@@ -12,11 +12,12 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   List<FriendData> friends = [];
 
-  String username = 'John Doe'; // Set the default name
+  String username = ''; // Set the default name
   String userEmail = ''; // Store user email
   int totalPoints = 1000;
   int totalStreaks = 5;
-  String profilePictureUrl = 'https://csncollision.com/wp-content/uploads/2019/10/placeholder-circle.png';
+  String profilePictureUrl =
+      'https://i.ibb.co/dpHVm2G/CLICK-HERE-TO-VIEW-STORY-3-17-2024-6.png';
 
   final TextEditingController _nameController = TextEditingController();
 
@@ -34,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         setState(() {
-          username = user.displayName ?? username;
+          username = (user.email ?? '').replaceAll('@gmail.com', '');
           userEmail = user.email ?? '';
           _nameController.text = username;
         });
@@ -94,10 +95,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              CircleAvatar(
-                radius: 60,
-                backgroundImage: NetworkImage(profilePictureUrl),
-                backgroundColor: Colors.red,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => StoryScreen()),
+                  );
+                },
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.purple.withOpacity(1), // Adjust the color and opacity as needed
+                        spreadRadius: 3,
+                        blurRadius: 0,
+                        offset: Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundImage: NetworkImage(profilePictureUrl),
+                    backgroundColor: Colors.transparent, // You can set this to transparent if needed
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               _isEditing
@@ -240,4 +264,112 @@ class FriendData {
       friendEmail: map['friend_email'] ?? '',
     );
   }
+}
+
+class StoryScreen extends StatefulWidget {
+  @override
+  _StoryScreenState createState() => _StoryScreenState();
+}
+
+class _StoryScreenState extends State<StoryScreen> {
+  List<String>? storyImageUrls;
+  int currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStory();
+  }
+
+  Future<void> _loadStory() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: user.email)
+            .get()
+            .then((querySnapshot) => querySnapshot.docs.first);
+
+        if (userDoc.exists) {
+          setState(() {
+            storyImageUrls = List<String>.from(userDoc.get('story'));
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading user story: $e');
+    }
+  }
+
+  void _printUid() {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      print('User Email: ${user.email}');
+    } else {
+      print('User not signed in');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            if (currentIndex < (storyImageUrls!.length - 1)) {
+              currentIndex++;
+            }
+          });
+        },
+        child: Stack(
+          children: [
+            if (storyImageUrls != null && storyImageUrls!.isNotEmpty)
+              PageView.builder(
+                itemCount: storyImageUrls!.length,
+                controller: PageController(initialPage: currentIndex),
+                onPageChanged: (index) {
+                  setState(() {
+                    currentIndex = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  return Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    child: Image.network(
+                      storyImageUrls![index],
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(child: CircularProgressIndicator());
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(child: Text('Error loading image'));
+                      },
+                    ),
+                  );
+                },
+              ),
+            Positioned(
+              top: 20.0,
+              left: 20.0,
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: ProfileScreen(),
+  ));
 }
