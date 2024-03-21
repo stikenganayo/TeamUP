@@ -146,6 +146,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 10),
+
+              FutureBuilder<int>(
+                future: getGivingPoints(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return CircularProgressIndicator(); // While waiting for the result, show a loading indicator
+                  } else if (snapshot.hasData) {
+                    int totalGivingPoints = snapshot.data!;
+                    return Column(
+                      children: [
+                        Text(
+                          'Giving Points: $totalGivingPoints',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ],
+                    );
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    return Text('Unknown error occurred');
+                  }
+                },
+              ),
               FutureBuilder<int>(
                 future: getTotalPoints(),
                 builder: (context, snapshot) {
@@ -156,9 +179,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return Column(
                       children: [
                         Text(
-                          'Total Points: $totalPoints',
+                          'Receiving Points: $totalPoints',
                           style: const TextStyle(fontSize: 18),
                         ),
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -190,7 +214,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
                 },
               ),
-
 
               const SizedBox(height: 10),
               Column(
@@ -321,6 +344,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return totalWellnessPoints;
   }
 
+  Future<int> getGivingPoints() async {
+    int totalWellnessPoints = 0;
+
+    try {
+      String? currentUserName = await _loadCurrentUserName();
+      if (currentUserName != null) {
+        // Fetch all challenge documents
+        QuerySnapshot challengeSnapshot =
+        await FirebaseFirestore.instance.collection('challenges').get();
+
+        // Iterate through each challenge document
+        for (DocumentSnapshot challengeDoc in challengeSnapshot.docs) {
+          Map<String, dynamic> challengeData =
+          challengeDoc.data() as Map<String, dynamic>;
+
+          // Iterate through each key-value pair in challengeData
+          challengeData.forEach((key, value) {
+            // Check if the key ends with '_stats'
+            if (key.endsWith('_stats')) {
+              print('User stats found in challenge data for field: $key');
+
+              // Get the user stats directly
+              List<dynamic>? userStats = value as List<dynamic>?;
+
+              // Count the completions for the current user
+              if (userStats != null) {
+                for (var data in userStats) {
+                  if (data is Map<String, dynamic> &&
+                      data.containsKey('confirmed_completion') &&
+                      data.containsKey('date')) {
+                    List<dynamic>? confirmedCompletions = data['confirmed_completion'];
+                    if (confirmedCompletions != null) {
+                      for (var index in confirmedCompletions) {
+                        if (index == currentUserName) {
+                          totalWellnessPoints++;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error calculating total wellness points: $e');
+    }
+
+    print('Total Wellness Points: $totalWellnessPoints');
+    return totalWellnessPoints;
+  }
 
 
 

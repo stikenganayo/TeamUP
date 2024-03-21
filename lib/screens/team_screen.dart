@@ -431,6 +431,7 @@ class _TeamScreenState extends State<TeamScreen> {
   Future<Map<String, dynamic>> _getStatusAndStartDateForChallenge(String teamId, String challengeTitle) async {
     List<String> statusList = [];
     String? startDate;
+    String? challengeLength;
 
     try {
       // Fetch the team document based on the team ID
@@ -503,13 +504,14 @@ class _TeamScreenState extends State<TeamScreen> {
 
         // Get the challenge start date
         startDate = await _getChallengeStartDate(teamId, challengeTitle);
+        challengeLength = await _getChallengeLength(teamId, challengeTitle);
 
       }
     } catch (e) {
       print('Error loading team document: $e');
     }
 
-    return {'statusList': statusList, 'startDate': startDate};
+    return {'statusList': statusList, 'startDate': startDate, 'challengeLength': challengeLength};
   }
 
 
@@ -979,7 +981,26 @@ class _TeamScreenState extends State<TeamScreen> {
     DateTime start = format.parse(startDate);
     DateTime current = format.parse(currentDate);
 
-    return start.isBefore(current) || start.isAtSameMomentAs(current);
+    return !start.isAfter(current);
+  }
+
+
+
+  bool isChallengeOver(String startDate, String currentDate, String challengeLength) {
+    DateFormat format = DateFormat("MMMM dd yyyy");
+    DateTime start = format.parse(startDate);
+    DateTime current = format.parse(currentDate);
+
+    int dateDifference = 0;
+    while (current.isAfter(start)) {
+      start = start.add(Duration(days: 1));
+      dateDifference++;
+    }
+
+    print("Date Difference: $dateDifference");
+    print("Challenge Length: ${int.parse(challengeLength)}");
+
+    return dateDifference >= int.parse(challengeLength);
   }
 
 
@@ -2239,6 +2260,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                 } else {
                                                                   List<String> statusList = snapshot.data!['statusList'];
                                                                   String? startDate = snapshot.data!['startDate'];
+                                                                  String? challengeLength = snapshot.data!['challengeLength'];
 
                                                                   // Check if there is any status containing 'pending'
                                                                   bool containsPending = statusList.any((userStatus) => userStatus.contains('pending'));
@@ -2250,8 +2272,14 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                   var result = isStartDateAhead(startDate!, _formatCurrentDate());
                                                                   print("Start date: $startDate");
 
+                                                                  print("Challenge Length: $challengeLength");
+
+                                                                  var isChallengeComplete = isChallengeOver(startDate!, _formatCurrentDate(), challengeLength!);
+
+                                                                  print("Is challenge over? $isChallengeComplete");
+
                                                                   // Display list of users only if there is no 'pending' status
-                                                                  if (!containsPending && result == true) {
+                                                                  if (!containsPending && result == true && isChallengeComplete == false) {
 
                                                                     return Column(
                                                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2521,7 +2549,11 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                       }).toList(),
                                                                     );
                                                                   } else {
-                                                                    if (containsPending)
+                                                                    if (isChallengeComplete == true)
+                                                                      return const Text(
+                                                                          'This challenge has completed! Check stats for results.');
+
+                                                                    if (containsPending == true)
                                                                       return const Text(
                                                                           'This challenge contains pending statuses.');
                                                                     if (result == false)
