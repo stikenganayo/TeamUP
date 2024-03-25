@@ -268,30 +268,152 @@ class _FullScreenImageState extends State<FullScreenImage> {
       context: context,
       builder: (BuildContext context) {
         return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.event),
-                title: Text("Post to Friends Story"),
-                onTap: () {
-                  _sendToStory(context); // Handle post to user's story
-                  Navigator.pop(context);
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Post to Teams Story',
+                  style: TextStyle(
+                    fontSize: 18.0,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.0),
+              FutureBuilder<List<String>>(
+                future: _getUserTeams(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else {
+                    List<String> userTeams = snapshot.data ?? [];
+                    return Expanded(
+                      child: ListView.builder(
+                        itemCount: userTeams.length,
+                        itemBuilder: (context, index) {
+                          return ListTile(
+                            title: Text(userTeams[index]),
+                            onTap: () {
+                              _addToTeamStory(context, userTeams[index]);
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      ),
+                    );
+                  }
                 },
               ),
-              ListTile(
-                leading: Icon(Icons.event),
-                title: Text("Post to Teams Story"),
-                onTap: () {
-                  // Handle post to teams story
-                  Navigator.pop(context);
-                },
+              Divider(),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    'Post to Friends Story',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.0,
+                    ),
+                  ),
+                  onTap: () {
+                    _sendToStory(context);
+                    Navigator.pop(context);
+                  },
+                ),
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  Future<List<String>> _getUserTeams() async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        String currentUserEmail = currentUser.email!;
+        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUserEmail)
+            .limit(1)
+            .get();
+
+        if (userQuerySnapshot.docs.isNotEmpty) {
+          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+          if (userData.containsKey('team_ids')) {
+            List<dynamic> teamIds = userData['team_ids'];
+            List<String> teamNames = [];
+
+            for (String teamId in teamIds) {
+              DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+                  .collection('teams')
+                  .doc(teamId)
+                  .get();
+
+              if (teamSnapshot.exists) {
+                Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+                if (teamData.containsKey('team_name')) {
+                  teamNames.add(teamData['team_name']);
+                }
+              }
+            }
+            return teamNames;
+          } else {
+            print('Team_ids field not found in user document');
+            return [];
+          }
+        } else {
+          print('User document not found for the current user');
+          return [];
+        }
+      } else {
+        print('Current user is null');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching user teams: $e');
+      return [];
+    }
+  }
+
+  void _addToTeamStory(BuildContext context, String teamName) async {
+    try {
+      // Fetch the team document based on the team name
+      QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .where('team_name', isEqualTo: teamName)
+          .limit(1)
+          .get();
+
+      if (teamQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
+        String teamId = teamSnapshot.id;
+
+        // Update the team document to add the image URL to the story
+        await FirebaseFirestore.instance.collection('teams').doc(teamId).update({
+          'story': FieldValue.arrayUnion([widget.imagePath]),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Image added to $teamName story'),
+        ));
+      } else {
+        print('Team document not found for $teamName');
+      }
+    } catch (e) {
+      print('Error adding image to team story: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to add image to story. Please try again.'),
+      ));
+    }
   }
 
   void _sendToStory(BuildContext context) async {

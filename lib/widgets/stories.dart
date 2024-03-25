@@ -166,7 +166,8 @@ class DetailScreen extends StatelessWidget {
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        return querySnapshot.docs.first.id; // Assuming 'id' holds the UID in the 'users' collection
+        return querySnapshot.docs.first
+            .id; // Assuming 'id' holds the UID in the 'users' collection
       } else {
         print('User not found in Firestore');
         return '';
@@ -189,9 +190,11 @@ class DetailScreen extends StatelessWidget {
       return '';
     }
   }
+
   Color _generateRandomColor() {
     final Random random = Random();
-    return Color.fromRGBO(random.nextInt(256), random.nextInt(256), random.nextInt(256), 1.0);
+    return Color.fromRGBO(
+        random.nextInt(256), random.nextInt(256), random.nextInt(256), 1.0);
   }
 
   @override
@@ -202,7 +205,9 @@ class DetailScreen extends StatelessWidget {
         if (uidSnapshot.connectionState == ConnectionState.waiting) {
           return const CircularProgressIndicator();
         } else if (uidSnapshot.hasError || !uidSnapshot.hasData) {
-          return Text(uidSnapshot.hasError ? 'Error: ${uidSnapshot.error}' : 'No UID found');
+          return Text(uidSnapshot.hasError
+              ? 'Error: ${uidSnapshot.error}'
+              : 'No UID found');
         } else {
           String uid = uidSnapshot.data!;
           return FutureBuilder<String>(
@@ -211,7 +216,9 @@ class DetailScreen extends StatelessWidget {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const CircularProgressIndicator();
               } else if (snapshot.hasError || !snapshot.hasData) {
-                return Text(snapshot.hasError ? 'Error: ${snapshot.error}' : 'No image found');
+                return Text(snapshot.hasError
+                    ? 'Error: ${snapshot.error}'
+                    : 'No image found');
               } else {
                 String imageUrl = snapshot.data!;
                 return Scaffold(
@@ -222,8 +229,10 @@ class DetailScreen extends StatelessWidget {
                       storyItems: [
                         StoryItem.text(
                           title:
-                          "Hello, ${firebaseData[int.parse(index)]['name']}!\n\nYou are on a 10 day streak! \nKeep up the good work! \n\nYou have gained 100 Points this week! \nKeep it up!",
-                          backgroundColor: _generateRandomColor(), // Use random color here
+                          "Hello, ${firebaseData[int.parse(
+                              index)]['name']}!\n\nYou are on a 10 day streak! \nKeep up the good work! \n\nYou have gained 100 Points this week! \nKeep it up!",
+                          backgroundColor: _generateRandomColor(),
+                          // Use random color here
                           roundedTop: true,
                         ),
                         StoryItem.inlineImage(
@@ -240,12 +249,13 @@ class DetailScreen extends StatelessWidget {
                         ),
                         // Add more StoryItems as needed
                       ],
-                      onStoryShow: (s) {
+                      onStoryShow: (s, i) { // Updated callback signature
                         print("Showing a story");
                       },
                       onComplete: () {
                         print("Completed a cycle");
-                        print('UID of ${firebaseData[int.parse(index)]['name']}: $uid');
+                        print('UID of ${firebaseData[int.parse(
+                            index)]['name']}: $uid');
                       },
                       progressPosition: ProgressPosition.bottom,
                       repeat: false,
