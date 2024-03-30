@@ -8,21 +8,22 @@ import 'dart:math' as math;
 import 'package:intl/intl.dart'; // Import the intl package for date formatting
 
 
-class CreateChallenge extends StatefulWidget {
-  const CreateChallenge({Key? key}) : super(key: key);
+class PrePopulateChallenge extends StatefulWidget {
+  const PrePopulateChallenge({Key? key, required this.challengeDataList, required this.challengeLength}) : super(key: key);
+
+  final List<dynamic> challengeDataList;
+  final int challengeLength;
 
   @override
-  _CreateChallengeState createState() => _CreateChallengeState();
+  _PrePopulateChallengeState createState() => _PrePopulateChallengeState();
 }
 
-class _CreateChallengeState extends State<CreateChallenge> {
+class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
   List<ChallengeData> challengeDataList = [
     ChallengeData(challengeTitle: "", controller: TextEditingController())
   ];
 
-  // String currentDate = DateFormat("MMMM dd, yyyy").format(DateTime.now());
   DateTime startDate = DateTime.now().toLocal();
-
 
   List<String> selectedFriends = [];
   List<String> selectedTeams = [];
@@ -34,7 +35,6 @@ class _CreateChallengeState extends State<CreateChallenge> {
   String selectedTimeUnit = "Per Day";
   String selectedChallengeType = "CheckBox";
   String selectedGoal = "times";
-  String Title = "N/A";
   bool enableUserTyping = false;
   bool communityChallengePost = false;
   bool emotionalCategory = false;
@@ -45,15 +45,10 @@ class _CreateChallengeState extends State<CreateChallenge> {
   bool physicalCategory = false;
   bool socialCategory = false;
   bool spiritualCategory = false;
-
   bool isRecurringEvent = false;
   List<String> selectedDays = [];
-  int selectedValue = 0;
+  int selectedValue = 0; // Initialize with default value
   bool _showCircularSlider = false;
-
-  bool showChallengeList = false;
-  String challengeTitle = "";
-
 
   List<String> timeUnitOptions = [
     "Per Second",
@@ -68,18 +63,12 @@ class _CreateChallengeState extends State<CreateChallenge> {
   List<String> goalOptions = ["times", "seconds", "minutes", "hours", "days"];
   String dropdownValue = 'Challenge everyone including you';
 
-
   late List<InputFieldData> inputFieldsDataList;
 
-  // bool areFieldsFilled() {
-  //   return challengeDataList.isNotEmpty &&
-  //       challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
-  // }
-
   bool areFieldsFilled() {
-    return challengeTitle.isNotEmpty;
+    return challengeDataList.isNotEmpty &&
+        challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
   }
-
 
   Future<void> _selectStartDate(BuildContext context) async {
     final DateTime pickedDate = (await showDatePicker(
@@ -95,16 +84,17 @@ class _CreateChallengeState extends State<CreateChallenge> {
     }
   }
 
-
-
   @override
   void initState() {
     super.initState();
+    selectedValue = widget.challengeLength; // Assign widget's challengeLength to selectedValue
     inputFieldsDataList = List.generate(
       selectedNumber,
           (index) => InputFieldData(),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,30 +119,11 @@ class _CreateChallengeState extends State<CreateChallenge> {
                   children: <Widget>[
 
                     const SizedBox(height: 20),
-                    TextField(
-                      onChanged: (value) {
-                        setState(() {
-                          challengeTitle = value;
-                          // canPostEvent =
-                          //     eventTitle.isNotEmpty && eventLocation.isNotEmpty;
-                        });
-                      },
-                      decoration: const InputDecoration(labelText: 'Challenge Title'),
+                    Column(
+                      children: challengeDataList
+                          .map((data) => _buildChallengeRow(data))
+                          .toList(),
                     ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showChallengeList = !showChallengeList;
-                        });
-                      },
-                      child: Text(showChallengeList ? 'Remove List of Challenges' : 'Create List of Challenges'),
-                    ),
-                    if (showChallengeList)
-                      Column(
-                        children: challengeDataList.map((data) => _buildChallengeRow(data)).toList(),
-                      ),
-
                     const SizedBox(height: 20),
                     const SizedBox(height: 20),
 // Show checkboxes for recurring events
@@ -607,28 +578,28 @@ class _CreateChallengeState extends State<CreateChallenge> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // if (index == 0 && hasMultipleItems)
-        //   Padding(
-        //     padding: const EdgeInsets.only(bottom: 10.0),
-        //     child: TextFormField(
-        //       style: TextStyle(fontSize: 16),
-        //       onChanged: (value) {
-        //         setState(() {
-        //           // Update the challengeTitle in the current data
-        //           data.challengeTitle = value;
-        //           // Check if the title is not already in the list, then add it
-        //           if (!challengeDataList.any((element) => element.challengeTitle == value)) {
-        //             // If not present, add it to the beginning of the list
-        //             challengeDataList.insert(0, ChallengeData(challengeTitle: value, controller: TextEditingController()));
-        //           }
-        //         });
-        //       },
-        //       decoration: InputDecoration(
-        //         hintText: 'Challenge Title',
-        //       ),
-        //       initialValue: data.challengeTitle,
-        //     ),
-        //   ),
+        if (index == 0 && hasMultipleItems)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10.0),
+            child: TextFormField(
+              style: TextStyle(fontSize: 16),
+              onChanged: (value) {
+                setState(() {
+                  // Update the challengeTitle in the current data
+                  data.challengeTitle = value;
+                  // Check if the title is not already in the list, then add it
+                  if (!challengeDataList.any((element) => element.challengeTitle == value)) {
+                    // If not present, add it to the beginning of the list
+                    challengeDataList.insert(0, ChallengeData(challengeTitle: value, controller: TextEditingController()));
+                  }
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Challenge Title',
+              ),
+              initialValue: data.challengeTitle,
+            ),
+          ),
         Row(
           children: [
             const Icon(Icons.check_box_outline_blank),
@@ -842,10 +813,9 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'CurrentUserEmail': currentUser.email,
             'CurrentUserName': userData['name'],
             // Store the user's name
-            'challengeDataList': challengeDataList.isEmpty
-                ? [{'challengeTitle': challengeDataList.isNotEmpty ? challengeDataList[0].challengeTitle : 'challengeTitle'}]
-                : challengeDataList.map((data) => {'challengeTitle': data.challengeTitle.isEmpty ? challengeTitle : data.challengeTitle}).toList(),
-
+            'challengeDataList': challengeDataList
+                .map((data) => {'challengeTitle': data.challengeTitle})
+                .toList(),
             'selectedFriends': selectedFriends,
             'selectedTeams': selectedTeams,
             'showFrequencyDropdowns': showFrequencyDropdowns,
@@ -861,16 +831,15 @@ class _CreateChallengeState extends State<CreateChallenge> {
             'challengeType' : dropdownValue,
             'communityChallenge' : communityChallengePost,
             'emotionalCategory' : emotionalCategory,
-          'environmentalCategory' : environmentalCategory,
-          'financialCategory' : financialCategory,
-          'intellectualCategory' : intellectualCategory,
-          'occupationalCategory' : occupationalCategory,
-          'physicalCategory' : physicalCategory,
-          'socialCategory' : socialCategory,
-          'spiritualCategory' : spiritualCategory,
-          'challengeLength' : selectedValue,
+            'environmentalCategory' : environmentalCategory,
+            'financialCategory' : financialCategory,
+            'intellectualCategory' : intellectualCategory,
+            'occupationalCategory' : occupationalCategory,
+            'physicalCategory' : physicalCategory,
+            'socialCategory' : socialCategory,
+            'spiritualCategory' : spiritualCategory,
+            'challengeLength' : selectedValue,
             'startDate': formattedStartDate,
-            'Title' : challengeTitle,
           };
 
           DocumentReference challengeDocRef =
@@ -912,15 +881,13 @@ class _CreateChallengeState extends State<CreateChallenge> {
                     'challengeDocRef': challengeDocRef.id,
                     'creatorUserId': userData['name'],
                     // Store the user's name
-                    'template_name': challengeDataList.isEmpty
-                        ? [{'challengeTitle': challengeDataList.isNotEmpty ? challengeDataList[0].challengeTitle : 'challengeTitle'}]
-                        : challengeDataList.map((data) => {'challengeTitle': data.challengeTitle.isEmpty ? challengeTitle : data.challengeTitle}).toList(),
-
+                    'template_name': challengeDataList
+                        .map((data) => {'challengeTitle': data.challengeTitle})
+                        .toList(),
                     'players': players,
                     'userTyping' : enableUserTyping,
                     'challengeLength' : selectedValue,
                     'startDate': formattedStartDate,
-                    'Title' : challengeTitle,
                     // Add the list of players to the team challenge
                   }
                 ]),
@@ -952,15 +919,13 @@ class _CreateChallengeState extends State<CreateChallenge> {
                         'status': status,
                         'challengeDocRef': challengeDocRef.id,
                         'creatorUserId': userData['name'], // Use the user's name as creatorUserId
-                        'template_name': challengeDataList.isEmpty
-                            ? [{'challengeTitle': challengeDataList.isNotEmpty ? challengeDataList[0].challengeTitle : 'challengeTitle'}]
-                            : challengeDataList.map((data) => {'challengeTitle': data.challengeTitle.isEmpty ? challengeTitle : data.challengeTitle}).toList(),
-
+                        'template_name': challengeDataList
+                            .map((data) => {'challengeTitle': data.challengeTitle})
+                            .toList(),
                         'players': players,
                         'userTyping' : enableUserTyping,
                         'challengeLength' : selectedValue,
                         'startDate': formattedStartDate,
-                        'Title' : challengeTitle,
                       }
                     ])
                   });
@@ -1063,7 +1028,7 @@ Future<void> deletePostedChallenge(DocumentReference challengeDocRef) async {
 
 
 
-  class ChallengeData {
+class ChallengeData {
   String challengeTitle;
   TextEditingController controller;
 

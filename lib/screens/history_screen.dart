@@ -228,11 +228,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
       print('Challenge Title: ${challengeData['template_name']}');
       print('Description: ${challengeData['frequency']}');
       print('Status: ${challenge['status']}');
+      List<String> challengeTitles = [];
+
+      if (challengeData['challengeDataList'] != null) {
+        challengeTitles = (challengeData['challengeDataList'] as List<dynamic>)
+            .map((item) => item['challengeTitle'].toString())
+            .toList();
+      }
+
+
 
       challengeDetails.add({
-        'title': challengeData['challengeDataList'] != null
+        'challengeOne': challengeData['challengeDataList'] != null
             ? challengeData['challengeDataList'][0]['challengeTitle'].toString()
             : '',
+        'challengeList': challengeTitles.join(', '), // Combine titles with commas
         'Description': [
           if (challengeData['goalValue'] != null) challengeData['goalValue'],
           if (challengeData['selectedUnit'] != null) challengeData['selectedUnit'],
@@ -256,6 +266,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         'physicalCategory': challengeData['physicalCategory'] ?? '',
         'socialCategory': challengeData['socialCategory'] ?? '',
         'spiritualCategory': challengeData['spiritualCategory'] ?? '',
+        'Title': challenge['Title'],
       });
     } else {
       print('Challenge document not found for challengeDocRef: $challengeDocRef');
@@ -284,6 +295,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         'Created By': challengeData['CurrentUserName'],
         'status': challenge['status'] ?? '',
         'challengeDocRef': challengeDocRef,
+
       });
     } else {
       print('Challenge document not found for challengeDocRef: $challengeDocRef');
@@ -364,7 +376,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       ),
                                   Expanded(
                                     child: Text(
-                                      'Challenge: ${challengeDetails[challengeIndex]['title']}',
+                                      'Challenge: ${challengeDetails[challengeIndex]['Title']}',
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -386,7 +398,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Challenge: ${challengeDetails[challengeIndex]['title']}',
+                                    'Challenge: ${challengeDetails[challengeIndex]['Title']}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Challenge List: ${challengeDetails[challengeIndex]['challengeList']}',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   SizedBox(height: 8),

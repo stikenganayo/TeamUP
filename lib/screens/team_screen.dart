@@ -219,7 +219,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
 
 
-  Future<List<String>> _getChallengeTitles(String teamId) async {
+  Future<List<String>> _getChallengeList(String teamId) async {
     try {
       // Fetch the team document based on the team ID
       DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
@@ -248,7 +248,7 @@ class _TeamScreenState extends State<TeamScreen> {
               challengeTitles.add(challengeTitle);
             }
           }
-
+          print("What are you returning??? $challengeTitles");
           return challengeTitles;
         } else {
           print('Team challenges field not found in team document');
@@ -314,6 +314,48 @@ class _TeamScreenState extends State<TeamScreen> {
     }
 
     return null; // Default value if anything goes wrong or challenge not found
+  }
+
+  Future<List<String>> _getChallengeTitle(String teamId) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData =
+        teamSnapshot.data() as Map<String, dynamic>;
+
+        // Print the team name directly from the teamData
+        if (teamData.containsKey('team_challenges')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+
+          print('Team Challenges: $teamChallenges');
+
+          // Extract challenge titles from all challenges
+          List<String> challengeTitles = [];
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('Title') && challenge['Title'].isNotEmpty) {
+              String challengeTitle = challenge['Title'];
+              challengeTitles.add(challengeTitle);
+            }
+          }
+
+
+          return challengeTitles;
+        } else {
+          print('Team challenges field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team or challenge document: $e');
+    }
+
+    return []; // Default value if anything goes wrong
   }
 
 
@@ -1265,6 +1307,8 @@ class _TeamScreenState extends State<TeamScreen> {
     int socialCategory = 0;
     int spiritualCategory = 0;
 
+    String title = '';
+
 // Iterate through each document
     for (QueryDocumentSnapshot document in challengesSnapshot.docs) {
       // Check if data is not null for the document
@@ -1404,6 +1448,8 @@ class _TeamScreenState extends State<TeamScreen> {
 
       // Print the entire array
       print("Challenge Data List: $challengeDataList");
+      title = challengeData['Title'];
+
 
       if (challengeData['emotionalCategory'] == true) {
         emotionalCategory = 1;
@@ -1460,6 +1506,7 @@ class _TeamScreenState extends State<TeamScreen> {
     return Column(
       children: [
         // Add a button to the left of the row if there are multiple challenges
+        Text(title),
         if (hasMultipleChallenges)
           ElevatedButton(
             onPressed: () {
@@ -1468,7 +1515,7 @@ class _TeamScreenState extends State<TeamScreen> {
                 context: context, // Replace 'context' with your actual context variable
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: Text(popupChallengeDataList.isNotEmpty ? popupChallengeDataList[0]['challengeTitle'] : ''),
+                    title: Text(title),
                     content: ConstrainedBox(
                       constraints: BoxConstraints(
                         maxHeight: 200, // Adjust the height constraint as needed
@@ -1476,9 +1523,9 @@ class _TeamScreenState extends State<TeamScreen> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: List.generate(
-                            popupChallengeDataList.length - 1,
+                            popupChallengeDataList.length,
                                 (index) => ListTile(
-                              title: Text(popupChallengeDataList[index + 1]['challengeTitle']),
+                              title: Text(popupChallengeDataList[index]['challengeTitle']),
                             ),
                           ),
                         ),
@@ -1506,7 +1553,7 @@ class _TeamScreenState extends State<TeamScreen> {
                 context: context, // Replace 'context' with your actual context variable
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    title: Text(popupChallengeDataList.isNotEmpty ? popupChallengeDataList[0]['challengeTitle'] : ''),
+                    title: Text(title),
                     content: ConstrainedBox(
                       constraints: BoxConstraints(
                         maxHeight: 200, // Adjust the height constraint as needed
@@ -2182,7 +2229,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                       children: [
 
                                         FutureBuilder<List<String>>(
-                                          future: _getChallengeTitles(teamId),
+                                          future: _getChallengeList(teamId),
                                           builder: (context, challengeTitlesSnapshot) {
                                             if (challengeTitlesSnapshot.connectionState == ConnectionState.done) {
                                               if (challengeTitlesSnapshot.hasError || challengeTitlesSnapshot.data == null) {
@@ -2227,8 +2274,13 @@ class _TeamScreenState extends State<TeamScreen> {
                                                             ),
 
 
-                                                            Text('$challengeTitle'),
 
+
+
+
+
+
+                                                            // Text('$challengeTitle'),
 
                                                             Row(
                                                               children: [
@@ -2249,6 +2301,8 @@ class _TeamScreenState extends State<TeamScreen> {
                                                             ),
                                                           ],
                                                         ),
+
+
 
                                                         children: [
                                                           FutureBuilder<Map<String, dynamic>>(
@@ -2452,7 +2506,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                                                               child: const Text("Hello"),
                                                                                                             ),
                                                                                                           if (!isCurrentUser)
-                                                                                                            if (user != userNameSnapshot.data! && challengeType != 2)
+                                                                                                            if ((user != userNameSnapshot.data! && challengeType != 2) || (user != userNameSnapshot.data! && challengeType != 1))
                                                                                                               ElevatedButton(
                                                                                                                 onPressed: () {
                                                                                                                   // Handle button press here
@@ -2761,7 +2815,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                           children: [
 
                                             FutureBuilder<List<String>>(
-                                              future: _getChallengeTitles(teamId),
+                                              future: _getChallengeList(teamId),
                                               builder: (context, challengeTitlesSnapshot) {
                                                 if (challengeTitlesSnapshot.connectionState == ConnectionState.done) {
                                                   if (challengeTitlesSnapshot.hasError || challengeTitlesSnapshot.data == null) {

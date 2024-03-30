@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/prepopulate_challenge_screen.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import 'package:intl/intl.dart'; // Import intl package for date formatting
@@ -97,6 +98,7 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
             'physicalCategory': doc['physicalCategory'] ?? '',
             'socialCategory': doc['socialCategory'] ?? '',
             'spiritualCategory': doc['spiritualCategory'] ?? '',
+            'Title': doc['Title'] ?? '',
           };
           challenges.add(challengeDetails);
         }
@@ -248,17 +250,28 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
                                                 width: double.infinity,
                                                 child: Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: challenge['challengeDataList']
-                                                      .map<Widget>((challengeData) {
-                                                    return Text(challengeData['challengeTitle']);
-                                                  }).toList(),
+                                                  // children: challenge['challengeDataList']
+                                                  //     .map<Widget>((challengeData) {
+                                                  //   return Text(challengeData['challengeTitle']);
+                                                  // }).toList(),
                                                 ),
                                               ),
+                                              Text('${challenge['Title']}'),
                                               Text('Host: ${challenge['CurrentUserName']}'),
                                               Text('Challenge Length: ${challenge['challengeLength']}'),
                                               SizedBox(height: 10), // Added spacing
                                               ElevatedButton( // Added button
                                                 onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => PrePopulateChallenge(
+                                                        // Pass necessary data here
+                                                        challengeDataList: challenge['challengeDataList'],
+                                                        challengeLength: challenge['challengeLength'],
+                                                      ),
+                                                    ),
+                                                  );
                                                   // Handle button press
                                                   // You can add your logic here
                                                 },
