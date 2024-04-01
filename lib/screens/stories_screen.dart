@@ -89,7 +89,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
             'CurrentUserName': doc['CurrentUserName'],
             'attending': doc['attending'] ?? 0,
             'isGoing': false,
-            'background': doc['background'] ?? '', // Added background field
+            // 'background': doc['background'] ?? '', // Added background field
           };
           events.add(eventDetails);
         }
@@ -311,12 +311,12 @@ class _StoriesScreenState extends State<StoriesScreen> {
                             height: 300,
                             child: Card(
                               child: Container(
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(event['background']), // Use the background URL
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
+                                // decoration: BoxDecoration(
+                                //   image: DecorationImage(
+                                //     image: NetworkImage(event['background']), // Use the background URL
+                                //     fit: BoxFit.cover,
+                                //   ),
+                                // ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [

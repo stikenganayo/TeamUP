@@ -316,6 +316,72 @@ class _TeamScreenState extends State<TeamScreen> {
     return null; // Default value if anything goes wrong or challenge not found
   }
 
+
+  Future<String?> _getChallengeLengthLeft(String teamId, String challengeTitle) async {
+    try {
+      // Fetch the team document based on the team ID
+      DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
+          .collection('teams')
+          .doc(teamId)
+          .get();
+
+      if (teamSnapshot.exists) {
+        Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
+
+        // Print the team name directly from the teamData
+        if (teamData.containsKey('team_challenges')) {
+          List<dynamic> teamChallenges = teamData['team_challenges'];
+
+          print('Team Challenges: $teamChallenges');
+
+          // Find the challenge with the specified title
+          Map<String, dynamic>? targetChallenge;
+          for (var challenge in teamChallenges) {
+            if (challenge.containsKey('template_name') &&
+                challenge['template_name'].isNotEmpty &&
+                challenge['template_name'][0].containsKey('challengeTitle')) {
+              String title =
+              challenge['template_name'][0]['challengeTitle'];
+              if (title == challengeTitle) {
+                targetChallenge = challenge;
+                break;
+              }
+            }
+          }
+
+          // Calculate remaining challenge length
+          if (targetChallenge != null &&
+              targetChallenge.containsKey('startDate') &&
+              targetChallenge.containsKey('challengeLength')) {
+            String startDateString = targetChallenge['startDate'];
+            String formattedCurrentDate = DateFormat("MMMM dd yyyy").format(DateTime.now());
+            DateTime startDate = DateFormat("MMMM dd yyyy").parse(startDateString);
+            DateTime currentDate = DateFormat("MMMM dd yyyy").parse(formattedCurrentDate);
+            int challengeLength = targetChallenge['challengeLength'];
+            int daysPassed = currentDate.difference(startDate).inDays;
+            int remainingDays = challengeLength - daysPassed;
+            if (remainingDays < 0) {
+              return 'Challenge is Completed';
+            } else {
+              return '$remainingDays / $challengeLength Days Remaining';
+            }
+          } else {
+            print('Challenge with title $challengeTitle not found or missing startDate or challengeLength field.');
+          }
+        } else {
+          print('Team challenges field not found in team document');
+        }
+      } else {
+        print('Team document not found for $teamId');
+      }
+    } catch (e) {
+      print('Error loading team or challenge document: $e');
+    }
+
+    return null; // Default value if anything goes wrong or challenge not found
+  }
+
+
   Future<List<String>> _getChallengeTitle(String teamId) async {
     try {
       // Fetch the team document based on the team ID
@@ -1289,13 +1355,13 @@ class _TeamScreenState extends State<TeamScreen> {
     List<String> userStatsNames = users.map((user) => '$user\_stats').toList();
     print(userStatsNames);
 
-// Get the challenges collection reference
+    // Get the challenges collection reference
     CollectionReference challengesCollection = FirebaseFirestore.instance.collection('challenges');
 
-// Fetch documents from the challenges collection
+    // Fetch documents from the challenges collection
     QuerySnapshot challengesSnapshot = await challengesCollection.where('challengeDataList', arrayContains: {'challengeTitle': challengeTitle}).get();
 
-// List to store input fields
+    // List to store input fields
     List<String> allInputFields = [];
 
     int emotionalCategory = 0;
@@ -1309,7 +1375,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
     String title = '';
 
-// Iterate through each document
+    // Iterate through each document
     for (QueryDocumentSnapshot document in challengesSnapshot.docs) {
       // Check if data is not null for the document
       if (document.exists) {
@@ -1320,29 +1386,20 @@ class _TeamScreenState extends State<TeamScreen> {
           data.forEach((key, value) {
             // Check if the field contains "_quotes"
             if (key.toString().contains('_quotes')) {
-                // Add the "input" field in each array to the list
-                value.forEach((item) {
-                  if (item['input'] != null) {
-                    allInputFields.add(item['input']);
-                  }
-                });
+              // Add the "input" field in each array to the list
+              value.forEach((item) {
+                if (item['input'] != null) {
+                  allInputFields.add(item['input']);
+                }
+              });
             }
           });
         }
       }
     }
 
-// Print the list of all input fields
+    // Print the list of all input fields
     print('All Input Fields: $allInputFields');
-
-
-
-
-    // Get the current date in the desired format
-    DateTime currentDate = DateTime.now();
-    String formattedDate = DateFormat('MMMM dd, yyyy').format(currentDate);
-
-    print(challengeTitle);
 
     // Initialize a map to store counts for each user
     Map<String, int> userCounts = {};
@@ -1352,6 +1409,11 @@ class _TeamScreenState extends State<TeamScreen> {
 
     // Initialize a list to store all the currentStreak values
     List<int> currentStreaksList = [];
+
+    // Initialize minUserCount outside the loop
+    int minUserCount = 0;
+
+    String challengeType = ''; // Declare challengeType outside the loop
 
     // Iterate through each index in userStatsNames
     for (String userStatName in userStatsNames) {
@@ -1363,12 +1425,12 @@ class _TeamScreenState extends State<TeamScreen> {
 
       // Iterate through each document in challengesSnapshot
       for (QueryDocumentSnapshot challengeDoc in challengesSnapshot.docs) {
-        Map<String, dynamic> challengeData = challengeDoc.data() as Map<
-            String,
-            dynamic>;
+        Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
 
         // Retrieve the stats array for the current userStatName
         List<dynamic> userLoggedInStats = challengeData[userStatName] ?? [];
+
+        challengeType = challengeData['challengeType']; // Assign challengeType here
 
         // Count all arrays
         userCount += userLoggedInStats.length;
@@ -1390,23 +1452,21 @@ class _TeamScreenState extends State<TeamScreen> {
         });
 
         // Count the number of arrays for consistency dates
-        DateTime loopDate = currentDate; // Create a separate variable for the loop
-        bool foundMatchingDate = userLoggedInStats.any((statsElement) =>
-        statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate));
+        DateTime loopDate = DateTime.now(); // Create a separate variable for the loop
+        bool foundMatchingDate = userLoggedInStats.any((statsElement) => statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate));
 
         if (!foundMatchingDate) {
           // Subtract one day if no match for the current date
           loopDate = loopDate.subtract(Duration(days: 1));
         }
 
-        while (userLoggedInStats.any((statsElement) =>
-        statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate))) {
+        while (userLoggedInStats.any((statsElement) => statsElement['date'] == DateFormat('MMMM dd, yyyy').format(loopDate))) {
           currentStreak++;
           loopDate = loopDate.subtract(Duration(days: 1));
         }
       }
 
-        // Print the current streak for the current user
+      // Print the current streak for the current user
       print('Current Streak for $userStatName: $currentStreak');
 
       // Store the current streak in the list
@@ -1417,18 +1477,18 @@ class _TeamScreenState extends State<TeamScreen> {
 
       // Add the user's count to the totalUserPoints
       totalUserPoints += userCount;
-    }
 
-    // Print the counts for each user
-    userCounts.forEach((user, count) {
-      print('$user: $count');
-    });
+      // Assign minUserCount based on the challengeType
+      if (challengeType == "Challenge everyone including you") {
+        // Find the minimum count among all users
+        minUserCount = currentStreaksList.isNotEmpty ? currentStreaksList.reduce((value, element) => value < element ? value : element) : 0;
+      } else {
+        minUserCount = currentStreaksList.isNotEmpty ? currentStreaksList.reduce((value, element) => value > element ? value : element) : 0;
+      }
+    }
 
     // Print the total points for all users
     print('Total User Points: $totalUserPoints');
-
-    // Find the minimum count among all users
-    int minUserCount = currentStreaksList.isNotEmpty ? currentStreaksList.reduce((value, element) => value < element ? value : element) : 0;
 
     // Print the minimum count among all users
     print('Min Count Among All Users: $minUserCount');
@@ -1436,10 +1496,10 @@ class _TeamScreenState extends State<TeamScreen> {
     // Initialize a variable to track whether there is more than one array
     bool hasMultipleChallenges = false;
 
-// Initialize a list to store challenge data for the popup
+    // Initialize a list to store challenge data for the popup
     List<Map<String, dynamic>> popupChallengeDataList = [];
 
-// Iterate through the documents
+    // Iterate through the documents
     for (QueryDocumentSnapshot challengeDoc in challengesSnapshot.docs) {
       Map<String, dynamic> challengeData = challengeDoc.data() as Map<String, dynamic>;
 
@@ -1449,7 +1509,6 @@ class _TeamScreenState extends State<TeamScreen> {
       // Print the entire array
       print("Challenge Data List: $challengeDataList");
       title = challengeData['Title'];
-
 
       if (challengeData['emotionalCategory'] == true) {
         emotionalCategory = 1;
@@ -1492,8 +1551,6 @@ class _TeamScreenState extends State<TeamScreen> {
         spiritualCategory = 0;
       }
 
-
-
       // Check if the array has more than one element
       if (challengeDataList.length > 1) {
         hasMultipleChallenges = true;
@@ -1503,7 +1560,10 @@ class _TeamScreenState extends State<TeamScreen> {
       }
     }
 
-    return Column(
+
+
+
+  return Column(
       children: [
         // Add a button to the left of the row if there are multiple challenges
         Text(title),
@@ -1587,7 +1647,11 @@ class _TeamScreenState extends State<TeamScreen> {
         Row(
           children: [
             SizedBox(width: 8), // Add some space between the button and the icons/text
-            Icon(Icons.local_fire_department_sharp),
+            Icon(
+              Icons.local_fire_department_sharp,
+              color: Colors.yellow, // Set the color to yellow
+            ),
+
             Text(' $minUserCount'),
             SizedBox(width: 8), // Add some space between the button and the icons/text
             // Icon(Icons.directions_run),
@@ -2251,8 +2315,29 @@ class _TeamScreenState extends State<TeamScreen> {
                                                         title: Column(
                                                           crossAxisAlignment: CrossAxisAlignment.start,
                                                           children: [
+                                                            // FutureBuilder<String?>(
+                                                            //   future: _getChallengeLength(teamId, challengeTitle),
+                                                            //   builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                                                            //     if (snapshot.connectionState == ConnectionState.waiting) {
+                                                            //       return CircularProgressIndicator(); // Or any loading indicator
+                                                            //     } else if (snapshot.hasError) {
+                                                            //       return Text('Error: ${snapshot.error}');
+                                                            //     } else {
+                                                            //       // Handle the case where data is successfully fetched
+                                                            //       if (snapshot.data != null) {
+                                                            //         // Use snapshot.data as String
+                                                            //         return Text(
+                                                            //           '${snapshot.data} Day Challenge',
+                                                            //           style: TextStyle(fontWeight: FontWeight.bold),
+                                                            //         );
+                                                            //       } else {
+                                                            //         return Text('');
+                                                            //       }
+                                                            //     }
+                                                            //   },
+                                                            // ),
                                                             FutureBuilder<String?>(
-                                                              future: _getChallengeLength(teamId, challengeTitle),
+                                                              future: _getChallengeLengthLeft(teamId, challengeTitle),
                                                               builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
                                                                 if (snapshot.connectionState == ConnectionState.waiting) {
                                                                   return CircularProgressIndicator(); // Or any loading indicator
@@ -2263,7 +2348,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                   if (snapshot.data != null) {
                                                                     // Use snapshot.data as String
                                                                     return Text(
-                                                                      '${snapshot.data} Day Challenge',
+                                                                      '${snapshot.data}',
                                                                       style: TextStyle(fontWeight: FontWeight.bold),
                                                                     );
                                                                   } else {
@@ -2272,6 +2357,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                                                 }
                                                               },
                                                             ),
+
 
 
 

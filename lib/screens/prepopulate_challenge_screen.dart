@@ -9,10 +9,13 @@ import 'package:intl/intl.dart'; // Import the intl package for date formatting
 
 
 class PrePopulateChallenge extends StatefulWidget {
-  const PrePopulateChallenge({Key? key, required this.challengeDataList, required this.challengeLength}) : super(key: key);
+  const PrePopulateChallenge({Key? key, required this.challengeLength, required this.challengeData, required this.Title}) : super(key: key);
 
-  final List<dynamic> challengeDataList;
+
+  final List<dynamic> challengeData;
+
   final int challengeLength;
+  final String Title;
 
   @override
   _PrePopulateChallengeState createState() => _PrePopulateChallengeState();
@@ -23,7 +26,12 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
     ChallengeData(challengeTitle: "", controller: TextEditingController())
   ];
 
+
+
+
+  // String currentDate = DateFormat("MMMM dd, yyyy").format(DateTime.now());
   DateTime startDate = DateTime.now().toLocal();
+
 
   List<String> selectedFriends = [];
   List<String> selectedTeams = [];
@@ -35,6 +43,7 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
   String selectedTimeUnit = "Per Day";
   String selectedChallengeType = "CheckBox";
   String selectedGoal = "times";
+  String Title = "N/A";
   bool enableUserTyping = false;
   bool communityChallengePost = false;
   bool emotionalCategory = false;
@@ -45,10 +54,15 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
   bool physicalCategory = false;
   bool socialCategory = false;
   bool spiritualCategory = false;
+
   bool isRecurringEvent = false;
   List<String> selectedDays = [];
-  int selectedValue = 0; // Initialize with default value
+  int selectedValue = 0;
   bool _showCircularSlider = false;
+
+  bool showChallengeList = false;
+  String challengeTitle = "";
+
 
   List<String> timeUnitOptions = [
     "Per Second",
@@ -63,12 +77,18 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
   List<String> goalOptions = ["times", "seconds", "minutes", "hours", "days"];
   String dropdownValue = 'Challenge everyone including you';
 
+
   late List<InputFieldData> inputFieldsDataList;
 
+  // bool areFieldsFilled() {
+  //   return challengeDataList.isNotEmpty &&
+  //       challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
+  // }
+
   bool areFieldsFilled() {
-    return challengeDataList.isNotEmpty &&
-        challengeDataList.every((data) => data.challengeTitle.isNotEmpty);
+    return challengeTitle.isNotEmpty;
   }
+
 
   Future<void> _selectStartDate(BuildContext context) async {
     final DateTime pickedDate = (await showDatePicker(
@@ -84,17 +104,18 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
     }
   }
 
+
+
   @override
   void initState() {
     super.initState();
     selectedValue = widget.challengeLength; // Assign widget's challengeLength to selectedValue
+    challengeTitle = widget.Title;
     inputFieldsDataList = List.generate(
       selectedNumber,
           (index) => InputFieldData(),
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -119,11 +140,31 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
                   children: <Widget>[
 
                     const SizedBox(height: 20),
-                    Column(
-                      children: challengeDataList
-                          .map((data) => _buildChallengeRow(data))
-                          .toList(),
+                    TextField(
+                      onChanged: (value) {
+                        setState(() {
+                          challengeTitle = value;
+                        });
+                      },
+                      controller: TextEditingController(text: widget.Title), // Set initial text here
+                      decoration: const InputDecoration(labelText: 'Challenge Title'),
                     ),
+
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          showChallengeList = !showChallengeList;
+                        });
+                      },
+                      child: Text(showChallengeList ? 'Remove List of Challenges' : 'Create List of Challenges'),
+                    ),
+                    if (showChallengeList)
+                      Column(
+                        children: widget.challengeData.map((data) => _buildChallengeRow(data)).toList(),
+                      ),
+
+
                     const SizedBox(height: 20),
                     const SizedBox(height: 20),
 // Show checkboxes for recurring events
@@ -571,35 +612,19 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
     );
   }
 
-  Widget _buildChallengeRow(ChallengeData data) {
+  Widget _buildChallengeRow(Map<String, dynamic> challengeMap) {
+    // Convert the map to a ChallengeData object
+    ChallengeData data = ChallengeData(
+      challengeTitle: challengeMap['challengeTitle'] ?? '', // Provide default value if key is not found
+      controller: TextEditingController(text: challengeMap['challengeTitle'] ?? ''), // Initialize controller with challenge title
+    );
+
     int index = challengeDataList.indexOf(data);
     bool hasMultipleItems = challengeDataList.length > 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (index == 0 && hasMultipleItems)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: TextFormField(
-              style: TextStyle(fontSize: 16),
-              onChanged: (value) {
-                setState(() {
-                  // Update the challengeTitle in the current data
-                  data.challengeTitle = value;
-                  // Check if the title is not already in the list, then add it
-                  if (!challengeDataList.any((element) => element.challengeTitle == value)) {
-                    // If not present, add it to the beginning of the list
-                    challengeDataList.insert(0, ChallengeData(challengeTitle: value, controller: TextEditingController()));
-                  }
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Challenge Title',
-              ),
-              initialValue: data.challengeTitle,
-            ),
-          ),
         Row(
           children: [
             const Icon(Icons.check_box_outline_blank),
@@ -650,7 +675,6 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
       ],
     );
   }
-
 
 
 
@@ -813,9 +837,10 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
             'CurrentUserEmail': currentUser.email,
             'CurrentUserName': userData['name'],
             // Store the user's name
-            'challengeDataList': challengeDataList
-                .map((data) => {'challengeTitle': data.challengeTitle})
-                .toList(),
+            'challengeDataList': challengeDataList.isEmpty
+                ? [{'challengeTitle': challengeDataList.isNotEmpty ? challengeDataList[0].challengeTitle : 'challengeTitle'}]
+                : challengeDataList.map((data) => {'challengeTitle': data.challengeTitle.isEmpty ? challengeTitle : data.challengeTitle}).toList(),
+
             'selectedFriends': selectedFriends,
             'selectedTeams': selectedTeams,
             'showFrequencyDropdowns': showFrequencyDropdowns,
@@ -840,6 +865,7 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
             'spiritualCategory' : spiritualCategory,
             'challengeLength' : selectedValue,
             'startDate': formattedStartDate,
+            'Title' : challengeTitle,
           };
 
           DocumentReference challengeDocRef =
@@ -881,13 +907,15 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
                     'challengeDocRef': challengeDocRef.id,
                     'creatorUserId': userData['name'],
                     // Store the user's name
-                    'template_name': challengeDataList
-                        .map((data) => {'challengeTitle': data.challengeTitle})
-                        .toList(),
+                    'template_name': challengeDataList.isEmpty
+                        ? [{'challengeTitle': challengeDataList.isNotEmpty ? challengeDataList[0].challengeTitle : 'challengeTitle'}]
+                        : challengeDataList.map((data) => {'challengeTitle': data.challengeTitle.isEmpty ? challengeTitle : data.challengeTitle}).toList(),
+
                     'players': players,
                     'userTyping' : enableUserTyping,
                     'challengeLength' : selectedValue,
                     'startDate': formattedStartDate,
+                    'Title' : challengeTitle,
                     // Add the list of players to the team challenge
                   }
                 ]),
@@ -919,13 +947,15 @@ class _PrePopulateChallengeState extends State<PrePopulateChallenge> {
                         'status': status,
                         'challengeDocRef': challengeDocRef.id,
                         'creatorUserId': userData['name'], // Use the user's name as creatorUserId
-                        'template_name': challengeDataList
-                            .map((data) => {'challengeTitle': data.challengeTitle})
-                            .toList(),
+                        'template_name': challengeDataList.isEmpty
+                            ? [{'challengeTitle': challengeDataList.isNotEmpty ? challengeDataList[0].challengeTitle : 'challengeTitle'}]
+                            : challengeDataList.map((data) => {'challengeTitle': data.challengeTitle.isEmpty ? challengeTitle : data.challengeTitle}).toList(),
+
                         'players': players,
                         'userTyping' : enableUserTyping,
                         'challengeLength' : selectedValue,
                         'startDate': formattedStartDate,
+                        'Title' : challengeTitle,
                       }
                     ])
                   });

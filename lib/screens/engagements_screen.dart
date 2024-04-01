@@ -24,6 +24,8 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
   List<Map<String, dynamic>> communityCoaches = [];
   late User? currentUser;
 
+  List<dynamic> selectedChallengeData = []; // Declare a list to hold the selected challenge data
+
   @override
   void initState() {
     super.initState();
@@ -78,11 +80,13 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
         if (doc.exists) {
           List<Map<String, dynamic>> challengeDataList = [];
           if (doc['challengeDataList'] != null) {
-            var data = doc['challengeDataList'][0];
-            challengeDataList.add({
-              'challengeTitle': data['challengeTitle'] ?? '',
-            });
+            for (var data in doc['challengeDataList']) {
+              challengeDataList.add({
+                'challengeTitle': data['challengeTitle'] ?? '',
+              });
+            }
           }
+
 
           Map<String, dynamic> challengeDetails = {
             'challengeId': doc.id,
@@ -148,11 +152,13 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: communityChallenges.map((challenge) =>
+
                           SizedBox(
                             width: MediaQuery.of(context).size.width * 0.4,
                             height: 300,
                             child: Card(
-                              child: Stack(
+                              child:
+                              Stack(
                                 children: [
                                   Positioned(
                                     top: 4,
@@ -246,19 +252,31 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               SizedBox(height: 30),
+                                              Text(
+                                                '${challenge['Title']}',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+
+                                              SizedBox(height: 30),
                                               SizedBox(
                                                 width: double.infinity,
                                                 child: Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                                  // children: challenge['challengeDataList']
-                                                  //     .map<Widget>((challengeData) {
-                                                  //   return Text(challengeData['challengeTitle']);
-                                                  // }).toList(),
+                                                  children: challenge['challengeDataList']
+                                                      .where((challengeData) => challengeData['challengeTitle'] != challenge['Title'])
+                                                      .map<Widget>((challengeData) {
+                                                    // Assign the current challengeData to selectedChallengeData
+                                                    selectedChallengeData.add(challengeData);
+                                                    return Text(challengeData['challengeTitle']);
+                                                  }).toList(),
                                                 ),
                                               ),
-                                              Text('${challenge['Title']}'),
-                                              Text('Host: ${challenge['CurrentUserName']}'),
-                                              Text('Challenge Length: ${challenge['challengeLength']}'),
+
+
+                                              // Text('Host: ${challenge['CurrentUserName']}'),
+                                              Text('${challenge['challengeLength']} Day Challenge'),
                                               SizedBox(height: 10), // Added spacing
                                               ElevatedButton( // Added button
                                                 onPressed: () {
@@ -267,8 +285,9 @@ class _EngagementsScreenState extends State<EngagementsScreen> {
                                                     MaterialPageRoute(
                                                       builder: (context) => PrePopulateChallenge(
                                                         // Pass necessary data here
-                                                        challengeDataList: challenge['challengeDataList'],
+                                                        challengeData: challenge['challengeDataList'],
                                                         challengeLength: challenge['challengeLength'],
+                                                        Title: challenge['Title'],
                                                       ),
                                                     ),
                                                   );

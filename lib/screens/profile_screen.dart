@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return Column(
                       children: [
                         Text(
-                          'Giving Points: $totalGivingPoints',
+                          'Coach Points: $totalGivingPoints',
                           style: const TextStyle(fontSize: 18),
                         ),
                       ],
@@ -179,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     return Column(
                       children: [
                         Text(
-                          'Receiving Points: $totalPoints',
+                          'Player Points: $totalPoints',
                           style: const TextStyle(fontSize: 18),
                         ),
 
