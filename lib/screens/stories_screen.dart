@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:snapchat_ui_clone/screens/select_teams_screen.dart';
+import 'package:snapchat_ui_clone/screens/user_profiles.dart';
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
 import 'dart:io';
 import 'package:intl/intl.dart'; // Import intl package for date formatting
@@ -7,6 +9,7 @@ import '../style.dart';
 import '../widgets/discover_grid.dart';
 import '../widgets/team_stories.dart';
 import '../widgets/subscriptions.dart';
+import 'community_coach_request_screen.dart';
 import 'events_filter_page.dart'; // Import your EventsFilter screen
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
@@ -186,10 +189,10 @@ class _StoriesScreenState extends State<StoriesScreen> {
     }
   }
 
-  void _showAddCoachDialog(BuildContext context) {
+  Future<void> _showAddCoachDialog(BuildContext context) async {
     String description = '';
     String yearsOfExperience = '';
-    String coach = _loadCurrentUserName() as String;
+    String? coach = await _loadCurrentUserName();
 
     showDialog(
       context: context,
@@ -225,8 +228,8 @@ class _StoriesScreenState extends State<StoriesScreen> {
               child: Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
-                FirebaseFirestore.instance
+              onPressed: () async {
+                await FirebaseFirestore.instance
                     .collection('community_coaches')
                     .add({
                   'coach': coach,
@@ -527,7 +530,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -536,11 +539,11 @@ class _StoriesScreenState extends State<StoriesScreen> {
                             width: MediaQuery.of(context).size.width * 0.4,
                             child: Card(
                               child: Padding(
-                                padding: const EdgeInsets.all(8.0),
+                                padding: const EdgeInsets.all(10),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    SizedBox(height: 8),
+                                    SizedBox(height: 0),
                                     FutureBuilder<String?>(
                                       future: _loadCurrentUserName(),
                                       builder: (context, snapshot) {
@@ -553,6 +556,19 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                         }
                                       },
                                     ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => UserProfileScreen(coach['coach']),
+                                          ),
+                                        );
+                                      },
+                                      child: const Icon(Icons.account_circle), // Replace this with your profile icon
+                                    ),
+
+                                    SizedBox(height: 8),
                                     Text(
                                       'Coach ID: ${coach['coach']}',
                                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -562,6 +578,25 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                     SizedBox(height: 8),
                                     Text('Years of Experience: ${coach['years_of_experience']}'),
                                     SizedBox(height: 8),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        final coachId = coach['coach'] as String?;
+                                        print(coachId);
+                                        if (coachId != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => CommunityCoachRequestScreen(coachId: coachId),
+                                            ),
+                                          );
+                                        } else {
+                                          // Handle the case when coach['coach'] is null or not a String
+                                          // For example, show a snackbar or display an error message
+                                        }
+                                      },
+                                      child: Text('Request Service'),
+                                    ),
+
                                   ],
                                 ),
                               ),

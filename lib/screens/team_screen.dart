@@ -2283,11 +2283,13 @@ class _TeamScreenState extends State<TeamScreen> {
                                   ),
 
                                   const SizedBox(height: 8),
+                                  Text('Community Coach: '),
                                   Container(
                                     decoration: BoxDecoration(
                                       border: Border.all(color: Colors.grey[300]!),
                                       borderRadius: BorderRadius.all(Radius.circular(8)),
                                     ),
+
                                     child: ExpansionTile(
                                       title: Text('Challenges'),
                                       children: [
