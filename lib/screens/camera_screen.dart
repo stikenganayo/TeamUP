@@ -199,16 +199,6 @@ class DisplayImageScreen extends StatelessWidget {
         children: [
           Image.file(File(imagePath), fit: BoxFit.cover),
           Positioned(
-            top: 40, // Adjust position as per your preference
-            left: 16, // Adjust position as per your preference
-            child: IconButton(
-              onPressed: () {
-                Navigator.pop(context); // Navigate back to the previous screen
-              },
-              icon: Icon(Icons.close, color: Colors.white), // X icon for closing
-            ),
-          ),
-          Positioned(
             bottom: 0,
             left: 0,
             right: 0,

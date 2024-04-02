@@ -187,7 +187,7 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
-  List<String> _messages = [];
+  List<dynamic> _messages = [];
 
   @override
   void initState() {
@@ -211,13 +211,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
           List<dynamic> messages = (userSnapshot.data() as Map<String, dynamic>?)?['message_with_${widget.friendName}'] ?? [];
 
-
           setState(() {
-            _messages = messages.map<String>((messageData) {
-              final sender = messageData['sender'];
-              final message = messageData['message'];
-              return '$sender: $message';
-            }).toList();
+            _messages = messages;
           });
         } else {
           print('User document not found for the current user');
@@ -243,51 +238,48 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final message = _messages[index];
-                final isCurrentUserMessage = message.startsWith('You:');
+                final isCurrentUserMessage = message['sender'] == FirebaseAuth.instance.currentUser!.email;
                 final backgroundColor = isCurrentUserMessage ? Colors.blue[400] : Colors.grey[200];
                 final textColor = isCurrentUserMessage ? Colors.white : Colors.black;
 
-                if (message.contains('IMAGE_URL:')) {
-                  final imageUrl = message.replaceAll('IMAGE_URL:', '').trim();
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                    child: Align(
-                      alignment: isCurrentUserMessage ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        padding: EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          color: backgroundColor,
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        child: Image.network(
-                          imageUrl,
-                          width: 200,
-                          height: 200,
-                          fit: BoxFit.cover,
-                        ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                  child: Align(
+                    alignment: isCurrentUserMessage ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      padding: EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: backgroundColor,
+                        borderRadius: BorderRadius.circular(16.0),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${message['sender']}:', // Display sender's name
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          if (message['message'] != null && message['message'].contains('http'))
+                            Image.network(
+                              message['message'],
+                              width: 200,
+                              height: 200,
+                              fit: BoxFit.cover,
+                            )
+                          else
+                            Text(
+                              message['message'],
+                              style: TextStyle(color: textColor),
+                            ),
+                        ],
                       ),
                     ),
-                  );
-                } else {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                    child: Align(
-                      alignment: isCurrentUserMessage ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        padding: EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          color: backgroundColor,
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                        child: Text(
-                          message,
-                          style: TextStyle(color: textColor),
-                        ),
-                      ),
-                    ),
-                  );
-                }
+                  ),
+                );
               },
             ),
           ),
@@ -368,7 +360,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 });
 
                 setState(() {
-                  _messages.add('$currentUserName: $message');
+                  _messages.add({'sender': currentUserName, 'message': message});
                   _messageController.clear();
                 });
               } else {
