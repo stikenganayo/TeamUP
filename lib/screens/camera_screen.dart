@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
@@ -82,8 +85,8 @@ class _CameraScreenState extends State<CameraScreen> {
           child: Builder(builder: (BuildContext builder) {
             var camera = widget.cameraController!.value;
             final fullSize = MediaQuery.of(context).size;
-            final size =
-            Size(fullSize.width, fullSize.height - (Platform.isIOS ? 90 : 60));
+            final size = Size(
+                fullSize.width, fullSize.height - (Platform.isIOS ? 90 : 60));
             double scale;
             try {
               scale = size.aspectRatio * camera.aspectRatio;
@@ -143,97 +146,129 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 }
 
-class DisplayImageScreen extends StatelessWidget {
+class DisplayImageScreen extends StatefulWidget {
   final String imagePath;
 
   const DisplayImageScreen({Key? key, required this.imagePath}) : super(key: key);
 
-  Future<void> _savePictureToDevice(BuildContext context, String imagePath) async {
+  @override
+  _DisplayImageScreenState createState() => _DisplayImageScreenState();
+}
+
+class _DisplayImageScreenState extends State<DisplayImageScreen> {
+  TextEditingController _textEditingController = TextEditingController();
+  List<Widget> _textWidgets = [];
+  bool _textEditingMode = false;
+  GlobalKey globalKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: RepaintBoundary(
+        key: globalKey,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildImageWidget(),
+            ..._textWidgets,
+            if (_textEditingMode) _buildTextEditingWidget(),
+            _buildBottomBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageWidget() {
+    File imageFile = File(widget.imagePath);
+    if (!imageFile.existsSync()) {
+      return Center(child: Text('Image not found'));
+    }
+    return Image.file(imageFile, fit: BoxFit.cover);
+  }
+
+  Widget _buildTextEditingWidget() {
+    return Positioned(
+      top: MediaQuery.of(context).size.height / 4, // Adjust top position as needed
+      left: 0,
+      right: 0,
+      height: MediaQuery.of(context).size.height / 18, // Adjust height as needed
+      child: Container(
+        color: Colors.black.withOpacity(0.5),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: TextField(
+            controller: _textEditingController,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24, // Adjust the font size as needed
+            ),
+            textAlign: TextAlign.center,
+            decoration: InputDecoration(
+              hintText: 'Enter text',
+              hintStyle: TextStyle(color: Colors.white),
+              border: InputBorder.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        color: Colors.black.withOpacity(0.7),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(
+              onPressed: () {
+                _saveImage();
+              },
+              icon: Icon(Icons.save, color: Colors.white),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _textEditingMode = true;
+                });
+              },
+              icon: Icon(Icons.text_fields, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveImage() async {
     try {
-      final Directory? picturesDir = await getExternalStorageDirectory();
-      if (picturesDir == null) {
-        if (kDebugMode) {
-          print("Error: External storage directory is not available.");
-        }
-        return;
-      }
-
-      final String savePath =
-          "${picturesDir.path}/TeamUP/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-      final savedDir = Directory(savePath);
-      if (!savedDir.existsSync()) {
-        savedDir.createSync(recursive: true);
-      }
-
-      final File imageFile = File(imagePath);
-
-      // Initialize Firebase (ensure this is done elsewhere in your app)
-      await Firebase.initializeApp();
+      final RenderRepaintBoundary boundary = globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final Uint8List pngBytes = byteData!.buffer.asUint8List();
 
       // Upload image to Firebase Storage
       final storageRef = firebase_storage.FirebaseStorage.instance.ref();
-      final imageFileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final imageFileName = DateTime.now().millisecondsSinceEpoch.toString() + '.png';
       final imageStorageRef = storageRef.child("images/$imageFileName");
 
-      await imageStorageRef.putFile(imageFile);
+      await imageStorageRef.putData(pngBytes);
 
       // Get the download URL of the uploaded image
       final imageUrl = await imageStorageRef.getDownloadURL();
 
       // Save the image URL to Firestore
       await FirebaseFirestore.instance.collection('images').add({'url': imageUrl});
-
     } catch (e) {
       if (kDebugMode) {
         print("Error saving picture: $e");
       }
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.file(File(imagePath), fit: BoxFit.cover),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              color: Colors.black.withOpacity(0.7),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      _savePictureToDevice(context, imagePath);
-                    },
-                    icon: Icon(Icons.save, color: Colors.white),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      // TODO: Add functionality to send the image
-                      // You can use _sendImage() or any other method you prefer.
-                    },
-                    icon: Icon(Icons.send, color: Colors.white),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      // TODO: Add functionality to post the image
-                      // You can use _postImage() or any other method you prefer.
-                    },
-                    icon: Icon(Icons.post_add, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

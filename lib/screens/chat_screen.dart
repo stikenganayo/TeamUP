@@ -16,6 +16,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   late User? currentUser;
   List<String> userNames = []; // List to store user names
+  Map<String, bool> newMessages = {}; // Map to store new message indicators
 
   @override
   void initState() {
@@ -56,6 +57,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   setState(() {
                     userNames.add(friendName);
                   });
+
+                  // Check if the most recent message has been seen
+                  await _checkNewMessages(userName, friendName);
                 } else {
                   print('Name field not found for friend with email: $friendEmail');
                 }
@@ -74,6 +78,32 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     } catch (e) {
       print('Error loading user friends: $e');
+    }
+  }
+
+  Future<void> _checkNewMessages(String userName, String friendName) async {
+    try {
+      QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('name', isEqualTo: userName)
+          .limit(1)
+          .get();
+
+      if (userQuerySnapshot.docs.isNotEmpty) {
+        DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
+        Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
+
+        List<dynamic> messages = (userData['message_with_$friendName'] ?? []) as List<dynamic>;
+        if (messages.isNotEmpty) {
+          Map<String, dynamic> latestMessage = messages.last;
+          bool seen = latestMessage['Seen'] == 'yes';
+          setState(() {
+            newMessages[friendName] = !seen; // Store the indicator for new messages
+          });
+        }
+      }
+    } catch (e) {
+      print('Error checking new messages: $e');
     }
   }
 
@@ -148,19 +178,22 @@ class _ChatScreenState extends State<ChatScreen> {
                           );
                         }
                         final userNameIndex = index ~/ 2;
+                        final friendName = userNames[userNameIndex];
+                        final hasNewMessage = newMessages.containsKey(friendName) && newMessages[friendName] == true;
                         return GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChatDetailScreen(
-                                  friendName: userNames[userNameIndex],
+                                  friendName: friendName,
                                 ),
                               ),
                             );
                           },
                           child: ListTile(
-                            title: Text(userNames[userNameIndex]),
+                            title: Text(friendName),
+                            trailing: hasNewMessage ? Icon(Icons.circle, color: Colors.green, size: 12) : null,
                           ),
                         );
                       },
@@ -210,6 +243,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
 
           List<dynamic> messages = (userSnapshot.data() as Map<String, dynamic>?)?['message_with_${widget.friendName}'] ?? [];
+
+          // Update "Seen" parameter for the last message
+          if (messages.isNotEmpty) {
+            Map<String, dynamic> latestMessage = messages.last;
+            latestMessage['Seen'] = 'yes';
+            await userSnapshot.reference.update({
+              'message_with_${widget.friendName}': messages,
+            });
+          }
 
           setState(() {
             _messages = messages;
@@ -343,6 +385,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   'sender': currentUserName,
                   'receiver': widget.friendName,
                   'message': message,
+                  'Seen': 'no', // Added "Seen" parameter with value "yes"
                 };
 
                 await FirebaseFirestore.instance

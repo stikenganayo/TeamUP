@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+
 class ImageListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -65,6 +69,9 @@ class ImageListScreen extends StatelessWidget {
                     ),
                   );
                 },
+                onLongPress: () {
+                  _showDeleteDialog(context, images[index].id);
+                },
               );
             },
           );
@@ -72,6 +79,66 @@ class ImageListScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showDeleteDialog(BuildContext context, String docId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Image"),
+        content: Text("Are you sure you want to delete this image?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              _deleteImage(docId);
+              Navigator.pop(context);
+            },
+            child: Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteImage(String docId) async {
+    try {
+      // Get the URL of the image from Firestore
+      DocumentSnapshot imageSnapshot =
+      await FirebaseFirestore.instance.collection('images').doc(docId).get();
+      if (!imageSnapshot.exists) {
+        print("Image document does not exist");
+        return;
+      }
+
+      Map<String, dynamic>? imageData = imageSnapshot.data() as Map<String, dynamic>?; // Cast to Map<String, dynamic>
+      if (imageData == null || !imageData.containsKey('url')) {
+        print("Invalid image data");
+        return;
+      }
+
+      String imageUrl = imageData['url'];
+      if (imageUrl == null || !(imageUrl.startsWith('gs://') || imageUrl.startsWith('http'))) {
+        print("Invalid image URL");
+        return;
+      }
+
+      // If the URL starts with 'gs://', delete image from Firebase Storage
+      if (imageUrl.startsWith('gs://')) {
+        await firebase_storage.FirebaseStorage.instance.refFromURL(imageUrl).delete();
+      }
+
+      // Delete image from Firestore
+      await FirebaseFirestore.instance.collection('images').doc(docId).delete();
+    } catch (e) {
+      print("Error deleting image: $e");
+    }
+  }
+
 }
 
 class FullScreenImage extends StatefulWidget {
@@ -196,7 +263,7 @@ class _FullScreenImageState extends State<FullScreenImage> {
             right: 0,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withOpacity(1),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
