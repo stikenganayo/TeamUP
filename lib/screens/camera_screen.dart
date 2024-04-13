@@ -180,11 +180,22 @@ class _DisplayImageScreenState extends State<DisplayImageScreen> {
   }
 
   Widget _buildImageWidget() {
-    File imageFile = File(widget.imagePath);
-    if (!imageFile.existsSync()) {
-      return Center(child: Text('Image not found'));
-    }
-    return Image.file(imageFile, fit: BoxFit.cover);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.file(File(widget.imagePath), fit: BoxFit.cover),
+        Positioned(
+          top: 40,
+          left: 16,
+          child: IconButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            icon: Icon(Icons.close, color: Colors.white),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildTextEditingWidget() {
@@ -265,6 +276,10 @@ class _DisplayImageScreenState extends State<DisplayImageScreen> {
 
       // Save the image URL to Firestore
       await FirebaseFirestore.instance.collection('images').add({'url': imageUrl});
+
+      // Close the DisplayImageScreen
+      Navigator.pop(context);
+
     } catch (e) {
       if (kDebugMode) {
         print("Error saving picture: $e");
