@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/screens/Stage%201/authentication_screen.dart';
 import 'package:snapchat_ui_clone/screens/camera_screen.dart';
 import 'package:snapchat_ui_clone/screens/chat_screen.dart';
+import 'package:snapchat_ui_clone/screens/engagements_screen.dart';
 import 'package:snapchat_ui_clone/screens/event_screen.dart';
 import 'package:snapchat_ui_clone/screens/Stage%201/signup_screen.dart';
 import 'package:snapchat_ui_clone/screens/stories_screen.dart';
@@ -54,7 +55,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-
   int _currentScreen = 2;
   final PageController _pageController = PageController(initialPage: 2);
 
@@ -81,7 +81,6 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -100,7 +99,6 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Style.white,
       body: PageView(
@@ -111,22 +109,20 @@ class _MainPageState extends State<MainPage> {
             _currentScreen = index;
           });
         },
-        children: <Widget> [
+        children: <Widget>[
           // showSignUpScreen ? SignUpScreen() : Container(), // Display SignUpScreen conditionally
           // TemporaryScreen(color: _colors[0]),
-          const ChatScreen(),
+          const ChatScreen(friendName: '',),
           // TemporaryScreen(color: _colors[1]),
           const TeamScreen(),
           CameraScreen(cameraController: _cameraController, initCamera: initCamera),
           // TemporaryScreen(color: _colors[3]),
-          const EventsScreen(),
+          const EngagementsScreen(),
           const StoriesScreen(),
           // TemporaryScreen(color: _colors[4]),
-
         ],
       ),
-      bottomNavigationBar: SizedBox(
-        height: Platform.isIOS ? 90 : 60,
+      bottomNavigationBar: Expanded(
         child: BottomNavigationBar(
           selectedItemColor: Colors.red,
           unselectedItemColor: Colors.black,
@@ -138,10 +134,10 @@ class _MainPageState extends State<MainPage> {
           onTap: (int index) {
             _pageController.jumpToPage(index);
           },
-          items: const <BottomNavigationBarItem> [
+          items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.person_2_fill, size: 28),
-                label: '',
+              icon: Icon(CupertinoIcons.person_2_fill, size: 28),
+              label: '',
             ),
             BottomNavigationBarItem(
               icon: Icon(CupertinoIcons.person_3_fill, size: 28),
@@ -160,10 +156,7 @@ class _MainPageState extends State<MainPage> {
               label: '',
             ),
           ],
-          //currentIndex: 0,
-
-        )
-
+        ),
       ),
     );
   }

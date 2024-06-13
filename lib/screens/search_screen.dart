@@ -2,19 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'create_team_page.dart';
+
 class SearchScreen extends StatelessWidget {
-  const SearchScreen({Key? key}) : super(key: key);
+  final int initialTabIndex;
+
+  const SearchScreen({Key? key, this.initialTabIndex = 0}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Friends'),
+    return DefaultTabController(
+      initialIndex: initialTabIndex,
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Search Screen'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Add Friends'),
+              Tab(text: 'Create Team/Community'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            SearchContent(),
+            CreateTeam(),
+          ],
+        ),
       ),
-      body: const SearchContent(),
     );
   }
 }
+
+
 
 class SearchContent extends StatefulWidget {
   const SearchContent({Key? key}) : super(key: key);
@@ -40,20 +61,83 @@ class _SearchContentState extends State<SearchContent> {
   }
 
   void _searchUsers(String query) {
-    // Fetch user data from Firestore based on the query
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      // If no user is logged in, return empty results
+      setState(() {
+        searchResults = [];
+      });
+      return;
+    }
+
+    String currentUserEmail = currentUser.email ?? '';
+
     FirebaseFirestore.instance
         .collection('users')
         .where('name', isGreaterThanOrEqualTo: query)
         .where('name', isLessThan: query + 'z')
         .get()
-        .then((QuerySnapshot querySnapshot) {
+        .then((QuerySnapshot querySnapshot) async {
+      List<String> friendsEmailsList = await getCurrentUserFriendsEmails(currentUser);
+      List<String> excludedUsers = await getFriendRequestExcludedUsers(currentUserEmail);
+
       setState(() {
         searchResults = querySnapshot.docs
+            .where((doc) =>
+        doc['email'] != currentUserEmail &&
+            !friendsEmailsList.contains(doc['email'] as String) &&
+            !excludedUsers.contains(doc['name'] as String))
             .map((doc) => doc['name'] as String)
             .toList();
       });
     });
   }
+
+  Future<List<String>> getCurrentUserFriendsEmails(User currentUser) async {
+    String? currentUserEmail = currentUser.email;
+
+    if (currentUserEmail == null) {
+      return [];
+    }
+
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: currentUserEmail)
+        .get()
+        .then((querySnapshot) => querySnapshot.docs.first);
+
+    if (userSnapshot.exists) {
+      // Assuming the friends list is directly under the 'friends' field in the user document
+      List<String> friendsEmailsList = List<String>.from(userSnapshot['friends'] ?? []);
+      return friendsEmailsList;
+    } else {
+      print('Current user document not found');
+    }
+
+    return [];
+  }
+
+  Future<List<String>> getFriendRequestExcludedUsers(String currentUserEmail) async {
+    List<String> excludedUsers = [];
+
+    QuerySnapshot friendRequestsSnapshot = await FirebaseFirestore.instance
+        .collection('friend_requests')
+        .where('senderEmail', isEqualTo: currentUserEmail)
+        .get();
+
+    for (QueryDocumentSnapshot doc in friendRequestsSnapshot.docs) {
+      String receiverUid = doc['receiverUid'];
+      DocumentSnapshot receiverUserSnapshot = await FirebaseFirestore.instance.collection('users').doc(receiverUid).get();
+
+      if (receiverUserSnapshot.exists) {
+        excludedUsers.add(receiverUserSnapshot['name'] as String);
+      }
+    }
+
+    return excludedUsers;
+  }
+
 
   Future<void> _addUser(String user) async {
     User? currentUser = FirebaseAuth.instance.currentUser;
@@ -95,9 +179,6 @@ class _SearchContentState extends State<SearchContent> {
     }
   }
 
-
-
-
   Future<String?> getReceiverUid(String receiverName) async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('users')
@@ -110,9 +191,6 @@ class _SearchContentState extends State<SearchContent> {
 
     return null; // If user with the provided name is not found
   }
-
-
-
 
   Widget _buildFriendRequestsSection() {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -212,7 +290,6 @@ class _SearchContentState extends State<SearchContent> {
                               ],
                             ),
                           );
-
                         } else {
                           return Text('Name not found for this user');
                         }
@@ -231,7 +308,6 @@ class _SearchContentState extends State<SearchContent> {
       },
     );
   }
-
 
   void acceptFriendRequestAndAddToFriends(String senderEmail, int indexToRemove) {
     User? currentUser = FirebaseAuth.instance.currentUser;
@@ -283,7 +359,6 @@ class _SearchContentState extends State<SearchContent> {
     }
   }
 
-
   void deleteFriendRequest(String senderEmail, int indexToRemove) {
     User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -330,23 +405,6 @@ class _SearchContentState extends State<SearchContent> {
     }
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -375,7 +433,7 @@ class _SearchContentState extends State<SearchContent> {
                   onPressed: () => _addUser(user),
                   child: Text(isPending ? 'Pending' : 'Add'),
                   style: ElevatedButton.styleFrom(
-                    primary: isPending ? Colors.grey : null,
+                    backgroundColor: isPending ? Colors.grey : null,
                   ),
                 ),
               );
