@@ -13,7 +13,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+  class _ChatScreenState extends State<ChatScreen> {
   late User? currentUser;
   List<String> userNames = []; // List to store user names
   Map<String, bool> newMessages = {}; // Map to store new message indicators

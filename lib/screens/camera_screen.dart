@@ -163,20 +163,51 @@ class _DisplayImageScreenState extends State<DisplayImageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: RepaintBoundary(
-        key: globalKey,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildImageWidget(),
-            ..._textWidgets,
-            if (_textEditingMode) _buildTextEditingWidget(),
-            _buildBottomBar(),
-          ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        body: RepaintBoundary(
+          key: globalKey,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _textEditingMode = !_textEditingMode; // Toggle text editing mode
+                  });
+                },
+                child: _buildImageWidget(),
+              ),
+              ..._textWidgets,
+              if (_textEditingMode) _buildTextEditingWidget(),
+              _buildBottomBar(),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<bool> _onWillPop() async {
+    return (await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Are you sure?'),
+        content: Text('Do you want to close this page?'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Yes'),
+          ),
+        ],
+      ),
+    )) ??
+        false;
   }
 
   Widget _buildImageWidget() {
@@ -188,8 +219,11 @@ class _DisplayImageScreenState extends State<DisplayImageScreen> {
           top: 40,
           left: 16,
           child: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
+            onPressed: () async {
+              bool closePage = await _onWillPop();
+              if (closePage) {
+                Navigator.pop(context);
+              }
             },
             icon: Icon(Icons.close, color: Colors.white),
           ),
@@ -246,7 +280,7 @@ class _DisplayImageScreenState extends State<DisplayImageScreen> {
             IconButton(
               onPressed: () {
                 setState(() {
-                  _textEditingMode = true;
+                  _textEditingMode = !_textEditingMode; // Toggle text editing mode
                 });
               },
               icon: Icon(Icons.text_fields, color: Colors.white),
@@ -276,6 +310,14 @@ class _DisplayImageScreenState extends State<DisplayImageScreen> {
 
       // Save the image URL to Firestore
       await FirebaseFirestore.instance.collection('images').add({'url': imageUrl});
+
+      // Show 'Saved Successfully' message at the bottom of the screen
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved Successfully'),
+          duration: Duration(seconds: 2), // Adjust duration as needed
+        ),
+      );
 
       // Close the DisplayImageScreen
       Navigator.pop(context);

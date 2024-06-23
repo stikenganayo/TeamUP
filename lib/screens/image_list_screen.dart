@@ -1,80 +1,158 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import '../screens/share_image_screen.dart';
 
 class ImageListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Memories'),
+    return DefaultTabController(
+      length: 3, // Number of tabs
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Your Memories'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Pictures'),
+              Tab(text: 'Challenges'),
+              Tab(text: 'Events'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildImagesList(context), // Memories tab
+            _buildChallengesSection(), // Challenges tab
+            _buildEventsSection(), // Events tab
+          ],
+        ),
       ),
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('images').snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+  Widget _buildImagesList(BuildContext context) {
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection('images').snapshots(),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
 
-          final images = snapshot.data?.docs ?? [];
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
 
-          return GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8.0,
-              mainAxisSpacing: 8.0,
-            ),
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              final imageUrl = images[index]['url'];
+        final images = snapshot.data?.docs ?? [];
 
-              return GestureDetector(
-                child: Hero(
-                  tag: imageUrl, // Unique tag for each image
-                  child: Card(
-                    margin: EdgeInsets.all(8.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12.0),
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, widget, event) {
-                          if (event == null) {
-                            return widget;
-                          } else {
-                            return Center(child: CircularProgressIndicator());
-                          }
-                        },
-                      ),
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8.0,
+            mainAxisSpacing: 8.0,
+          ),
+          itemCount: images.length,
+          itemBuilder: (context, index) {
+            final imageUrl = images[index]['url'];
+
+            return GestureDetector(
+              child: Hero(
+                tag: imageUrl,
+                child: Card(
+                  margin: EdgeInsets.all(8.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, widget, event) {
+                        if (event == null) {
+                          return widget;
+                        } else {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                      },
                     ),
                   ),
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FullScreenImage(imagePath: imageUrl),
-                    ),
-                  );
-                },
-                onLongPress: () {
-                  _showDeleteDialog(context, images[index].id);
-                },
-              );
-            },
-          );
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FullScreenImage(imagePath: imageUrl),
+                  ),
+                );
+              },
+              onLongPress: () {
+                _showDeleteDialog(context, images[index].id);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildChallengesSection() {
+    return ListView(
+      children: [
+        _buildSectionHeader('Past Challenges'),
+        _buildChallengeCard('Planting garden', 'Completed on 2024-01-15'),
+        _buildChallengeCard('Painting', 'Completed on 2024-05-20'),
+        _buildSectionHeader('Present Challenges'),
+        _buildChallengeCard('Push-ups', 'In progress'),
+      ],
+    );
+  }
+
+  Widget _buildEventsSection() {
+    return ListView(
+      children: [
+        _buildSectionHeader('Past Events'),
+        _buildEventCard('Bushwakkers', 'Held on 2024-02-30'),
+        _buildEventCard('Gym session', 'Held on 2024-03-15'),
+        _buildSectionHeader('Present Events'),
+        _buildEventCard('Supper at uncle ronnis', 'Upcoming on 2024-07-10'),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Container(
+      padding: EdgeInsets.all(8.0),
+      color: Colors.grey[200],
+      child: Text(
+        title,
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildChallengeCard(String title, String subtitle) {
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(subtitle),
+        onTap: () {
+          // Handle tapping on the challenge card
+        },
+      ),
+    );
+  }
+
+  Widget _buildEventCard(String title, String subtitle) {
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(subtitle),
+        onTap: () {
+          // Handle tapping on the event card
         },
       ),
     );
@@ -107,15 +185,13 @@ class ImageListScreen extends StatelessWidget {
 
   Future<void> _deleteImage(String docId) async {
     try {
-      // Get the URL of the image from Firestore
-      DocumentSnapshot imageSnapshot =
-      await FirebaseFirestore.instance.collection('images').doc(docId).get();
+      DocumentSnapshot imageSnapshot = await FirebaseFirestore.instance.collection('images').doc(docId).get();
       if (!imageSnapshot.exists) {
         print("Image document does not exist");
         return;
       }
 
-      Map<String, dynamic>? imageData = imageSnapshot.data() as Map<String, dynamic>?; // Cast to Map<String, dynamic>
+      Map<String, dynamic>? imageData = imageSnapshot.data() as Map<String, dynamic>?;
       if (imageData == null || !imageData.containsKey('url')) {
         print("Invalid image data");
         return;
@@ -127,118 +203,21 @@ class ImageListScreen extends StatelessWidget {
         return;
       }
 
-      // If the URL starts with 'gs://', delete image from Firebase Storage
       if (imageUrl.startsWith('gs://')) {
         await firebase_storage.FirebaseStorage.instance.refFromURL(imageUrl).delete();
       }
 
-      // Delete image from Firestore
       await FirebaseFirestore.instance.collection('images').doc(docId).delete();
     } catch (e) {
       print("Error deleting image: $e");
     }
   }
-
 }
 
-class FullScreenImage extends StatefulWidget {
+class FullScreenImage extends StatelessWidget {
   final String imagePath;
 
   const FullScreenImage({Key? key, required this.imagePath}) : super(key: key);
-
-  @override
-  _FullScreenImageState createState() => _FullScreenImageState();
-}
-
-class _FullScreenImageState extends State<FullScreenImage> {
-  List<Map<String, dynamic>> events = [];
-  late User currentUser; // Define currentUser variable
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrentUser(); // Call function to load current user
-    _loadCommunityEvents(); // Load community events
-  }
-
-  // Function to load current user
-  Future<void> _loadCurrentUser() async {
-    currentUser = FirebaseAuth.instance.currentUser!;
-  }
-
-  // Function to load current user name
-  Future<String?> _loadCurrentUserName() async {
-    if (currentUser != null) {
-      print('Current User Email: ${currentUser.email}');
-      print('Current User Doc: $currentUser');
-      try {
-        // Fetch the user document based on the current user's email
-        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: currentUser.email)
-            .limit(1)
-            .get();
-
-        if (userQuerySnapshot.docs.isNotEmpty) {
-          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-
-          // Print all data inside the current user's document
-          print('User Data: $userData');
-
-          // Check for the 'name' field in the user data
-          if (userData.containsKey('name')) {
-            String userName = userData['name'] as String;
-            return userName;
-          } else {
-            print('Name field not found in user document');
-          }
-        } else {
-          print('User document not found for the current user');
-        }
-      } catch (e) {
-        print('Error loading user document: $e');
-      }
-    }
-    return null; // Return null if any error occurs or if user is not found
-  }
-
-  Future<void> _loadCommunityEvents() async {
-    try {
-      QuerySnapshot communityEventsSnapshot = await FirebaseFirestore.instance
-          .collection('events')
-          .where('communityEvent', isEqualTo: true)
-          .get();
-
-      List<Map<String, dynamic>> eventsList = [];
-
-      for (DocumentSnapshot doc in communityEventsSnapshot.docs) {
-        if (doc.exists) {
-          String formattedDate =
-          DateFormat('MMMM dd, yyyy').format(doc['startDate'].toDate());
-
-          Map<String, dynamic> eventDetails = {
-            'eventId': doc.id,
-            'eventTitle': doc['eventTitle'] ?? '',
-            'startDate': formattedDate,
-            'startTime': doc['startTime'] ?? '',
-            'eventLocation': doc['eventLocation'] ?? '',
-            'CurrentUserName': doc['CurrentUserName'],
-            'attending': doc['attending'] ?? 0,
-            'isGoing': false,
-            'background': doc['background'] ?? '',
-          };
-          eventsList.add(eventDetails);
-        }
-      }
-
-      setState(() {
-        events = eventsList;
-      });
-    } catch (e) {
-      print('Error loading community events: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -246,7 +225,7 @@ class _FullScreenImageState extends State<FullScreenImage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(widget.imagePath, fit: BoxFit.cover),
+          Image.network(imagePath, fit: BoxFit.cover),
           Positioned(
             top: 40,
             left: 16,
@@ -263,17 +242,20 @@ class _FullScreenImageState extends State<FullScreenImage> {
             right: 0,
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              color: Colors.black.withOpacity(1),
+              color: Colors.black.withOpacity(0.5),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildPostMenuWidget(),
-                  _buildPostAddMenuWidget(),
                   IconButton(
                     onPressed: () {
-                      _showSendMenu(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ShareImageScreen(imagePath: imagePath),
+                        ),
+                      );
                     },
-                    icon: Icon(Icons.send, color: Colors.white),
+                    icon: Icon(Icons.share, color: Colors.white),
                   ),
                 ],
               ),
@@ -282,433 +264,5 @@ class _FullScreenImageState extends State<FullScreenImage> {
         ],
       ),
     );
-  }
-
-  Widget _buildPostMenuWidget() {
-    return IconButton(
-      onPressed: () {
-        _showPostMenu(context);
-      },
-      icon: Icon(Icons.event, color: Colors.white),
-    );
-  }
-
-  Widget _buildPostAddMenuWidget() {
-    return IconButton(
-      onPressed: () {
-        _showPostAddMenu(context);
-      },
-      icon: Icon(Icons.post_add, color: Colors.white),
-    );
-  }
-
-  void _showPostMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Divider(),
-              Column(
-                children: events.map((Map<String, dynamic> event) {
-                  return ListTile(
-                    leading: Icon(Icons.event),
-                    title: Text('Add to ${event['eventTitle']}'),
-                    onTap: () {
-                      _handleEventSelection(context, event['eventTitle']);
-                      Navigator.pop(context); // Close the menu
-                    },
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showPostAddMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Post to Teams Story',
-                  style: TextStyle(
-                    fontSize: 18.0,
-                  ),
-                ),
-              ),
-              SizedBox(height: 8.0),
-              FutureBuilder<List<String>>(
-                future: _getUserTeams(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else {
-                    List<String> userTeams = snapshot.data ?? [];
-                    return Expanded(
-                      child: ListView.builder(
-                        itemCount: userTeams.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            title: Text(userTeams[index]),
-                            onTap: () {
-                              _addToTeamStory(context, userTeams[index]);
-                              Navigator.pop(context);
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  }
-                },
-              ),
-              Divider(),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: Text(
-                    'Post to Friends Story',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.0,
-                    ),
-                  ),
-                  onTap: () {
-                    _sendToStory(context);
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<List<String>> _getUserTeams() async {
-    try {
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        String currentUserEmail = currentUser.email!;
-        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: currentUserEmail)
-            .limit(1)
-            .get();
-
-        if (userQuerySnapshot.docs.isNotEmpty) {
-          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-
-          if (userData.containsKey('team_ids')) {
-            List<dynamic> teamIds = userData['team_ids'];
-            List<String> teamNames = [];
-
-            for (String teamId in teamIds) {
-              DocumentSnapshot teamSnapshot = await FirebaseFirestore.instance
-                  .collection('teams')
-                  .doc(teamId)
-                  .get();
-
-              if (teamSnapshot.exists) {
-                Map<String, dynamic> teamData = teamSnapshot.data() as Map<String, dynamic>;
-                if (teamData.containsKey('team_name')) {
-                  teamNames.add(teamData['team_name']);
-                }
-              }
-            }
-            return teamNames;
-          } else {
-            print('Team_ids field not found in user document');
-            return [];
-          }
-        } else {
-          print('User document not found for the current user');
-          return [];
-        }
-      } else {
-        print('Current user is null');
-        return [];
-      }
-    } catch (e) {
-      print('Error fetching user teams: $e');
-      return [];
-    }
-  }
-
-  void _addToTeamStory(BuildContext context, String teamName) async {
-    try {
-      // Fetch the team document based on the team name
-      QuerySnapshot teamQuerySnapshot = await FirebaseFirestore.instance
-          .collection('teams')
-          .where('team_name', isEqualTo: teamName)
-          .limit(1)
-          .get();
-
-      if (teamQuerySnapshot.docs.isNotEmpty) {
-        DocumentSnapshot teamSnapshot = teamQuerySnapshot.docs.first;
-        String teamId = teamSnapshot.id;
-
-        // Update the team document to add the image URL to the story
-        await FirebaseFirestore.instance.collection('teams').doc(teamId).update({
-          'story': FieldValue.arrayUnion([widget.imagePath]),
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Image added to $teamName story'),
-        ));
-      } else {
-        print('Team document not found for $teamName');
-      }
-    } catch (e) {
-      print('Error adding image to team story: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to add image to story. Please try again.'),
-      ));
-    }
-  }
-
-  void _sendToStory(BuildContext context) async {
-    try {
-      User currentUser = FirebaseAuth.instance.currentUser!;
-      String currentUserEmail = currentUser.email!;
-
-      // Get the current image URL
-      String imageUrl = widget.imagePath;
-
-      // Update the current user's document to add the image URL to the story
-      await FirebaseFirestore.instance
-          .collection('users')
-          .where('email', isEqualTo: currentUserEmail)
-          .limit(1)
-          .get()
-          .then((querySnapshot) {
-        if (querySnapshot.docs.isNotEmpty) {
-          String userId = querySnapshot.docs.first.id;
-          FirebaseFirestore.instance.collection('users').doc(userId).update({
-            'story': FieldValue.arrayUnion([imageUrl]), // Wrap the imageUrl in an array
-          }).then((value) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Image posted to your story'),
-            ));
-          }).catchError((error) {
-            print("Error updating document: $error");
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Failed to post to story. Please try again.'),
-            ));
-          });
-        }
-      });
-    } catch (e) {
-      print('Error posting to story: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to post to story. Please try again.'),
-      ));
-    }
-  }
-
-
-  void _showSendMenu(BuildContext context) async {
-    List<String> userNames = [];
-
-    try {
-      String? userName = await _loadCurrentUserName();
-      if (userName != null) {
-        QuerySnapshot userQuerySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('name', isEqualTo: userName)
-            .limit(1)
-            .get();
-
-        if (userQuerySnapshot.docs.isNotEmpty) {
-          DocumentSnapshot userSnapshot = userQuerySnapshot.docs.first;
-          Map<String, dynamic> userData = userSnapshot.data() as Map<String, dynamic>;
-
-          // Load user's friends
-          if (userData.containsKey('friends')) {
-            List<dynamic> friends = userData['friends'];
-
-            for (String friendEmail in friends) {
-              QuerySnapshot friendQuerySnapshot = await FirebaseFirestore.instance
-                  .collection('users')
-                  .where('email', isEqualTo: friendEmail)
-                  .limit(1)
-                  .get();
-
-              if (friendQuerySnapshot.docs.isNotEmpty) {
-                DocumentSnapshot friendSnapshot = friendQuerySnapshot.docs.first;
-                Map<String, dynamic> friendData = friendSnapshot.data() as Map<String, dynamic>;
-
-                // Add the name of the friend to the list
-                if (friendData.containsKey('name')) {
-                  String friendName = friendData['name'] as String;
-                  userNames.add(friendName);
-                } else {
-                  print('Name field not found for friend with email: $friendEmail');
-                }
-              } else {
-                print('User document not found for friend with email: $friendEmail');
-              }
-            }
-          } else {
-            print('$userName has no friends.');
-          }
-        } else {
-          print('User document not found for $userName');
-        }
-      } else {
-        print('Current user name is null');
-      }
-    } catch (e) {
-      print('Error loading user friends: $e');
-    }
-
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          child: Wrap(
-            children: userNames.map((String friendName) {
-              return ListTile(
-                leading: Icon(Icons.send),
-                title: Text('Send to $friendName'),
-                onTap: () {
-                  _sendMessageToFriend(context, friendName); // Modified this line
-                  Navigator.pop(context); // Close the menu
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  void _sendMessageToFriend(BuildContext context, String friendName) async {
-    String message = widget.imagePath; // Message to send to the friend
-
-    try {
-      // Get the current user's email
-      String? currentUserEmail = FirebaseAuth.instance.currentUser?.email;
-
-      if (currentUserEmail != null) {
-        // Remove the "@gmail.com" part
-        String currentUserEmailWithoutDomain = currentUserEmail.split('@').first;
-
-        // Fetch the friend's document based on the friend's name
-        QuerySnapshot friendQuerySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('name', isEqualTo: friendName)
-            .limit(1)
-            .get();
-
-        if (friendQuerySnapshot.docs.isNotEmpty) {
-          DocumentSnapshot friendSnapshot = friendQuerySnapshot.docs.first;
-          String friendUserId = friendSnapshot.id;
-
-          // Fetch the current user's document based on the current user's email
-          QuerySnapshot currentUserQuerySnapshot = await FirebaseFirestore.instance
-              .collection('users')
-              .where('email', isEqualTo: currentUserEmail)
-              .limit(1)
-              .get();
-
-          if (currentUserQuerySnapshot.docs.isNotEmpty) {
-            DocumentSnapshot currentUserSnapshot = currentUserQuerySnapshot.docs.first;
-            String currentUserId = currentUserSnapshot.id;
-
-            // Create a map representing the message data
-            Map<String, dynamic> messageData = {
-              'sender': currentUserEmailWithoutDomain, // Store sender's email without domain
-              'message': message,
-              'receiver': friendName, // Store timestamp for sorting
-            };
-
-            // Update the friend's document to add the message with the current user's name
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(friendUserId)
-                .update({
-              'message_with_${currentUserEmailWithoutDomain}': FieldValue.arrayUnion([messageData]),
-            });
-
-            // Update the current user's document to add the message with the friend's name
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(currentUserId)
-                .update({
-              'message_with_${friendName}': FieldValue.arrayUnion([messageData]),
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Message sent to $friendName'),
-            ));
-          } else {
-            print('Current user document not found');
-          }
-        } else {
-          print('Friend document not found for $friendName');
-        }
-      } else {
-        print('Current user email is null');
-      }
-    } catch (e) {
-      print('Error sending message: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Failed to send message. Please try again.'),
-      ));
-    }
-  }
-
-
-  void _handleEventSelection(BuildContext context, String value) async {
-    try {
-      // Find the selected event
-      Map<String, dynamic>? selectedEvent;
-      for (Map<String, dynamic> event in events) {
-        if (event['eventTitle'] == value) {
-          selectedEvent = event;
-          break;
-        }
-      }
-
-      // Update the background field of the selected event in Firestore
-      if (selectedEvent != null) {
-        await FirebaseFirestore.instance
-            .collection('events')
-            .doc(selectedEvent['eventId'])
-            .update({'background': widget.imagePath}); // Assuming imagePath is accessible here
-        print('Background updated for event: ${selectedEvent['eventTitle']}');
-      } else {
-        print('Event not found');
-      }
-    } catch (e) {
-      print('Error updating background: $e');
-    }
-  }
-
-  void _sendViaEmail() {
-    // Implement sending via email
-    Navigator.pop(context);
-  }
-
-  void _sendViaMessage() {
-    // Implement sending via message
-    Navigator.pop(context);
   }
 }
