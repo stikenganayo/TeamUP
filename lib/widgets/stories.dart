@@ -1,7 +1,9 @@
 import 'dart:math';
-
+import 'package:camera/src/camera_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:snapchat_ui_clone/widgets/story.dart';
+import '../screens/camera_screen.dart';
+import '../screens/image_list_screen.dart';
 import '../style.dart';
 import 'package:story_view/story_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -128,15 +130,15 @@ class _StoriesState extends State<Stories> {
               },
               child: Column(
                 children: [
-                  Story(index: index),
+                  Story(index: index + 1), // Adjust index to account for PlusButton
                   Style.friendName(firebaseData[index]['name'] as String),
                 ],
               ),
             ),
           );
 
-          children.insert(0, const SizedBox(width: 10));
-          children.add(const SizedBox(width: 10));
+          // Insert the PlusButton widget at the beginning
+          children.insert(0, PlusButton());
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -147,6 +149,60 @@ class _StoriesState extends State<Stories> {
           );
         }
       },
+    );
+  }
+}
+
+class PlusButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ImageListScreen()),
+        );
+      },
+      child: Transform.translate(
+        offset: const Offset(0, -10), // Move the button up by 10 pixels
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 75,
+                height: 75,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(100),
+                  color: Colors.purple, // Example color
+                ),
+              ),
+              Container(
+                width: 71,
+                height: 71,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(100),
+                  color: Colors.white, // Example color
+                ),
+              ),
+              Container(
+                width: 67,
+                height: 67,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(100),
+                  color: Colors.white, // Example color
+                ),
+                child: Icon(
+                  Icons.add,
+                  color: Colors.purple, // Example color
+                  size: 40,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

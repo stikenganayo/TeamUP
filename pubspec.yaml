@@ -32,6 +32,8 @@ dependencies:
   flutter_firebase_chat_core: ^1.6.7
   flutter_chat_ui: ^1.6.12
   uuid: ^3.0.4
+  flutter_svg: ^0.22.0
+  random_color: ^1.0.5
 
 
 dev_dependencies:
