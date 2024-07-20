@@ -12,6 +12,7 @@ import '../widgets/top_bar.dart';
 import '../widgets/team_stories.dart';
 import 'add_challenge_screen.dart';
 import 'add_event_screen.dart';
+import 'challenge_someone.dart';
 import 'create_team_page.dart';
 import 'dart:io';
 
@@ -2067,7 +2068,7 @@ class _TeamScreenState extends State<TeamScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const CreateChallenge(),
+                                    builder: (context) => ChallengeInputScreen(),
                                   ),
                                 );
                                 // Handle the "Create a team" button tap
