@@ -23,6 +23,7 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
   List<String> selectedFriends = [];
   List<String> availableFriends = [];
   User? currentUser;
+  bool challengeStranger = false; // Track whether the user wants to challenge a stranger
 
   @override
   void initState() {
@@ -61,6 +62,9 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
             List<dynamic> friends = userData['friends'];
 
             List<String> fetchedFriends = [];
+            if (currentUser != null) {
+              fetchedFriends.add(userName); // Add current user to the list
+            }
             for (String friendEmail in friends) {
               QuerySnapshot friendQuerySnapshot = await FirebaseFirestore
                   .instance
@@ -75,7 +79,9 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
 
                 if (friendData.containsKey('name')) {
                   String friendName = friendData['name'] as String;
-                  fetchedFriends.add(friendName);
+                  if (friendName != userName) {
+                    fetchedFriends.add(friendName);
+                  }
                 } else {
                   print('Name field not found for friend with email: $friendEmail');
                 }
@@ -218,7 +224,7 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Friends',
+          'Challenge Friends',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -252,7 +258,7 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Suggested Teams',
+          'Challenge Previous Teams',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -281,15 +287,64 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
     );
   }
 
+  Widget _buildChallengeOptions() {
+    return Card(
+      elevation: 4.0,
+      color: Colors.grey[50],
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Challenge a Community Member',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: challengeStranger,
+                  onChanged: (value) {
+                    setState(() {
+                      challengeStranger = value;
+                      // Clear selections when switching to stranger option
+                      if (challengeStranger) {
+                        selectedFriends.clear();
+                        selectedTeams.clear();
+                      }
+                    });
+                  },
+                ),
+              ],
+            ),
+            if (!challengeStranger) ...[
+              const SizedBox(height: 16.0),
+              _buildFriendSelection(),
+              const SizedBox(height: 16.0),
+              _buildTeamSelection(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create a Challenge'),
+        title: Text('Challenge Details'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
+          // Challenge Title and Description
           TextFormField(
             controller: challengeHeaderController,
             decoration: const InputDecoration(
@@ -315,9 +370,7 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
           const SizedBox(height: 16.0),
           ...challengeList.map((item) => _buildChallengeListItem(item)).toList(),
           const SizedBox(height: 16.0),
-          _buildFriendSelection(),
-          const SizedBox(height: 16.0),
-          _buildTeamSelection(),
+          _buildChallengeOptions(), // Add the grouped challenge options here
         ],
       ),
       floatingActionButton: Row(
@@ -337,13 +390,21 @@ class _ChallengeInputScreenState extends State<ChallengeInputScreen> {
           ),
           SizedBox(width: 16.0),
           FloatingActionButton(
-            onPressed: () {
+            onPressed: () async {
               // Gather all data to pass to FrequencyScreen
               String challengeHeader = challengeHeaderController.text;
               String challengeDescription = challengeDescriptionController.text;
               List<String> challengeListTitles = challengeList.map((item) => item.challengeTitle).toList();
               List<String> challengeTeams = selectedTeams;
-              List<String> challengeFriends = selectedFriends;
+              List<String> challengeFriends = challengeStranger ? ['Community Member'] : selectedFriends;
+
+              // Ensure the current user is at the top of the list
+              if (currentUser != null) {
+                String? currentUserName = await _loadCurrentUserName();
+                if (currentUserName != null && !selectedFriends.contains(currentUserName)) {
+                  challengeFriends.insert(0, currentUserName); // Add current user as the first friend
+                }
+              }
 
               // Print the data to console for verification
               print('Challenge Header: $challengeHeader');

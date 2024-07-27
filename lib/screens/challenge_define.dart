@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import 'challenge_details.dart';
 
 class FrequencyScreen extends StatefulWidget {
@@ -56,7 +55,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                     decoration: InputDecoration(labelText: 'Enter duration'),
                     onChanged: (value) {
                       // Update duration calculation when the input changes
-                      _updateDuration();
+                      _updateDuration(title);
                       setState(() {}); // Refresh to show the updated duration
                     },
                   ),
@@ -65,7 +64,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                     onChanged: (newValue) {
                       setState(() {
                         selectedUnit = newValue!;
-                        _updateDuration();
+                        _updateDuration(title);
                       });
                     },
                     items: timeUnitOptions.map((unit) {
@@ -77,6 +76,16 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                   ),
                   if (expirationDurations[title] != null)
                     Text('Selected: ${durationToString(expirationDurations[title]!)}'),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        expirationDurations[title] = null;
+                        _numberController.clear(); // Clear the input field
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: Text('Remove Expiration Date', style: TextStyle(color: Colors.red)),
+                  ),
                 ],
               );
             },
@@ -100,7 +109,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
     });
   }
 
-  void _updateDuration() {
+  void _updateDuration(String title) {
     final int? number = int.tryParse(_numberController.text);
     if (number != null) {
       Duration? newDuration;
@@ -119,7 +128,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
           break;
       }
       setState(() {
-        expirationDurations[orderedTitles.last] = newDuration; // Update duration for the last edited item
+        expirationDurations[title] = newDuration; // Update duration for the specific item
       });
     }
   }
@@ -158,13 +167,33 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
     }
   }
 
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Frequency'),
+        title: Text('Challenge Schedule'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,6 +202,12 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
               'Select Checklist Order',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose the order in which you want the checklist items to be completed. You can select "Any Order" if the sequence does not matter, or "Consecutive" to require items to be completed in the order listed.',
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 16),
             RadioListTile<String>(
               title: Text('Any Order'),
               value: 'Any Order',
@@ -203,12 +238,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                     if (newIndex > oldIndex) newIndex--;
                     final item = orderedTitles.removeAt(oldIndex);
                     orderedTitles.insert(newIndex, item);
-                    // Update the expirationDurations map with the new order
-                    final newExpirationDurations = Map.fromEntries(
-                      expirationDurations.entries.where((entry) => orderedTitles.contains(entry.key)),
-                    );
-                    expirationDurations.clear();
-                    expirationDurations.addAll(newExpirationDurations);
+                    // No need to update the expirationDurations map as keys remain the same
                   });
                 },
                 children: List.generate(orderedTitles.length, (index) {
@@ -233,7 +263,12 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
               'Select Completion Date and Time',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            Text(
+              'Choose the date and time when the challenge should be completed. This is required to set a deadline for the challenge.',
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _selectDate,
               child: Text(
@@ -247,10 +282,24 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => GoalScreen()),
-          );
+          if (selectedDateTime == null) {
+            _showErrorDialog('Please select a date and time before proceeding.');
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => GoalScreen(
+                  challengeHeader: widget.challengeHeader,
+                  challengeDescription: widget.challengeDescription,
+                  challengeListTitles: orderedTitles,
+                  challengeTeams: widget.challengeTeams,
+                  challengeFriends: widget.challengeFriends,
+                  completionDate: selectedDateTime!,
+                  expirationDurations: orderedTitles.map((title) => expirationDurations[title]).toList(),
+                ),
+              ),
+            );
+          }
         },
         child: Icon(Icons.navigate_next),
       ),
