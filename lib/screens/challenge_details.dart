@@ -11,6 +11,8 @@ class GoalScreen extends StatefulWidget {
   final List<String> challengeFriends;
   final DateTime completionDate;
   final List<Duration?> expirationDurations;
+  final int recurrenceValue;
+  final String recurrenceUnit;
 
   GoalScreen({
     required this.challengeHeader,
@@ -20,6 +22,8 @@ class GoalScreen extends StatefulWidget {
     required this.challengeFriends,
     required this.completionDate,
     required this.expirationDurations,
+    required this.recurrenceValue,
+    required this.recurrenceUnit,
   });
 
   @override
@@ -29,8 +33,18 @@ class GoalScreen extends StatefulWidget {
 class _GoalScreenState extends State<GoalScreen> {
   String? selectedVerification = 'photo';
   TextEditingController customVerificationController = TextEditingController();
-  Map<String, Set<String>> selectedRoles = {};
+  late Map<String, Set<String>> selectedRoles; // Changed to late initialization
+
   final String currentUserPlaceholder = 'You'; // Placeholder for current user
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize selectedRoles with 'player' for each friend
+    selectedRoles = {
+      for (var friend in widget.challengeFriends) friend: {'player'}
+    };
+  }
 
   void _validateAndContinue() {
     bool isValid = true;
@@ -77,6 +91,8 @@ class _GoalScreenState extends State<GoalScreen> {
             challengeFriends: widget.challengeFriends,
             completionDate: widget.completionDate,
             expirationDurations: widget.expirationDurations,
+            recurrenceValue: widget.recurrenceValue,
+            recurrenceUnit: widget.recurrenceUnit,
             selectedRoles: selectedRoles,
             selectedVerification: selectedVerification,
             customVerificationProcess: selectedVerification == 'custom'
@@ -134,7 +150,7 @@ class _GoalScreenState extends State<GoalScreen> {
 
               // Instructions for "Select Roles"
               Text(
-                'Drag and drop the following icons onto the friends to assign them roles. To remove a role, tap the icon next to their  name:',
+                'Drag and drop the following icons onto the friends to assign them roles. To remove a role, tap the icon next to their name:',
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               ),
               const SizedBox(height: 16),

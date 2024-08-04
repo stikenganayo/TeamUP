@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import 'challenge_details.dart';
 
 class FrequencyScreen extends StatefulWidget {
@@ -22,122 +23,22 @@ class FrequencyScreen extends StatefulWidget {
 }
 
 class _FrequencyScreenState extends State<FrequencyScreen> {
-  List<String> timeUnitOptions = ['Minutes', 'Hours', 'Days', 'Months'];
+  List<String> timeUnitOptions = ['Hour', 'Day', 'Week', 'Month'];
   String selectedOrder = 'Any Order';
   List<String> orderedTitles = [];
-  Map<String, Duration?> expirationDurations = {}; // Maps title to expiration duration
+  String selectedRecurrenceOption = 'DateTime';
+  String recurrenceFrequency = 'Day';
+  int recurrenceValue = 1;
+  String selectedUnit = 'Day';
 
   final TextEditingController _numberController = TextEditingController();
-  String selectedUnit = 'Minutes';
   DateTime? selectedDateTime;
+  Map<String, Duration?> expirationDurations = {}; // Map to hold expiration durations
 
   @override
   void initState() {
     super.initState();
     orderedTitles = List.from(widget.challengeListTitles);
-  }
-
-  Future<void> _selectExpirationDuration(String title) async {
-    Duration? selectedDuration = await showDialog<Duration>(
-      context: context,
-      builder: (context) {
-        Duration? duration;
-        return AlertDialog(
-          title: Text('Select Expiration Duration'),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _numberController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(labelText: 'Enter duration'),
-                    onChanged: (value) {
-                      // Update duration calculation when the input changes
-                      _updateDuration(title);
-                      setState(() {}); // Refresh to show the updated duration
-                    },
-                  ),
-                  DropdownButton<String>(
-                    value: selectedUnit,
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedUnit = newValue!;
-                        _updateDuration(title);
-                      });
-                    },
-                    items: timeUnitOptions.map((unit) {
-                      return DropdownMenuItem<String>(
-                        value: unit,
-                        child: Text(unit),
-                      );
-                    }).toList(),
-                  ),
-                  if (expirationDurations[title] != null)
-                    Text('Selected: ${durationToString(expirationDurations[title]!)}'),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        expirationDurations[title] = null;
-                        _numberController.clear(); // Clear the input field
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Text('Remove Expiration Date', style: TextStyle(color: Colors.red)),
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, expirationDurations[title]);
-              },
-              child: Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-
-    setState(() {
-      if (selectedDuration != null) {
-        expirationDurations[title] = selectedDuration;
-      }
-    });
-  }
-
-  void _updateDuration(String title) {
-    final int? number = int.tryParse(_numberController.text);
-    if (number != null) {
-      Duration? newDuration;
-      switch (selectedUnit) {
-        case 'Minutes':
-          newDuration = Duration(minutes: number);
-          break;
-        case 'Hours':
-          newDuration = Duration(hours: number);
-          break;
-        case 'Days':
-          newDuration = Duration(days: number);
-          break;
-        case 'Months':
-          newDuration = Duration(days: number * 30); // Approximation for months
-          break;
-      }
-      setState(() {
-        expirationDurations[title] = newDuration; // Update duration for the specific item
-      });
-    }
-  }
-
-  String durationToString(Duration duration) {
-    if (duration.inDays > 0) return '${duration.inDays} Day(s)';
-    if (duration.inHours > 0) return '${duration.inHours} Hour(s)';
-    if (duration.inMinutes > 0) return '${duration.inMinutes} Minute(s)';
-    return '0 Minute(s)';
   }
 
   Future<void> _selectDate() async {
@@ -167,24 +68,69 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
     }
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
+  Future<void> _selectRecurrence() async {
+    final result = await showDialog<List<dynamic>>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          title: Text('Error'),
-          content: Text(message),
+          title: Text(''),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _numberController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Enter number of repetitions'),
+                    onChanged: (value) {
+                      setState(() {
+                        recurrenceValue = int.tryParse(value) ?? 1;
+                      });
+                    },
+                  ),
+                  DropdownButton<String>(
+                    value: selectedUnit,
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedUnit = newValue!;
+                      });
+                    },
+                    items: timeUnitOptions.map((unit) {
+                      return DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
+          ),
           actions: [
             TextButton(
-              child: Text('OK'),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context, [recurrenceValue, selectedUnit]);
               },
+              child: Text('OK'),
             ),
           ],
         );
       },
     );
+
+    if (result != null) {
+      setState(() {
+        recurrenceValue = result[0];
+        selectedUnit = result[1];
+      });
+    }
+  }
+
+  String durationToString(Duration duration) {
+    if (duration.inDays > 0) return '${duration.inDays} Day';
+    if (duration.inHours > 0) return '${duration.inHours} Hour';
+    return '0 Hour';
   }
 
   @override
@@ -238,7 +184,6 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                     if (newIndex > oldIndex) newIndex--;
                     final item = orderedTitles.removeAt(oldIndex);
                     orderedTitles.insert(newIndex, item);
-                    // No need to update the expirationDurations map as keys remain the same
                   });
                 },
                 children: List.generate(orderedTitles.length, (index) {
@@ -252,7 +197,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                       child: Icon(Icons.timer_outlined),
                     ),
                     subtitle: expirationDurations[title] != null
-                        ? Text('Expires in: ${durationToString(expirationDurations[title]!)}')
+                        ? Text('Expires in: ${durationToString(expirationDurations[title]!)}(s)')
                         : null,
                   );
                 }),
@@ -260,31 +205,79 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
             ],
             const SizedBox(height: 16),
             const Text(
-              'Select Completion Date and Time',
+              'Choose Completion Option',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Choose the date and time when the challenge should be completed. This is required to set a deadline for the challenge.',
+              'Choose the completion method for the challenge. You can either set a specific date and time to complete the challenge or set to repeat the challenge for a set duration.',
               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _selectDate,
-              child: Text(
-                selectedDateTime == null
-                    ? 'Select Date and Time'
-                    : DateFormat('MMMM d, yyyy – h:mm a').format(selectedDateTime!),
-              ),
+            RadioListTile<String>(
+              title: Text('Set Deadline'),
+              value: 'DateTime',
+              groupValue: selectedRecurrenceOption,
+              onChanged: (value) {
+                setState(() {
+                  selectedRecurrenceOption = value!;
+                  selectedDateTime = null;
+                });
+              },
             ),
+            RadioListTile<String>(
+              title: Text('Set Repetition'),
+              value: 'Recurrence',
+              groupValue: selectedRecurrenceOption,
+              onChanged: (value) {
+                setState(() {
+                  selectedRecurrenceOption = value!;
+                  selectedDateTime = null;
+                });
+              },
+            ),
+            if (selectedRecurrenceOption == 'DateTime') ...[
+              ElevatedButton(
+                onPressed: _selectDate,
+                child: Text(
+                  selectedDateTime == null
+                      ? 'Select Date and Time'
+                      : DateFormat('MMMM d, yyyy – h:mm a').format(selectedDateTime!),
+                ),
+              ),
+            ] else if (selectedRecurrenceOption == 'Recurrence') ...[
+              ElevatedButton(
+                onPressed: _selectRecurrence,
+                child: Text(
+                  recurrenceValue > 0
+                      ? 'Repeat the challenge every $selectedUnit for $recurrenceValue ${selectedUnit}(s)'
+                      : "",
+                ),
+              ),
+            ],
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          if (selectedDateTime == null) {
+          if (selectedRecurrenceOption == null) {
+            _showErrorDialog('Please select a completion option before proceeding.');
+          } else if (selectedRecurrenceOption == 'DateTime' && selectedDateTime == null) {
             _showErrorDialog('Please select a date and time before proceeding.');
           } else {
+            List<Duration> durations = orderedTitles.map((title) => expirationDurations[title] ?? Duration.zero).toList();
+
+            // Print all parameters to the console
+            print('Challenge Header: ${widget.challengeHeader}');
+            print('Challenge Description: ${widget.challengeDescription}');
+            print('Challenge List Titles: ${orderedTitles}');
+            print('Challenge Teams: ${widget.challengeTeams}');
+            print('Challenge Friends: ${widget.challengeFriends}');
+            print('Completion Date: ${selectedDateTime}');
+            print('Expiration Durations: ${durations}');
+            print('Recurrence Value: $recurrenceValue');
+            print('Recurrence Unit: $selectedUnit');
+
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -294,8 +287,10 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                   challengeListTitles: orderedTitles,
                   challengeTeams: widget.challengeTeams,
                   challengeFriends: widget.challengeFriends,
-                  completionDate: selectedDateTime!,
-                  expirationDurations: orderedTitles.map((title) => expirationDurations[title]).toList(),
+                  completionDate: selectedDateTime ?? DateTime(0), // Pass an empty value if no date is selected
+                  expirationDurations: durations,
+                  recurrenceValue: recurrenceValue,
+                  recurrenceUnit: selectedUnit,
                 ),
               ),
             );
@@ -304,5 +299,97 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
         child: Icon(Icons.navigate_next),
       ),
     );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _selectExpirationDuration(String title) async {
+    Duration? selectedDuration = await showDialog<Duration>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Select Expiration Duration for $title'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _numberController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Enter number of'),
+                    onChanged: (value) {
+                      setState(() {
+                        recurrenceValue = int.tryParse(value) ?? 1;
+                      });
+                    },
+                  ),
+                  DropdownButton<String>(
+                    value: selectedUnit,
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedUnit = newValue!;
+                      });
+                    },
+                    items: timeUnitOptions.map((unit) {
+                      return DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Duration duration;
+                switch (selectedUnit) {
+                  case 'Day':
+                    duration = Duration(days: recurrenceValue);
+                    break;
+                  case 'Hour':
+                    duration = Duration(hours: recurrenceValue);
+                    break;
+                  case 'Week':
+                    duration = Duration(days: recurrenceValue * 7);
+                    break;
+                  default:
+                    duration = Duration(days: recurrenceValue);
+                }
+                Navigator.pop(context, duration);
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedDuration != null) {
+      setState(() {
+        expirationDurations[title] = selectedDuration;
+      });
+    }
   }
 }

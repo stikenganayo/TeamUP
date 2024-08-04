@@ -12,8 +12,10 @@ class ReviewPostScreen extends StatelessWidget {
   final List<String> challengeListTitles;
   final List<String> challengeTeams;
   final List<String> challengeFriends;
-  final DateTime completionDate;
+  final DateTime? completionDate;
   final List<Duration?> expirationDurations;
+  final int recurrenceValue;
+  final String recurrenceUnit;
   final Map<String, Set<String>> selectedRoles;
   final String? selectedVerification;
   final String? customVerificationProcess;
@@ -24,8 +26,10 @@ class ReviewPostScreen extends StatelessWidget {
     required this.challengeListTitles,
     required this.challengeTeams,
     required this.challengeFriends,
-    required this.completionDate,
+    this.completionDate,
     required this.expirationDurations,
+    required this.recurrenceValue,
+    required this.recurrenceUnit,
     required this.selectedRoles,
     required this.selectedVerification,
     this.customVerificationProcess,
@@ -39,8 +43,12 @@ class ReviewPostScreen extends StatelessWidget {
         'challengeListTitles': challengeListTitles,
         'challengeTeams': challengeTeams,
         'challengeFriends': challengeFriends,
-        'completionDate': Timestamp.fromDate(completionDate),
+        'completionDate': completionDate != null && completionDate != DateTime(0)
+            ? Timestamp.fromDate(completionDate!)
+            : null, // Handle invalid completionDate
         'expirationDurations': expirationDurations.map((e) => e?.inMinutes).toList(),
+        'recurrenceValue': recurrenceValue,
+        'recurrenceUnit': recurrenceUnit,
         'selectedRoles': selectedRoles,
         'selectedVerification': selectedVerification,
         'customVerificationProcess': customVerificationProcess,
@@ -110,7 +118,9 @@ class ReviewPostScreen extends StatelessWidget {
                       icon: Icons.date_range,
                       title: 'Completion Date',
                       content: Text(
-                        '${DateFormat('MMMM d, yyyy – h:mm a').format(completionDate)}',
+                        completionDate != null && completionDate != DateTime(0)
+                            ? '${DateFormat('MMMM d, yyyy – h:mm a').format(completionDate!)}'
+                            : 'Repeat the challenge every $recurrenceValue ${recurrenceUnit}(s)',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
