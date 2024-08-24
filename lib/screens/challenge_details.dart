@@ -296,6 +296,7 @@ class _GoalScreenState extends State<GoalScreen> {
                           selectedVerification = value;
                         });
                       },
+                      secondary: Icon(Icons.photo_camera),
                     ),
                   ),
                   Container(
@@ -309,6 +310,7 @@ class _GoalScreenState extends State<GoalScreen> {
                           selectedVerification = value;
                         });
                       },
+                      secondary: Icon(Icons.video_collection_rounded),
                     ),
                   ),
                   Container(
@@ -322,6 +324,35 @@ class _GoalScreenState extends State<GoalScreen> {
                           selectedVerification = value;
                         });
                       },
+                      secondary: Icon(Icons.text_fields),
+                    ),
+                  ),
+                  Container(
+                    color: Colors.grey[200], // Grey background
+                    child: RadioListTile<String>(
+                      title: Text('Location'),
+                      value: 'location',
+                      groupValue: selectedVerification,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedVerification = value;
+                        });
+                      },
+                      secondary: Icon(Icons.location_on),
+                    ),
+                  ),
+                  Container(
+                    color: Colors.grey[200], // Grey background
+                    child: RadioListTile<String>(
+                      title: Text('Live Chat'),
+                      value: 'live_chat',
+                      groupValue: selectedVerification,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedVerification = value;
+                        });
+                      },
+                      secondary: Icon(Icons.video_camera_front),
                     ),
                   ),
                   Container(
@@ -335,22 +366,27 @@ class _GoalScreenState extends State<GoalScreen> {
                           selectedVerification = value;
                         });
                       },
+                      secondary: Icon(Icons.edit),
                     ),
                   ),
-                  if (selectedVerification == 'custom')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: TextFormField(
-                        controller: customVerificationController,
-                        decoration: InputDecoration(
-                          labelText: 'Enter Custom Process',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 3,
-                      ),
-                    ),
                 ],
               ),
+
+              const SizedBox(height: 16), // Reduced space
+
+              // Custom Verification Text Box
+              if (selectedVerification == 'custom')
+                TextField(
+                  controller: customVerificationController,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Custom Verification Process',
+                    hintText: 'Enter your custom verification process here...',
+                  ),
+                  maxLines: 3,
+                ),
+
+              const SizedBox(height: 24), // Reduced space
             ],
           ),
         ),

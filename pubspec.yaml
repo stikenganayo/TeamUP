@@ -34,6 +34,7 @@ dependencies:
   uuid: ^3.0.4
   flutter_svg: ^0.22.0
   random_color: ^1.0.5
+  google_fonts: ^4.0.4
 
 
 dev_dependencies:

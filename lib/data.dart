@@ -3,23 +3,6 @@ import 'package:snapchat_ui_clone/models/article.dart';
 import 'models/friend.dart';
 
 class Data {
-  static List<Friend> friends = [
-    Friend('assets/images/bitmojis/2.png', 'Tom', 0, '2m', 178),
-    Friend('assets/images/bitmojis/3.png', 'Lily', 1, '7m', 0),
-    Friend('assets/images/bitmojis/4.png', 'Cat', 1, '21m', 134),
-    Friend('assets/images/bitmojis/5.png', 'Tasha', 9, '1h', 0),
-    Friend('assets/images/bitmojis/6.png', 'Paige', 4, '1h', 0),
-    Friend('assets/images/bitmojis/1.png', 'Bill', 4, '1h', 95),
-    Friend('assets/images/bitmojis/2.png', 'Mac', 12, '1h', 0),
-    Friend('assets/images/bitmojis/4.png', 'Taylor', 3, '2h', 83),
-    Friend('assets/images/bitmojis/5.png', 'Cassidy', 3, '5h', 0),
-    Friend('assets/images/bitmojis/6.png', 'Millie', 14, '6h', 0),
-    Friend('assets/images/bitmojis/2.png', 'Nick', 0, '2m', 178),
-    Friend('assets/images/bitmojis/3.png', 'Addie', 1, '7m', 0),
-    Friend('assets/images/bitmojis/4.png', 'Katy', 1, '21m', 134),
-    Friend('assets/images/bitmojis/5.png', 'Julia', 9, '1h', 0),
-  ];
-
 
   static List<Chat> chatFriends = [
     Chat('Tom', 'Received', '2m', 178),

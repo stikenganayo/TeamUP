@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:snapchat_ui_clone/screens/team_screen.dart';
+import '../dimensions.dart';
 
-import 'challenge_someone.dart';
-
-class ReviewPostScreen extends StatelessWidget {
+class ReviewPostScreen extends StatefulWidget {
   final String challengeHeader;
   final String challengeDescription;
   final List<String> challengeListTitles;
@@ -35,23 +33,85 @@ class ReviewPostScreen extends StatelessWidget {
     this.customVerificationProcess,
   });
 
+  @override
+  _ReviewPostScreenState createState() => _ReviewPostScreenState();
+}
+
+class _ReviewPostScreenState extends State<ReviewPostScreen> {
+  String _selectedDimension = 'emotional'; // Default dimension
+  bool _isEditingDimension = false; // Track editing state
+
+  // Mapping dimensions to icons
+  final Map<String, IconData> _dimensionIcons = {
+    'emotional': Icons.heart_broken,
+    'physical': Icons.fitness_center,
+    'occupational': Icons.work,
+    'social': Icons.groups,
+    'spiritual': Icons.spa,
+    'intellectual': Icons.lightbulb,
+    'environmental': Icons.eco,
+    'financial': Icons.attach_money,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _setDimension();
+  }
+
+  void _setDimension() {
+    final challengeWords = widget.challengeHeader.toLowerCase().split(' ');
+
+    final Map<String, List<String>> dimensions = {
+      'emotional': emotionalWords,
+      'physical': physicalWords,
+      'occupational': occupationalWords,
+      'social': socialWords,
+      'spiritual': spiritualWords,
+      'intellectual': intellectualWords,
+      'environmental': environmentalWords,
+      'financial': financialWords,
+    };
+
+    String bestMatch = 'emotional'; // Default to emotional if no match
+
+    double highestMatchScore = 0;
+
+    dimensions.forEach((dimension, words) {
+      double matchScore = challengeWords
+          .where((word) => words.contains(word))
+          .length
+          .toDouble();
+
+      if (matchScore > highestMatchScore) {
+        highestMatchScore = matchScore;
+        bestMatch = dimension;
+      }
+    });
+
+    setState(() {
+      _selectedDimension = bestMatch;
+    });
+  }
+
   Future<void> _postChallenge(BuildContext context) async {
     try {
       final challengeData = {
-        'challengeHeader': challengeHeader,
-        'challengeDescription': challengeDescription,
-        'challengeListTitles': challengeListTitles,
-        'challengeTeams': challengeTeams,
-        'challengeFriends': challengeFriends,
-        'completionDate': completionDate != null && completionDate != DateTime(0)
-            ? Timestamp.fromDate(completionDate!)
+        'challengeHeader': widget.challengeHeader,
+        'challengeDescription': widget.challengeDescription,
+        'challengeListTitles': widget.challengeListTitles,
+        'challengeTeams': widget.challengeTeams,
+        'challengeFriends': widget.challengeFriends,
+        'completionDate': widget.completionDate != null && widget.completionDate != DateTime(0)
+            ? Timestamp.fromDate(widget.completionDate!)
             : null, // Handle invalid completionDate
-        'expirationDurations': expirationDurations.map((e) => e?.inMinutes).toList(),
-        'recurrenceValue': recurrenceValue,
-        'recurrenceUnit': recurrenceUnit,
-        'selectedRoles': selectedRoles,
-        'selectedVerification': selectedVerification,
-        'customVerificationProcess': customVerificationProcess,
+        'expirationDurations': widget.expirationDurations.map((e) => e?.inMinutes).toList(),
+        'recurrenceValue': widget.recurrenceValue,
+        'recurrenceUnit': widget.recurrenceUnit,
+        'selectedRoles': widget.selectedRoles,
+        'selectedVerification': widget.selectedVerification,
+        'customVerificationProcess': widget.customVerificationProcess,
+        'dimension': _selectedDimension, // Include dimension in the challenge data
       };
 
       // Add a new document to the collection
@@ -89,7 +149,7 @@ class ReviewPostScreen extends StatelessWidget {
                       icon: Icons.title,
                       title: 'Title',
                       content: Text(
-                        challengeHeader,
+                        widget.challengeHeader,
                         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -98,7 +158,7 @@ class ReviewPostScreen extends StatelessWidget {
                       icon: Icons.description,
                       title: 'Description',
                       content: Text(
-                        challengeDescription,
+                        widget.challengeDescription,
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -118,9 +178,9 @@ class ReviewPostScreen extends StatelessWidget {
                       icon: Icons.date_range,
                       title: 'Completion Date',
                       content: Text(
-                        completionDate != null && completionDate != DateTime(0)
-                            ? '${DateFormat('MMMM d, yyyy – h:mm a').format(completionDate!)}'
-                            : 'Repeat the challenge every $recurrenceValue ${recurrenceUnit}(s)',
+                        widget.completionDate != null && widget.completionDate != DateTime(0)
+                            ? '${DateFormat('MMMM d, yyyy – h:mm a').format(widget.completionDate!)}'
+                            : 'Repeat the challenge every ${widget.recurrenceValue} ${widget.recurrenceUnit}(s)',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -130,10 +190,10 @@ class ReviewPostScreen extends StatelessWidget {
                       title: 'Checklist',
                       content: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: challengeListTitles.asMap().entries.map((entry) {
+                        children: widget.challengeListTitles.asMap().entries.map((entry) {
                           final index = entry.key;
                           final title = entry.value;
-                          final expirationDuration = expirationDurations[index];
+                          final expirationDuration = widget.expirationDurations[index];
                           return Text(
                             '• $title: ${expirationDuration != null ? _durationToString(expirationDuration) : 'No expiration'}',
                             style: TextStyle(fontSize: 16),
@@ -164,12 +224,72 @@ class ReviewPostScreen extends StatelessWidget {
                       icon: Icons.verified,
                       title: 'Verification Type',
                       content: Text(
-                        selectedVerification == 'custom' && customVerificationProcess != null
-                            ? '$selectedVerification: $customVerificationProcess'
-                            : selectedVerification ?? 'None',
+                        widget.selectedVerification == 'custom' && widget.customVerificationProcess != null
+                            ? '${widget.selectedVerification}: ${widget.customVerificationProcess}'
+                            : widget.selectedVerification ?? 'None',
                         style: TextStyle(fontSize: 16),
                       ),
                       iconColor: Colors.grey, // Set the icon color to grey
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Dimension Section - Embedded in Roles and Verification
+                    // Dimension Section - Embedded in Roles and Verification
+                    Stack(
+                      children: [
+                        _buildInfoSection(
+                          icon: _dimensionIcons[_selectedDimension]!,
+                          title: 'Dimension of Wellness',
+                          content: _isEditingDimension
+                              ? DropdownButton<String>(
+                            value: _selectedDimension,
+                            items: <String>[
+                              'emotional',
+                              'physical',
+                              'occupational',
+                              'social',
+                              'spiritual',
+                              'intellectual',
+                              'environmental',
+                              'financial'
+                            ].map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Row(
+                                  children: [
+                                    Icon(_dimensionIcons[value]),
+                                    const SizedBox(width: 8),
+                                    Text(value.capitalize()),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedDimension = newValue!;
+                                _isEditingDimension = false;
+                              });
+                            },
+                          )
+                              : Text(
+                            _selectedDimension.capitalize(),
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          iconColor: Colors.grey, // Set the icon color to grey
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(Icons.edit, color: Colors.grey),
+                            onPressed: () {
+                              setState(() {
+                                _isEditingDimension = !_isEditingDimension;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -192,21 +312,21 @@ class ReviewPostScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 24, color: iconColor), // Use the iconColor parameter
+                Icon(icon, size: 24, color: iconColor),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             content,
           ],
         ),
@@ -216,27 +336,28 @@ class ReviewPostScreen extends StatelessWidget {
 
   Widget _buildDetailCard({required IconData icon, required String title, required Widget content}) {
     return Card(
-      elevation: 2,
+      elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(icon, size: 24, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
+            Icon(icon, size: 24, color: Colors.blueAccent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  content,
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            content,
           ],
         ),
       ),
@@ -244,23 +365,34 @@ class ReviewPostScreen extends StatelessWidget {
   }
 
   Widget _buildRolesContent() {
+    final rolesContent = widget.selectedRoles.entries.map((entry) {
+      final friend = entry.key;
+      final roles = entry.value;
+      return Text(
+        '$friend: ${roles.isEmpty ? 'None' : roles.join(' and ')}',
+        style: TextStyle(fontSize: 16),
+      );
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: selectedRoles.entries.map((entry) {
-        final friend = entry.key;
-        final roles = entry.value;
-        return Text(
-          '• $friend: ${roles.join(' and ')}',
-          style: TextStyle(fontSize: 16),
-        );
-      }).toList(),
+      children: rolesContent,
     );
   }
 
   String _durationToString(Duration duration) {
-    if (duration.inDays > 0) return '${duration.inDays} Day(s)';
-    if (duration.inHours > 0) return '${duration.inHours} Hour(s)';
-    if (duration.inMinutes > 0) return '${duration.inMinutes} Minute(s)';
-    return '0 Minute(s)';
+    final minutes = duration.inMinutes;
+    final hours = duration.inHours;
+    final days = duration.inDays;
+    if (days > 0) return '$days day${days > 1 ? 's' : ''}';
+    if (hours > 0) return '$hours hour${hours > 1 ? 's' : ''}';
+    return '$minutes minute${minutes > 1 ? 's' : ''}';
+  }
+}
+
+extension CapitalizeExtension on String {
+  String capitalize() {
+    if (this == null || this.isEmpty) return '';
+    return '${this[0].toUpperCase()}${this.substring(1).toLowerCase()}';
   }
 }

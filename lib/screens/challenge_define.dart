@@ -127,6 +127,84 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
     }
   }
 
+  Future<void> _bulkSelectExpiration() async {
+    Duration? selectedDuration = await showDialog<Duration>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Select Expiration Duration for All Items'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _numberController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Enter number of'),
+                    onChanged: (value) {
+                      setState(() {
+                        recurrenceValue = int.tryParse(value) ?? 1;
+                      });
+                    },
+                  ),
+                  DropdownButton<String>(
+                    value: selectedUnit,
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedUnit = newValue!;
+                      });
+                    },
+                    items: timeUnitOptions.map((unit) {
+                      return DropdownMenuItem<String>(
+                        value: unit,
+                        child: Text(unit),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Duration duration;
+                switch (selectedUnit) {
+                  case 'Day':
+                    duration = Duration(days: recurrenceValue);
+                    break;
+                  case 'Hour':
+                    duration = Duration(hours: recurrenceValue);
+                    break;
+                  case 'Week':
+                    duration = Duration(days: recurrenceValue * 7);
+                    break;
+                  case 'Month':
+                  // Approximate 1 month as 30 days
+                    duration = Duration(days: recurrenceValue * 30);
+                    break;
+                  default:
+                    duration = Duration(days: recurrenceValue);
+                }
+                Navigator.pop(context, duration);
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedDuration != null) {
+      setState(() {
+        for (var title in orderedTitles) {
+          expirationDurations[title] = selectedDuration;
+        }
+      });
+    }
+  }
+
   String durationToString(Duration duration) {
     if (duration.inDays > 0) return '${duration.inDays} Day';
     if (duration.inHours > 0) return '${duration.inHours} Hour';
@@ -176,6 +254,43 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
             ),
             if (selectedOrder == 'Consecutive') ...[
               const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 35.0),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.timer_outlined), // or another appropriate icon
+                              onPressed: _bulkSelectExpiration,
+                              tooltip: 'Bulk select expiration',
+                              color: Colors.deepPurple[300], // Optional: Color to make it stand out
+                            ),
+                            Positioned(
+                              right: 0,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple[300],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  'All',
+                                  style: TextStyle(color: Colors.white, fontSize: 10),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               ReorderableListView(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),

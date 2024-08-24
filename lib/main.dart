@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:snapchat_ui_clone/screens/Stage%201/authentication_screen.dart';
 import 'package:snapchat_ui_clone/screens/camera_screen.dart';
 import 'package:snapchat_ui_clone/screens/chat_screen.dart';
@@ -38,10 +39,67 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        // Set the default font family to Montserrat
+        fontFamily: GoogleFonts
+            .montserrat()
+            .fontFamily,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
+        textTheme: TextTheme(
+          headline1: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .headline1),
+          headline2: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .headline2),
+          headline3: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .headline3),
+          headline4: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .headline4),
+          headline5: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .headline5),
+          headline6: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .headline6),
+          bodyText1: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .bodyText1),
+          bodyText2: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .bodyText2),
+          subtitle1: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .subtitle1),
+          subtitle2: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .subtitle2),
+          caption: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .caption),
+          button: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .button),
+          overline: GoogleFonts.montserrat(textStyle: Theme
+              .of(context)
+              .textTheme
+              .overline),
+        ),
       ),
-      // home: const MainPage(),
       home: AuthenticationScreen(),
     );
   }
@@ -114,7 +172,7 @@ class _MainPageState extends State<MainPage> {
           // TemporaryScreen(color: _colors[0]),
           const ChatScreen(friendName: '',),
           // TemporaryScreen(color: _colors[1]),
-          const TeamScreen(),
+          TeamScreen(),
           CameraScreen(cameraController: _cameraController, initCamera: initCamera),
           // TemporaryScreen(color: _colors[3]),
           const EngagementsScreen(),
