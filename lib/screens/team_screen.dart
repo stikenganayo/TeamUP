@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
 import 'package:snapchat_ui_clone/widgets/top_bar.dart';
+import 'challenge_do.dart';
 import 'challenge_someone.dart'; // Import ChallengeInputScreen
 
 class TeamScreen extends StatefulWidget {
@@ -71,6 +72,7 @@ class _TeamScreenState extends State<TeamScreen> with SingleTickerProviderStateM
 
       for (var doc in querySnapshot.docs) {
         Map<String, dynamic> challengeData = {
+          'id': doc.id, // Include the document ID
           'title': doc['challengeHeader'] as String,
           'dimension': doc['dimension'] as String,
           'description': doc['challengeDescription'] as String, // Add this line
@@ -235,120 +237,134 @@ class _TeamScreenState extends State<TeamScreen> with SingleTickerProviderStateM
               double progress = 0.5; // Placeholder progress value
               String progressText = '${(progress * 100).toInt()}%';
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                elevation: 16, // Increase the elevation to make the shadow more prominent
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16), // Rounded corners
-                ),
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 140, // Adjust the width as needed
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Image.asset(
-                            imagePath,
-                            height: 50, // Adjust the size as needed
-                            width: 50,
-                            fit: BoxFit.cover,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            challenges[index]['title'] as String,
-                            style: GoogleFonts.montserrat(
-                              textStyle: Theme.of(context).textTheme.bodyText1?.copyWith(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14, // Adjust the font size if needed
+              return GestureDetector(
+                onTap: () {
+                  if (title == 'Active') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DoChallenge(
+                          challenge: challenges[index], // Pass the challenge data if needed
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                  elevation: 16, // Increase the elevation to make the shadow more prominent
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16), // Rounded corners
+                  ),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 140, // Adjust the width as needed
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Image.asset(
+                              imagePath,
+                              height: 50, // Adjust the size as needed
+                              width: 50,
+                              fit: BoxFit.cover,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              challenges[index]['title'] as String,
+                              style: GoogleFonts.montserrat(
+                                textStyle: Theme.of(context).textTheme.bodyText1?.copyWith(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14, // Adjust the font size if needed
+                                ),
                               ),
                             ),
-                          ),
-                          if (title != 'Active') ...[
-                            SizedBox(height: 8),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  challenges[index]['description'] as String,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.montserrat(
-                                    textStyle: Theme.of(context).textTheme.bodyText2?.copyWith(
-                                      color: Colors.black54,
-                                      fontSize: 12, // Adjust the font size if needed
+                            if (title != 'Active') ...[
+                              SizedBox(height: 8),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    challenges[index]['description'] as String,
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.montserrat(
+                                      textStyle: Theme.of(context).textTheme.bodyText2?.copyWith(
+                                        color: Colors.black54,
+                                        fontSize: 12, // Adjust the font size if needed
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                          if (title == 'Active') ...[
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: LinearProgressIndicator(
-                                    value: progress,
-                                    backgroundColor: Colors.grey[300],
-                                    color: Colors.blue,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  progressText,
-                                  style: GoogleFonts.montserrat(
-                                    textStyle: Theme.of(context).textTheme.bodyText1?.copyWith(
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12, // Adjust the font size if needed
+                            ],
+                            if (title == 'Active') ...[
+                              SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: LinearProgressIndicator(
+                                      value: progress,
+                                      backgroundColor: Colors.grey[300],
+                                      color: Colors.blue,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    progressText,
+                                    style: GoogleFonts.montserrat(
+                                      textStyle: Theme.of(context).textTheme.bodyText1?.copyWith(
+                                        color: Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12, // Adjust the font size if needed
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            Spacer(), // Pushes content to the top and bottom space
                           ],
-                          Spacer(), // Pushes content to the top and bottom space
-                        ],
-                      ),
-                    ),
-                    // Add comment icon button only for Active challenges
-                    if (title == 'Active')
-                      Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: IconButton(
-                          icon: Icon(Icons.comment, color: Colors.blue),
-                          onPressed: () {
-                            // Add your onPressed logic here
-                          },
                         ),
                       ),
-                    // Add repeat icon button only for Previous challenges
-                    if (title == 'Previous')
-                      Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: IconButton(
-                          icon: Icon(Icons.repeat, color: Colors.blue),
-                          onPressed: () {
-                            // Add your onPressed logic here
-                          },
+                      // Add comment icon button only for Active challenges
+                      if (title == 'Active')
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(Icons.comment, color: Colors.blue),
+                            onPressed: () {
+                              // Add your onPressed logic here
+                            },
+                          ),
                         ),
-                      ),
-                    // Add plus icon button only for Discovery challenges
-                    if (title == 'Discovery')
-                      Positioned(
-                        bottom: 8,
-                        right: 8,
-                        child: IconButton(
-                          icon: Icon(Icons.add, color: Colors.blue),
-                          onPressed: () {
-                            // Add your onPressed logic here
-                          },
+                      // Add repeat icon button only for Previous challenges
+                      if (title == 'Previous')
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(Icons.repeat, color: Colors.blue),
+                            onPressed: () {
+                              // Add your onPressed logic here
+                            },
+                          ),
                         ),
-                      ),
-                  ],
+                      // Add plus icon button only for Discovery challenges
+                      if (title == 'Discovery')
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(Icons.add, color: Colors.blue),
+                            onPressed: () {
+                              // Add your onPressed logic here
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               );
             },
