@@ -75,7 +75,7 @@ class _TeamScreenState extends State<TeamScreen> with SingleTickerProviderStateM
           'id': doc.id, // Include the document ID
           'title': doc['challengeHeader'] as String,
           'dimension': doc['dimension'] as String,
-          'description': doc['challengeDescription'] as String, // Add this line
+          'description': doc['challengeDescription'] as String,
         };
         Timestamp? completionDateTimestamp = doc['completionDate'] as Timestamp?;
         List<dynamic> challengeFriends = doc['challengeFriends'] as List<dynamic>;
