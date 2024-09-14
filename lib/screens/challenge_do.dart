@@ -6,6 +6,7 @@ import 'package:intl/intl.dart'; // Import for date formatting
 import 'dart:math';
 
 import '../widgets/verification_phot.dart'; // Import for generating random pastel colors
+import '../widgets/verified_photo.dart';
 
 class DoChallenge extends StatefulWidget {
   final Map<String, dynamic> challenge;
@@ -235,6 +236,17 @@ class _DoChallengeState extends State<DoChallenge> {
 
   @override
   Widget build(BuildContext context) {
+    bool isCoach = false;
+    bool isPlayer = false;
+
+    challengeFriends.forEach((friend) {
+      if (friend == userName) { // Check if current user is in the list
+        List<String> roles = List<String>.from(challengeDetails?['selectedRoles'][friend] ?? []);
+        isCoach = roles.contains('leader');
+        isPlayer = roles.contains('player');
+      }
+    });
+
     String title = widget.challenge['title'] ?? 'No Title';
     String id = widget.challenge['id'] ?? 'No id';
     String description = widget.challenge['description'] ?? 'No Description';
@@ -411,7 +423,6 @@ class _DoChallengeState extends State<DoChallenge> {
                                   color: Colors.green),
                             );
                           }
-
                           return Container(
                             margin: EdgeInsets.only(right: 16),
                             child: Column(
@@ -472,126 +483,284 @@ class _DoChallengeState extends State<DoChallenge> {
                       },
                     ),
                   ),
-                SizedBox(height: 32),
-                Row(
-                  children: [
-                    Icon(Icons.checklist, size: 24), // Checklist icon
-                    SizedBox(width: 8),
-                    Text(
-                      'Checklist:',
-                      style: GoogleFonts.montserrat(
-                        textStyle: Theme.of(context).textTheme.headline6?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                if (isCoach && !isPlayer || isCoach && isPlayer) ...[ // Show Verify section if user is a leader only
+                  SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Icon(Icons.verified, size: 24), // Added "Verify" icon
+                      SizedBox(width: 8),
+                      Text(
+                        'Verify:',
+                        style: GoogleFonts.montserrat(
+                          textStyle: Theme.of(context).textTheme.headline6?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8), // Add some space between the header and the items
+                  Expanded(
+                    child: challengeListCompleted?.entries.any((entry) {
+                      final completedData = entry.value;
+                      // Check if any item has neither 'approved' nor 'rejected'
+                      return !completedData.contains('approved') && !completedData.contains('rejected');
+                    }) ?? false
+                        ? ListView.builder(
+                      itemCount: (challengeListCompleted?.entries.where((entry) {
+                        final completedData = entry.value;
+                        // Filter out items with 'approved' or 'rejected'
+                        return !completedData.contains('approved') && !completedData.contains('rejected');
+                      }).toList().length ?? 0),
+                      itemBuilder: (context, index) {
+                        final filteredEntries = challengeListCompleted?.entries.where((entry) {
+                          final completedData = entry.value;
+                          // Filter out items with 'approved' or 'rejected'
+                          return !completedData.contains('approved') && !completedData.contains('rejected');
+                        }).toList() ?? [];
+
+                        final item = filteredEntries[index].key;
+                        final completedData = filteredEntries[index].value;
+
+                        // Determine the status and icon color
+                        Color iconColor = Colors.grey; // Default to grey
+                        final completedStatus = completedData.contains('approved') ? 'approved' :
+                        completedData.contains('rejected') ? 'rejected' : '';
+                        if (completedStatus == 'approved') {
+                          iconColor = Colors.green;
+                        } else if (completedStatus == 'rejected') {
+                          iconColor = Colors.red;
+                        }
+
+                        final parts = completedData.split(' - ');
+                        final user = parts.first;
+                        final imageUrl = parts.length > 1 ? parts.last : '';
+
+                        return GestureDetector(
+                          onTap: () {
+                            // Allow interaction only if item is neither approved nor rejected
+                            if (iconColor == Colors.grey) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChallengeDetailScreen(
+                                    imageUrl: imageUrl,
+                                    userName: user,
+                                    itemTitle: item,
+                                    challengeId: id,
+                                    currentUser: userName ?? 'Unknown User', // Pass challengeId here
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: 16),
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  spreadRadius: 2,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2), // Changes position of shadow
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Display image if available
+                                if (imageUrl.isNotEmpty)
+                                  Container(
+                                    width: 60, // Smaller width for the image
+                                    height: 60, // Smaller height for the image
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      image: DecorationImage(
+                                        image: NetworkImage(imageUrl),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                SizedBox(width: 8),
+                                // Display challenge item title
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item ?? 'No Title',
+                                        style: GoogleFonts.montserrat(
+                                          textStyle: Theme.of(context).textTheme.subtitle1?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Completed by: $user',
+                                        style: GoogleFonts.montserrat(
+                                          textStyle: Theme.of(context).textTheme.bodyText2?.copyWith(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                // Display check icon with dynamic color
+                                Icon(
+                                  Icons.check_circle,
+                                  color: iconColor, // Set the icon color based on status
+                                  size: 24,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                        : Center(
+                      child: Text(
+                        'Nothing to verify',
+                        style: GoogleFonts.montserrat(
+                          textStyle: Theme.of(context).textTheme.headline6?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: challengeListTitles.length,
-                    itemBuilder: (context, index) {
-                      final itemTitle = challengeListTitles[index];
-
-                      // Retrieve the entry from challengeListCompleted
-                      bool isCompleted = false;
-                      Icon verificationIcon;
-
-                      // Check if the item is completed by the current user
-                      if (challengeListCompleted!.containsKey(itemTitle)) {
-                        String completedData = challengeListCompleted?[itemTitle] ?? '';
-                        if (completedData.startsWith(userName ?? 'Unknown User')) {
-                          isCompleted = true;
-                        }
-                      }
-
-                      // Define icon based on selectedVerification and completion status
-                      switch (selectedVerification) {
-                        case 'photo':
-                          verificationIcon = Icon(
-                            Icons.photo_camera,
-                            color: isCompleted ? Colors.green : Colors.grey,
-                          );
-                          break;
-                        case 'video':
-                          verificationIcon = Icon(
-                            Icons.video_call_rounded,
-                            color: isCompleted ? Colors.green : Colors.grey,
-                          );
-                          break;
-                        case 'text':
-                          verificationIcon = Icon(
-                            Icons.text_snippet,
-                            color: isCompleted ? Colors.green : Colors.grey,
-                          );
-                          break;
-                        case 'location':
-                          verificationIcon = Icon(
-                            Icons.location_on,
-                            color: isCompleted ? Colors.green : Colors.grey,
-                          );
-                          break;
-                        case 'live_chat':
-                          verificationIcon = Icon(
-                            Icons.video_camera_front_rounded,
-                            color: isCompleted ? Colors.green : Colors.grey,
-                          );
-                          break;
-                        case 'custom':
-                          verificationIcon = Icon(
-                            Icons.dashboard_customize,
-                            color: isCompleted ? Colors.green : Colors.grey,
-                          );
-                          break;
-                        default:
-                          verificationIcon = Icon(
-                            Icons.help,
-                            color: isCompleted ? Colors.green : Colors.black,
-                          );
-                      }
-
-                      return Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (selectedVerification == 'photo') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => VerifyCameraScreen(
-                                      currentUser: userName ?? 'Unknown User',
-                                      checklistItemTitle: itemTitle,
-                                      itemTitle: itemTitle,
-                                      challengeId: id, // Pass the challenge ID here
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                print('Selected Verification: $selectedVerification');
-                              }
-                            },
-                            child: Checkbox(
-                              value: isCompleted, // Set the checkbox state based on completion
-                              onChanged: null, // Disable the checkbox interaction
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Text(itemTitle),
-                          Spacer(),
-                          Row(
-                            children: [
-                              verificationIcon, // Show the icon based on selectedVerification and completion status
-                              SizedBox(width: 8), // Add spacing between the icons
-                              Icon(Icons.verified_user, color: Colors.grey), // Add the verified_user icon
-                            ],
-                          ),
-                        ],
-                      );
-                    },
                   ),
-                )
+                ],
+                if (!isCoach && isPlayer || isCoach && isPlayer) ...[
+                  SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Icon(Icons.checklist, size: 24), // Checklist icon
+                      SizedBox(width: 8),
+                      Text(
+                        'Checklist:',
+                        style: GoogleFonts.montserrat(
+                          textStyle: Theme.of(context).textTheme.headline6?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      Spacer(),
+                      Icon(
+                        selectedVerification == 'photo'
+                            ? Icons.photo_camera
+                            : selectedVerification == 'video'
+                            ? Icons.video_call_rounded
+                            : selectedVerification == 'text'
+                            ? Icons.text_snippet
+                            : selectedVerification == 'location'
+                            ? Icons.location_on
+                            : selectedVerification == 'live_chat'
+                            ? Icons.video_camera_front_rounded
+                            : selectedVerification == 'custom'
+                            ? Icons.dashboard_customize
+                            : Icons.help, // Default icon if no match
+                        color: Colors.black, // Set the color for the header icon
+                        size: 24,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: challengeListTitles.length,
+                      itemBuilder: (context, index) {
+                        final itemTitle = challengeListTitles[index];
+
+                        // Initialize verificationIcon with a default value
+                        Icon verificationIcon = Icon(
+                          Icons.check_circle,
+                          color: Colors.grey,
+                        );
+
+                        // Initialize other variables
+                        bool isCompleted = false;
+                        Color verifiedUserColor = Colors.grey; // Default color
+
+                        if (challengeListCompleted!.containsKey(itemTitle)) {
+                          String completedData = challengeListCompleted?[itemTitle] ?? '';
+                          if (completedData.startsWith(userName ?? 'Unknown User')) {
+                            isCompleted = true;
+                            verificationIcon = Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            );
+                            verifiedUserColor = Colors.grey;
+                          } else if (completedData.startsWith('approved')) {
+                            isCompleted = true;
+                            verificationIcon = Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            );
+                            verifiedUserColor = Colors.green;
+                          } else if (completedData.startsWith('rejected')) {
+                            isCompleted = false;
+                            verificationIcon = Icon(
+                              Icons.cancel,
+                              color: Colors.red,
+                            );
+                            verifiedUserColor = Colors.red;
+                          }
+                        }
+
+                        return Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                if (selectedVerification == 'photo' &&
+                                    (verifiedUserColor == Colors.red || verifiedUserColor == Colors.grey)) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => VerifyCameraScreen(
+                                        currentUser: userName ?? 'Unknown User',
+                                        checklistItemTitle: itemTitle,
+                                        itemTitle: itemTitle,
+                                        challengeId: id, // Pass the challenge ID here
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  print('Selected Verification: $selectedVerification');
+                                }
+                              },
+                              child: Checkbox(
+                                value: isCompleted, // Set the checkbox state based on completion
+                                onChanged: null, // Disable the checkbox interaction
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(itemTitle),
+                            Spacer(),
+                            Row(
+                              children: [
+                                verificationIcon, // Show the icon based on selectedVerification and completion status
+                                SizedBox(width: 8), // Add spacing between the icons
+                                Icon(Icons.verified_user, color: verifiedUserColor), // Add the verified_user icon
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
