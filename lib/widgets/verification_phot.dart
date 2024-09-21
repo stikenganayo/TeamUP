@@ -145,7 +145,6 @@ class _VerifyCameraScreenState extends State<VerifyCameraScreen> {
 
       final imageFile = File(imagePath);
       final uploadTask = imageStorageRef.putFile(imageFile);
-
       final snapshot = await uploadTask.whenComplete(() => {});
       final imageUrl = await snapshot.ref.getDownloadURL();
 
@@ -163,15 +162,54 @@ class _VerifyCameraScreenState extends State<VerifyCameraScreen> {
         }, SetOptions(merge: true));
       }
 
-      // Update the map with the new entry
+      // Get the existing challengeListCompleted data
       final challengeListCompleted = existingData?['challengeListCompleted'] as Map<String, dynamic>? ?? {};
-      challengeListCompleted[widget.itemTitle] = '${widget.currentUser} - $imageUrl';
 
+      // Create a unique item title and check for existing entries
+      String baseItemTitle = widget.itemTitle.replaceAll('_', ' '); // Replace underscores with spaces
+      bool entryExists = false;
+
+      // Check if there is already an entry for the current user with the base item title
+      challengeListCompleted.forEach((key, value) {
+        if (value['player'] == widget.currentUser && key.startsWith(baseItemTitle)) {
+          // If a matching entry is found, overwrite it
+          challengeListCompleted[key] = {
+            'player': widget.currentUser,
+            'imageUrl': imageUrl,
+            'leader': '',  // Empty leader field
+            'status': '',  // Empty status field
+            'feedback': '', // New feedback field
+          };
+          entryExists = true;
+        }
+      });
+
+      // If no existing entry was found, create a unique item title
+      if (!entryExists) {
+        String uniqueItemTitle = baseItemTitle;
+        int count = 1;
+
+        while (challengeListCompleted.containsKey(uniqueItemTitle)) {
+          uniqueItemTitle = '${baseItemTitle} $count'; // Use space instead of underscore
+          count++;
+        }
+
+        // Add new entry
+        challengeListCompleted[uniqueItemTitle] = {
+          'player': widget.currentUser,
+          'imageUrl': imageUrl,
+          'leader': '',  // Empty leader field
+          'status': '',  // Empty status field
+          'feedback': '', // New feedback field
+        };
+      }
+
+      // Update the map with the modified data
       await docRef.update({
         'challengeListCompleted': challengeListCompleted,
       });
 
-      // Show 'Saved Successfully' message at the bottom of the screen
+      // Show 'Saved Successfully' message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Saved Successfully'),
@@ -186,6 +224,7 @@ class _VerifyCameraScreenState extends State<VerifyCameraScreen> {
       print("Error sending photo: $e");
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -15,8 +15,8 @@ class ChallengeDetailScreen extends StatelessWidget {
     required this.challengeId,
     required this.currentUser,
   }) {
-    // Debugging: Print challengeId to check its value
     print('Challenge ID: $challengeId');
+    print('Item Title: $itemTitle');
   }
 
   @override
@@ -42,7 +42,6 @@ class ChallengeDetailScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          // Display the image
           imageUrl.isNotEmpty
               ? Center(
             child: Container(
@@ -59,7 +58,6 @@ class ChallengeDetailScreen extends StatelessWidget {
               : Center(
             child: Text('No Image Available'),
           ),
-          // Buttons at the bottom
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -70,8 +68,7 @@ class ChallengeDetailScreen extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Handle reject action
-                        _showFeedbackDialog(context, false); // Pass false for reject
+                        _showFeedbackDialog(context, false);
                       },
                       icon: Icon(Icons.close, color: Colors.white),
                       label: Text(
@@ -79,7 +76,7 @@ class ChallengeDetailScreen extends StatelessWidget {
                         style: TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red, // Red color for reject
+                        backgroundColor: Colors.red,
                         padding: EdgeInsets.symmetric(vertical: 16.0),
                         textStyle: TextStyle(
                           fontSize: 16,
@@ -92,8 +89,7 @@ class ChallengeDetailScreen extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Handle approve action
-                        _updateChallengeStatus(context, true); // Pass true for approve
+                        _updateChallengeStatus(context, true);
                       },
                       icon: Icon(Icons.check, color: Colors.white),
                       label: Text(
@@ -101,7 +97,7 @@ class ChallengeDetailScreen extends StatelessWidget {
                         style: TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Green color for approve
+                        backgroundColor: Colors.green,
                         padding: EdgeInsets.symmetric(vertical: 16.0),
                         textStyle: TextStyle(
                           fontSize: 16,
@@ -137,13 +133,13 @@ class ChallengeDetailScreen extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 _updateChallengeStatus(context, isApproved, feedback: feedbackController.text);
               },
               child: Text('Submit'),
@@ -155,41 +151,48 @@ class ChallengeDetailScreen extends StatelessWidget {
   }
 
   Future<void> _updateChallengeStatus(BuildContext context, bool isApproved, {String? feedback}) async {
-    // Debugging: Check if challengeId is empty
     if (challengeId.isEmpty) {
       print("Error: challengeId is empty");
       return;
     }
 
     try {
-      // Reference to Firestore document
       final docRef = FirebaseFirestore.instance.collection('team_challenges').doc(challengeId);
-
-      // Check if the 'challengeListCompleted' map exists
       final docSnapshot = await docRef.get();
       final existingData = docSnapshot.data() as Map<String, dynamic>?;
 
-      // Initialize the map if it doesn't exist
       final challengeListCompleted = existingData?['challengeListCompleted'] as Map<String, dynamic>? ?? {};
 
-      // Construct the status string with roles
-      final status = isApproved ? 'approved' : 'rejected: $feedback';
-      final roleInfo = 'leader = $currentUser, player = $userName';
+      // Check if the itemTitle exists in the map
+      if (challengeListCompleted.containsKey(itemTitle)) {
+        // Update fields without deleting existing data
+        final currentEntry = challengeListCompleted[itemTitle] as Map<String, dynamic>;
 
-      // Update the map with the new entry
-      final newEntry = '$status ($roleInfo)';
+        // Update leader field
+        currentEntry['leader'] = currentUser;
 
-      // Add or update the item in the map without removing existing entries
-      challengeListCompleted[itemTitle] = newEntry;
+        // Update feedback field only if feedback is provided
+        if (feedback != null && feedback.isNotEmpty) {
+          currentEntry['feedback'] = feedback;
+        } else {
+          currentEntry['feedback'] = ''; // Leave feedback empty if not provided
+        }
 
-      await docRef.update({
-        'challengeListCompleted': challengeListCompleted,
-      });
+        // Update status field
+        currentEntry['status'] = isApproved ? 'approved' : 'rejected';
 
-      // Close the screen and any dialogs
-      Navigator.of(context).pop(); // Close the dialog if it is still open
-      Navigator.of(context).pop(); // Close the current screen
+        // Update the entry in the map
+        challengeListCompleted[itemTitle] = currentEntry;
 
+        await docRef.update({
+          'challengeListCompleted': challengeListCompleted,
+        });
+
+        // Close the screen
+        Navigator.of(context).pop();
+      } else {
+        print("Error: Item title not found in challengeListCompleted");
+      }
     } catch (e) {
       print("Error updating challenge status: $e");
     }

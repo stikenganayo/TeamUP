@@ -103,12 +103,23 @@ class _DoChallengeState extends State<DoChallenge> {
               value: (item) => false,
             );
 
-            // Extract challengeListCompleted from Firebase data
-            challengeListCompleted = Map<String, dynamic>.from(data['challengeListCompleted'] ?? {});
+            // Extract challengeListCompleted from Firebase data in the new format
+            challengeListCompleted = (data['challengeListCompleted'] as Map<String, dynamic>)?.map(
+                  (key, value) {
+                // Get player name, imageUrl, leader, and status from the new structure
+                return MapEntry(key, {
+                  'player': value['player'] ?? '',
+                  'imageUrl': value['imageUrl'] ?? '',
+                  'leader': value['leader'] ?? '',
+                  'status': value['status'] ?? '',
+                });
+              },
+            );
 
             // Count how many items are completed by the current user
             int? completedItems = challengeListCompleted?.entries
-                .where((entry) => entry.value.contains(userName ?? 'Unknown User'))
+                .where((entry) => entry.value['player'] == userName)
+                .where((entry) => entry.value['status'] == 'approved' || entry.value['status'] == 'rejected' || entry.value['status'].isEmpty)
                 .length;
 
             // Calculate the total number of items
@@ -116,7 +127,7 @@ class _DoChallengeState extends State<DoChallenge> {
 
             // Set progressStatus as completed/total in fraction format
             progressStatus = '$completedItems/$totalItems';
-            double progressStatuses = completedItems!/totalItems;
+            double progressStatuses = (completedItems ?? 0) / totalItems;
 
             // Update Firestore with the new progressStatuses
             FirebaseFirestore.instance
@@ -262,74 +273,116 @@ class _DoChallengeState extends State<DoChallenge> {
     }
 
     return Scaffold(
-        backgroundColor: backgroundColor, // Set background color based on dimension
-        appBar: AppBar(
-          toolbarHeight: 100, // Increased height for better spacing
-          backgroundColor: backgroundColor, // Set app bar color based on dimension
-          title: null, // We will use FlexibleSpace for custom title
-          flexibleSpace: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  ' ', // Added title
-                  style: GoogleFonts.montserrat(
-                    textStyle: Theme.of(context).textTheme.headline5?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24, // Adjust the font size as needed
-                      color: Colors.black, // Customize color if needed
-                    ),
+      backgroundColor: backgroundColor, // Set background color based on dimension
+      appBar: AppBar(
+        toolbarHeight: 100, // Increased height for better spacing
+        backgroundColor: backgroundColor, // Set app bar color based on dimension
+        title: null, // We will use FlexibleSpace for custom title
+        flexibleSpace: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                ' ', // Added title
+                style: GoogleFonts.montserrat(
+                  textStyle: Theme.of(context).textTheme.headline5?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24, // Adjust the font size as needed
+                    color: Colors.black, // Customize color if needed
                   ),
                 ),
-                SizedBox(height: 8), // Space between "HELLO" and the existing title
-                Text(
-                  challengeDetails?['challengeHeader'] ?? 'No Header',
-                  style: GoogleFonts.montserrat(
-                    textStyle: Theme.of(context).textTheme.headline4?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28, // Adjust the font size as needed
-                    ),
+              ),
+              SizedBox(height: 8), // Space between "HELLO" and the existing title
+              Text(
+                challengeDetails?['challengeHeader'] ?? 'No Header',
+                style: GoogleFonts.montserrat(
+                  textStyle: Theme.of(context).textTheme.headline4?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28, // Adjust the font size as needed
                   ),
                 ),
-                SizedBox(height: 8), // Increased space between title and date/progress
-                if (challengeDetails != null) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_month, color: Colors.blueGrey), // Calendar icon
-                      SizedBox(width: 16), // Space between icon and text
-                      Text(
-                        formattedDate.isNotEmpty ? formattedDate : 'No Date',
-                        style: GoogleFonts.montserrat(
-                          textStyle: Theme.of(context).textTheme.subtitle1?.copyWith(
-                            color: Colors.blueGrey,
-                          ),
+              ),
+              SizedBox(height: 8), // Increased space between title and date/progress
+              if (challengeDetails != null) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.calendar_month, color: Colors.blueGrey), // Calendar icon
+                    SizedBox(width: 16), // Space between icon and text
+                    Text(
+                      formattedDate.isNotEmpty ? formattedDate : 'No Date',
+                      style: GoogleFonts.montserrat(
+                        textStyle: Theme.of(context).textTheme.subtitle1?.copyWith(
+                          color: Colors.blueGrey,
                         ),
                       ),
-                      SizedBox(width: 80),
-                      CircularProgressIndicator(
-                        value: progressStatuses, // Use the calculated progress value
-                        strokeWidth: 6, // Thicker stroke width for the progress indicator
-                        color: Colors.green, // Custom color for the progress indicator
-                        backgroundColor: Colors.grey, // Background color for the progress indicator
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        progressStatus, // Display progress status
-                        style: GoogleFonts.montserrat(
-                          textStyle: Theme.of(context).textTheme.subtitle1?.copyWith(
-                            color: Colors.blueGrey,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    SizedBox(width: 80),
+                    FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection('team_challenges')
+                          .doc(id) // Use your specific challenge document ID
+                          .get(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return CircularProgressIndicator(
+                            value: null, // Show indeterminate progress if data is not ready
+                            strokeWidth: 6,
+                            color: Colors.green,
+                            backgroundColor: Colors.grey,
+                          );
+                        }
+
+                        var challengeData = snapshot.data!.data() as Map<String, dynamic>;
+                        List<dynamic> challengeListTitles =
+                            challengeData['challengeListTitles'] ?? [];
+                        Map<String, dynamic> challengeListCompleted =
+                            challengeData['challengeListCompleted'] ?? {};
+
+                        // Total number of challenges
+                        int totalChallenges = challengeListTitles.length;
+
+                        // Count approved challenges for the current user
+                        int approvedChallenges = challengeListCompleted.entries
+                            .where((entry) =>
+                        entry.value['player'] == userName &&
+                            entry.value['status'] == 'approved')
+                            .length;
+
+                        // Calculate progress (approved challenges / total challenges)
+                        double progress = totalChallenges > 0
+                            ? approvedChallenges / totalChallenges
+                            : 0.0;
+
+                        return Row(
+                          children: [
+                            CircularProgressIndicator(
+                              value: progress, // Set the calculated progress value
+                              strokeWidth: 6, // Thicker stroke width for the progress indicator
+                              color: Colors.green, // Custom color for the progress indicator
+                              backgroundColor: Colors.grey, // Background color for the progress indicator
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              "$approvedChallenges/$totalChallenges", // Display progress status
+                              style: GoogleFonts.montserrat(
+                                textStyle: Theme.of(context).textTheme.subtitle1?.copyWith(
+                                  color: Colors.blueGrey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ],
-            ),
+            ],
           ),
         ),
-        body: Center(
+      ),
+    body: Center(
           child: isLoading
               ? CircularProgressIndicator()
               : Container(
@@ -398,92 +451,132 @@ class _DoChallengeState extends State<DoChallenge> {
 
                           // Fetch roles from Firestore
                           List<String> roles = List<String>.from(
-                              challengeDetails?['selectedRoles'][friendName] ?? [
-                              ]);
+                              challengeDetails?['selectedRoles'][friendName] ?? []);
                           bool isCoach = roles.contains('leader');
                           bool isPlayer = roles.contains('player');
+
+                          // Determine if the progress should be displayed based on roles
+                          // Only hide progress if the user is a leader but not a player
+                          bool showProgress = isPlayer || (!isCoach);
 
                           List<Widget> roleIcons = [];
 
                           if (isCoach && isPlayer) {
                             roleIcons.addAll([
-                              Icon(Icons.verified_user, size: 14,
-                                  color: Colors.orange),
-                              Icon(Icons.sports_soccer, size: 14,
-                                  color: Colors.green),
+                              Icon(Icons.verified_user, size: 14, color: Colors.orange),
+                              Icon(Icons.sports_soccer, size: 14, color: Colors.green),
                             ]);
                           } else if (isCoach) {
                             roleIcons.add(
-                              Icon(Icons.verified_user, size: 14,
-                                  color: Colors.orange),
+                              Icon(Icons.verified_user, size: 14, color: Colors.orange),
                             );
                           } else if (isPlayer) {
                             roleIcons.add(
-                              Icon(Icons.sports_soccer, size: 14,
-                                  color: Colors.green),
+                              Icon(Icons.sports_soccer, size: 14, color: Colors.green),
                             );
                           }
+
+                          return FutureBuilder<DocumentSnapshot>(
+                            future: FirebaseFirestore.instance
+                                .collection('team_challenges')
+                                .doc(id) // Use your specific challenge document ID
+                                .get(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return CircularProgressIndicator();
+                              }
+
+                              var challengeData = snapshot.data!.data() as Map<String, dynamic>;
+                              List<dynamic> challengeListTitles =
+                                  challengeData['challengeListTitles'] ?? [];
+                              Map<String, dynamic> challengeListCompleted =
+                                  challengeData['challengeListCompleted'] ?? {};
+
+                              // Total number of challenges
+                              int totalChallenges = challengeListTitles.length;
+
+                              // Count approved challenges for the current friend
+                              int approvedChallenges = challengeListCompleted.entries
+                                  .where((entry) =>
+                              entry.value['player'] == friendName &&
+                                  entry.value['status'] == 'approved')
+                                  .length;
+
+                              return Container(
+                                margin: EdgeInsets.only(right: 16),
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      alignment: Alignment.bottomRight,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 25, // Smaller radius
+                                          backgroundColor: _generatePastelColor(), // Pastel color
+                                          child: Text(
+                                            _getInitials(friendName),
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14, // Smaller font size
+                                            ),
+                                          ),
+                                        ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: roleIcons.map((icon) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(left: 2.0),
+                                              child: CircleAvatar(
+                                                radius: 8,
+                                                backgroundColor: Colors.white,
+                                                child: icon,
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    // Display fraction only if the user is a player or has no leader role
+                                    if (showProgress)
+                                      Text(
+                                        '$approvedChallenges/$totalChallenges', // Progress text based on calculation
+                                        style: TextStyle(fontSize: 12, color: Colors.black),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        } else {
+                          // Plus button with placeholder fraction below
                           return Container(
                             margin: EdgeInsets.only(right: 16),
                             child: Column(
                               children: [
-                                Stack(
-                                  alignment: Alignment.bottomRight,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 25, // Smaller radius
-                                      backgroundColor: _generatePastelColor(), // Pastel color
-                                      child: Text(
-                                        _getInitials(friendName),
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14, // Smaller font size
-                                        ),
-                                      ),
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: roleIcons.map((icon) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(left: 2.0),
-                                          child: CircleAvatar(
-                                            radius: 8,
-                                            backgroundColor: Colors.white,
-                                            child: icon,
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
+                                CircleAvatar(
+                                  radius: 25, // Smaller radius
+                                  backgroundColor: Colors.grey.shade300, // Grey color for the button
+                                  child: Icon(
+                                    Icons.add,
+                                    color: Colors.black,
+                                    size: 18, // Adjust icon size as needed
+                                  ),
                                 ),
                                 SizedBox(height: 4),
+                                // Placeholder fraction for the plus button
                                 Text(
-                                  '1/3', // Progress text
+                                  '', // Placeholder fraction
                                   style: TextStyle(fontSize: 12, color: Colors.black),
                                 ),
                               ],
-                            ),
-                          );
-                        } else {
-                          // Plus button
-                          return Container(
-                            margin: EdgeInsets.only(right: 16),
-                            child: CircleAvatar(
-                              radius: 25, // Smaller radius
-                              backgroundColor: Colors.grey.shade300, // Grey color for the button
-                              child: Icon(
-                                Icons.add,
-                                color: Colors.black,
-                                size: 18, // Adjust icon size as needed
-                              ),
                             ),
                           );
                         }
                       },
                     ),
                   ),
-                if (isCoach && !isPlayer || isCoach && isPlayer) ...[ // Show Verify section if user is a leader only
+                if ((isCoach && !isPlayer) || (isCoach && isPlayer)) ...[
                   SizedBox(height: 32),
                   Row(
                     children: [
@@ -502,58 +595,56 @@ class _DoChallengeState extends State<DoChallenge> {
                   ),
                   SizedBox(height: 8), // Add some space between the header and the items
                   Expanded(
-                    child: challengeListCompleted?.entries.any((entry) {
-                      final completedData = entry.value;
-                      // Check if any item has neither 'approved' nor 'rejected'
-                      return !completedData.contains('approved') && !completedData.contains('rejected');
-                    }) ?? false
+                    child: (challengeListCompleted != null && challengeListCompleted!.isNotEmpty)
                         ? ListView.builder(
-                      itemCount: (challengeListCompleted?.entries.where((entry) {
+                      itemCount: challengeListCompleted!.entries.where((entry) {
                         final completedData = entry.value;
-                        // Filter out items with 'approved' or 'rejected'
-                        return !completedData.contains('approved') && !completedData.contains('rejected');
-                      }).toList().length ?? 0),
+                        return (completedData['status'] != 'approved' &&
+                            completedData['status'] != 'rejected' &&
+                            completedData['player'] != userName);
+                      }).length,
                       itemBuilder: (context, index) {
-                        final filteredEntries = challengeListCompleted?.entries.where((entry) {
+                        final filteredEntries = challengeListCompleted!.entries.where((entry) {
                           final completedData = entry.value;
-                          // Filter out items with 'approved' or 'rejected'
-                          return !completedData.contains('approved') && !completedData.contains('rejected');
-                        }).toList() ?? [];
+                          return (completedData['status'] != 'approved' &&
+                              completedData['status'] != 'rejected' &&
+                              completedData['player'] != userName);
+                        }).toList();
+
+                        if (filteredEntries.isEmpty) {
+                          return Center(
+                            child: Text(
+                              'Nothing to verify',
+                              style: GoogleFonts.montserrat(
+                                textStyle: Theme.of(context).textTheme.headline6?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
 
                         final item = filteredEntries[index].key;
                         final completedData = filteredEntries[index].value;
 
-                        // Determine the status and icon color
-                        Color iconColor = Colors.grey; // Default to grey
-                        final completedStatus = completedData.contains('approved') ? 'approved' :
-                        completedData.contains('rejected') ? 'rejected' : '';
-                        if (completedStatus == 'approved') {
-                          iconColor = Colors.green;
-                        } else if (completedStatus == 'rejected') {
-                          iconColor = Colors.red;
-                        }
-
-                        final parts = completedData.split(' - ');
-                        final user = parts.first;
-                        final imageUrl = parts.length > 1 ? parts.last : '';
+                        final imageUrl = completedData['imageUrl'] ?? '';
 
                         return GestureDetector(
                           onTap: () {
-                            // Allow interaction only if item is neither approved nor rejected
-                            if (iconColor == Colors.grey) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ChallengeDetailScreen(
-                                    imageUrl: imageUrl,
-                                    userName: user,
-                                    itemTitle: item,
-                                    challengeId: id,
-                                    currentUser: userName ?? 'Unknown User', // Pass challengeId here
-                                  ),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChallengeDetailScreen(
+                                  imageUrl: imageUrl,
+                                  userName: completedData['player'],
+                                  itemTitle: item,
+                                  challengeId: id,
+                                  currentUser: userName ?? 'Unknown User',
                                 ),
-                              );
-                            }
+                              ),
+                            );
                           },
                           child: Container(
                             margin: EdgeInsets.only(bottom: 16),
@@ -566,18 +657,17 @@ class _DoChallengeState extends State<DoChallenge> {
                                   color: Colors.black.withOpacity(0.1),
                                   spreadRadius: 2,
                                   blurRadius: 4,
-                                  offset: Offset(0, 2), // Changes position of shadow
+                                  offset: Offset(0, 2),
                                 ),
                               ],
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Display image if available
                                 if (imageUrl.isNotEmpty)
                                   Container(
-                                    width: 60, // Smaller width for the image
-                                    height: 60, // Smaller height for the image
+                                    width: 60,
+                                    height: 60,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image: DecorationImage(
@@ -587,7 +677,6 @@ class _DoChallengeState extends State<DoChallenge> {
                                     ),
                                   ),
                                 SizedBox(width: 8),
-                                // Display challenge item title
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,7 +692,7 @@ class _DoChallengeState extends State<DoChallenge> {
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        'Completed by: $user',
+                                        'Completed by: ${completedData['player']}',
                                         style: GoogleFonts.montserrat(
                                           textStyle: Theme.of(context).textTheme.bodyText2?.copyWith(
                                             fontSize: 14,
@@ -613,13 +702,6 @@ class _DoChallengeState extends State<DoChallenge> {
                                       ),
                                     ],
                                   ),
-                                ),
-                                SizedBox(width: 8),
-                                // Display check icon with dynamic color
-                                Icon(
-                                  Icons.check_circle,
-                                  color: iconColor, // Set the icon color based on status
-                                  size: 24,
                                 ),
                               ],
                             ),
@@ -641,7 +723,7 @@ class _DoChallengeState extends State<DoChallenge> {
                     ),
                   ),
                 ],
-                if (!isCoach && isPlayer || isCoach && isPlayer) ...[
+                if ((!isCoach && isPlayer) || (isCoach && isPlayer)) ...[
                   SizedBox(height: 32),
                   Row(
                     children: [
@@ -671,7 +753,7 @@ class _DoChallengeState extends State<DoChallenge> {
                             : selectedVerification == 'custom'
                             ? Icons.dashboard_customize
                             : Icons.help, // Default icon if no match
-                        color: Colors.black, // Set the color for the header icon
+                        color: Colors.black,
                         size: 24,
                       ),
                     ],
@@ -682,6 +764,7 @@ class _DoChallengeState extends State<DoChallenge> {
                       itemCount: challengeListTitles.length,
                       itemBuilder: (context, index) {
                         final itemTitle = challengeListTitles[index];
+                        final baseItemTitle = itemTitle.split(' ').takeWhile((part) => !RegExp(r'\d').hasMatch(part)).join(' ');
 
                         // Initialize verificationIcon with a default value
                         Icon verificationIcon = Icon(
@@ -692,32 +775,38 @@ class _DoChallengeState extends State<DoChallenge> {
                         // Initialize other variables
                         bool isCompleted = false;
                         Color verifiedUserColor = Colors.grey; // Default color
+                        Color titleColor = Colors.black; // Default title color
 
-                        if (challengeListCompleted!.containsKey(itemTitle)) {
-                          String completedData = challengeListCompleted?[itemTitle] ?? '';
-                          if (completedData.startsWith(userName ?? 'Unknown User')) {
-                            isCompleted = true;
-                            verificationIcon = Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                            );
-                            verifiedUserColor = Colors.grey;
-                          } else if (completedData.startsWith('approved')) {
-                            isCompleted = true;
-                            verificationIcon = Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                            );
-                            verifiedUserColor = Colors.green;
-                          } else if (completedData.startsWith('rejected')) {
-                            isCompleted = false;
-                            verificationIcon = Icon(
-                              Icons.cancel,
-                              color: Colors.red,
-                            );
-                            verifiedUserColor = Colors.red;
+                        // Check all items in challengeListCompleted
+                        challengeListCompleted?.forEach((key, completedData) {
+                          // Compare the base item title without unique identifiers
+                          if (key.startsWith(baseItemTitle)) {
+                            if (completedData['player'] == userName && completedData['status'] == '') {
+                              isCompleted = false;
+                              verificationIcon = Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              );
+                              verifiedUserColor = Colors.grey; // Default if it's the user's item
+                            } else if (completedData['player'] == userName && completedData['status'] == 'approved') {
+                              isCompleted = true;
+                              verificationIcon = Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              );
+                              verifiedUserColor = Colors.green; // Change to green if approved
+                              titleColor = Colors.green; // Change title color to green
+                            } else if (completedData['player'] == userName && completedData['status'] == 'rejected') {
+                              isCompleted = false;
+                              verificationIcon = Icon(
+                                Icons.cancel,
+                                color: Colors.red,
+                              );
+                              verifiedUserColor = Colors.red; // Change to red if rejected
+                              titleColor = Colors.red;
+                            }
                           }
-                        }
+                        });
 
                         return Row(
                           children: [
@@ -732,7 +821,7 @@ class _DoChallengeState extends State<DoChallenge> {
                                         currentUser: userName ?? 'Unknown User',
                                         checklistItemTitle: itemTitle,
                                         itemTitle: itemTitle,
-                                        challengeId: id, // Pass the challenge ID here
+                                        challengeId: id,
                                       ),
                                     ),
                                   );
@@ -741,18 +830,21 @@ class _DoChallengeState extends State<DoChallenge> {
                                 }
                               },
                               child: Checkbox(
-                                value: isCompleted, // Set the checkbox state based on completion
+                                value: isCompleted,
                                 onChanged: null, // Disable the checkbox interaction
                               ),
                             ),
                             SizedBox(width: 8),
-                            Text(itemTitle),
+                            Text(
+                              itemTitle,
+                              style: TextStyle(color: titleColor), // Change text color based on status
+                            ),
                             Spacer(),
                             Row(
                               children: [
-                                verificationIcon, // Show the icon based on selectedVerification and completion status
-                                SizedBox(width: 8), // Add spacing between the icons
-                                Icon(Icons.verified_user, color: verifiedUserColor), // Add the verified_user icon
+                                verificationIcon,
+                                SizedBox(width: 8),
+                                Icon(Icons.verified_user, color: verifiedUserColor),
                               ],
                             ),
                           ],
