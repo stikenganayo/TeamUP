@@ -112,6 +112,8 @@ class _ReviewPostScreenState extends State<ReviewPostScreen> {
         'selectedVerification': widget.selectedVerification,
         'customVerificationProcess': widget.customVerificationProcess,
         'dimension': _selectedDimension, // Include dimension in the challenge data
+        'challengeListCompleted': {},
+        'creationDate': Timestamp.fromDate(DateTime.now()),
       };
 
       // Add a new document to the collection
@@ -180,7 +182,7 @@ class _ReviewPostScreenState extends State<ReviewPostScreen> {
                       content: Text(
                         widget.completionDate != null && widget.completionDate != DateTime(0)
                             ? '${DateFormat('MMMM d, yyyy – h:mm a').format(widget.completionDate!)}'
-                            : 'Repeat the challenge every ${widget.recurrenceValue} ${widget.recurrenceUnit}(s)',
+                            : 'Repeat the challenge every ${widget.recurrenceValue} ${widget.recurrenceUnit}s',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -195,7 +197,7 @@ class _ReviewPostScreenState extends State<ReviewPostScreen> {
                           final title = entry.value;
                           final expirationDuration = widget.expirationDurations[index];
                           return Text(
-                            '• $title: ${expirationDuration != null ? _durationToString(expirationDuration) : 'No expiration'}',
+                            '• $title',
                             style: TextStyle(fontSize: 16),
                           );
                         }).toList(),

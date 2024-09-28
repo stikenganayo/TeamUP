@@ -7,6 +7,7 @@ import 'dart:math';
 
 import '../widgets/verification_phot.dart'; // Import for generating random pastel colors
 import '../widgets/verified_photo.dart';
+import 'challenge_story.dart';
 
 class DoChallenge extends StatefulWidget {
   final Map<String, dynamic> challenge;
@@ -35,7 +36,7 @@ class _DoChallengeState extends State<DoChallenge> {
   Map<String, dynamic>? challengeListCompleted;
   String progressStatus = '0/0';
   double progressStatuses = 0.0;
-
+  List<int> expirationDurations = [];
 
   @override
   void initState() {
@@ -116,6 +117,22 @@ class _DoChallengeState extends State<DoChallenge> {
               },
             );
 
+            // Fetch creationDate and expirationDurations
+            DateTime creationDate = (data['creationDate'] as Timestamp).toDate(); // Convert Timestamp to DateTime
+            expirationDurations = List<int>.from(data['expirationDurations'] ?? []);
+
+            // Calculate the expiration time for each checklist item
+            List<DateTime> expirationTimes = [];
+            for (int i = 0; i < expirationDurations.length; i++) {
+              if (i == 0) {
+                // For the first item, add the first duration to creationDate
+                expirationTimes.add(creationDate.add(Duration(minutes: expirationDurations[i])));
+              } else {
+                // For subsequent items, add the duration of the current item to the expiration time of the previous item
+                expirationTimes.add(expirationTimes[i - 1].add(Duration(minutes: expirationDurations[i])));
+              }
+            }
+
             // Count how many items are completed by the current user
             int? completedItems = challengeListCompleted?.entries
                 .where((entry) => entry.value['player'] == userName)
@@ -142,7 +159,6 @@ class _DoChallengeState extends State<DoChallenge> {
             _setColorsBasedOnDimension();
           });
 
-          await _fetchSelectedRoles(id);
           print('Challenge Details: $challengeDetails');
           print('Challenge Friends: $challengeFriends');
           print('Progress Status: $progressStatus');
@@ -249,6 +265,8 @@ class _DoChallengeState extends State<DoChallenge> {
   Widget build(BuildContext context) {
     bool isCoach = false;
     bool isPlayer = false;
+
+    final allZero = expirationDurations.every((duration) => duration == 0);
 
     challengeFriends.forEach((friend) {
       if (friend == userName) { // Check if current user is in the list
@@ -456,7 +474,6 @@ class _DoChallengeState extends State<DoChallenge> {
                           bool isPlayer = roles.contains('player');
 
                           // Determine if the progress should be displayed based on roles
-                          // Only hide progress if the user is a leader but not a player
                           bool showProgress = isPlayer || (!isCoach);
 
                           List<Widget> roleIcons = [];
@@ -506,35 +523,63 @@ class _DoChallengeState extends State<DoChallenge> {
                                 margin: EdgeInsets.only(right: 16),
                                 child: Column(
                                   children: [
-                                    Stack(
-                                      alignment: Alignment.bottomRight,
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 25, // Smaller radius
-                                          backgroundColor: _generatePastelColor(), // Pastel color
-                                          child: Text(
-                                            _getInitials(friendName),
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14, // Smaller font size
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (approvedChallenges > 0) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => MemberStoryScreen(
+                                                documentId: id, // Pass the document ID
+                                                memberName: friendName, // Pass the member name
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          // Only show story icon if approvedChallenges > 0
+                                          if (approvedChallenges > 0)
+                                            CircleAvatar(
+                                              radius: 28, // Radius for story icon
+                                              backgroundColor:
+                                              Colors.blueAccent.withOpacity(0.5), // Background color for the story icon
+                                            ),
+                                          // Member's CircleAvatar
+                                          CircleAvatar(
+                                            radius: 25, // Smaller radius
+                                            backgroundColor: _generatePastelColor(), // Pastel color
+                                            child: Text(
+                                              _getInitials(friendName),
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14, // Smaller font size
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: roleIcons.map((icon) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(left: 2.0),
-                                              child: CircleAvatar(
-                                                radius: 8,
-                                                backgroundColor: Colors.white,
-                                                child: icon,
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
+                                          // Role icons if any
+                                          Positioned(
+                                            bottom: 0,
+                                            right: 0,
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: roleIcons.map((icon) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(left: 2.0),
+                                                  child: CircleAvatar(
+                                                    radius: 8,
+                                                    backgroundColor: Colors.white,
+                                                    child: icon,
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                     SizedBox(height: 4),
                                     // Display fraction only if the user is a player or has no leader role
@@ -723,6 +768,7 @@ class _DoChallengeState extends State<DoChallenge> {
                     ),
                   ),
                 ],
+
                 if ((!isCoach && isPlayer) || (isCoach && isPlayer)) ...[
                   SizedBox(height: 32),
                   Row(
@@ -758,6 +804,17 @@ class _DoChallengeState extends State<DoChallenge> {
                       ),
                     ],
                   ),
+                  if (!allZero) ...[
+                    SizedBox(height: 8),
+                    // Message indicating the order requirement
+                    Text(
+                      'Checklist must be completed in consecutive order!',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                   SizedBox(height: 8),
                   Expanded(
                     child: ListView.builder(
@@ -808,45 +865,94 @@ class _DoChallengeState extends State<DoChallenge> {
                           }
                         });
 
-                        return Row(
+                        // Get expiration duration for the current checklist item
+                        final expirationDuration = index < expirationDurations.length ? expirationDurations[index] : 0;
+
+                        // Calculate cumulative expiration duration for the current item
+                        int cumulativeExpirationDuration = 0;
+                        for (int i = 0; i <= index; i++) {
+                          cumulativeExpirationDuration += (i < expirationDurations.length) ? expirationDurations[i] : 0;
+                        }
+
+                        // Calculate expiration time for the current item
+                        DateTime creationDate = (challengeDetails?['creationDate'] as Timestamp).toDate(); // Fetch from challengeDetails
+                        DateTime expirationTime = creationDate.add(Duration(minutes: cumulativeExpirationDuration));
+
+                        // Calculate remaining time
+                        Duration remainingTime = expirationTime.difference(DateTime.now().toUtc());
+                        double progressValue = (cumulativeExpirationDuration * 60 - remainingTime.inSeconds) / (cumulativeExpirationDuration * 60);
+                        progressValue = progressValue.clamp(0.0, 1.0); // Ensure progress value is between 0 and 1
+
+                        // Determine if the current item can be interacted with (remaining time must be greater than zero)
+                        bool canInteract = allZero || remainingTime > Duration.zero;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            GestureDetector(
-                              onTap: () {
-                                if (selectedVerification == 'photo' &&
-                                    (verifiedUserColor == Colors.red || verifiedUserColor == Colors.grey)) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => VerifyCameraScreen(
-                                        currentUser: userName ?? 'Unknown User',
-                                        checklistItemTitle: itemTitle,
-                                        itemTitle: itemTitle,
-                                        challengeId: id,
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  print('Selected Verification: $selectedVerification');
-                                }
-                              },
-                              child: Checkbox(
-                                value: isCompleted,
-                                onChanged: null, // Disable the checkbox interaction
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              itemTitle,
-                              style: TextStyle(color: titleColor), // Change text color based on status
-                            ),
-                            Spacer(),
                             Row(
                               children: [
-                                verificationIcon,
+                                GestureDetector(
+                                  onTap: () {
+                                    if (canInteract) { // Only allow interaction if time remains
+                                      if (selectedVerification == 'photo' &&
+                                          (verifiedUserColor == Colors.red || verifiedUserColor == Colors.grey)) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => VerifyCameraScreen(
+                                              currentUser: userName ?? 'Unknown User',
+                                              checklistItemTitle: itemTitle,
+                                              itemTitle: itemTitle,
+                                              challengeId: id,
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        print('Selected Verification: $selectedVerification');
+                                      }
+                                    } else {
+                                      print('Cannot interact, time has expired or item is not active yet.');
+                                    }
+                                  },
+                                  child: Checkbox(
+                                    value: isCompleted,
+                                    onChanged: null, // Disable the checkbox interaction
+                                  ),
+                                ),
                                 SizedBox(width: 8),
-                                Icon(Icons.verified_user, color: verifiedUserColor),
+                                Text(
+                                  itemTitle,
+                                  style: TextStyle(color: titleColor), // Change text color based on status
+                                ),
+                                Spacer(),
+                                Row(
+                                  children: [
+                                    verificationIcon,
+                                    SizedBox(width: 8),
+                                    Icon(Icons.verified_user, color: verifiedUserColor),
+                                  ],
+                                ),
+                                // Display expiration duration if not all are zero
+                                if (!allZero) ...[
+                                  SizedBox(width: 8),
+                                  Text(
+                                    expirationDuration > 0 ? '$expirationDuration min' : '',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
                               ],
                             ),
+                            SizedBox(height: 4), // Space between checkbox and progress bar
+                            // Only show progress bar if not all expiration durations are zero
+                            if (!allZero)
+                              LinearProgressIndicator(
+                                value: progressValue, // Use calculated progress value
+                                backgroundColor: Colors.grey[300],
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  remainingTime <= Duration.zero ? Colors.grey : Colors.blue,
+                                ), // Change color based on remaining time
+                              ),
+                            SizedBox(height: 8), // Space below the progress bar
                           ],
                         );
                       },
@@ -854,9 +960,9 @@ class _DoChallengeState extends State<DoChallenge> {
                   ),
                 ],
               ],
-            ),
-          ),
-        )
+       )
+      )
+      )
     );
   }
 }

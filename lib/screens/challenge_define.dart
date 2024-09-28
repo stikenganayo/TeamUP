@@ -28,8 +28,10 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
   List<String> orderedTitles = [];
   String selectedRecurrenceOption = 'DateTime';
   String recurrenceFrequency = 'Day';
-  int recurrenceValue = 1;
+  int recurrenceValue = 2;
   String selectedUnit = 'Day';
+  int expirationValue = 1;
+  String expirationUnit = 'Day';
 
   final TextEditingController _numberController = TextEditingController();
   DateTime? selectedDateTime;
@@ -61,6 +63,10 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
           selectedTime.hour,
           selectedTime.minute,
         );
+        if (finalDateTime.isBefore(DateTime.now())) {
+          _showErrorDialog('The selected date and time cannot be in the past.');
+          return; // Exit the function if the date is invalid
+        }
         setState(() {
           selectedDateTime = finalDateTime;
         });
@@ -89,6 +95,12 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                       });
                     },
                   ),
+                  if (recurrenceValue <= 1) ...[
+                    Text(
+                      '',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ],
                   DropdownButton<String>(
                     value: selectedUnit,
                     onChanged: (newValue) {
@@ -110,7 +122,11 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context, [recurrenceValue, selectedUnit]);
+                if (recurrenceValue > 1) {
+                  Navigator.pop(context, [recurrenceValue, selectedUnit]);
+                } else {
+                  _showErrorDialog('Please enter a number greater than 1.');
+                }
               },
               child: Text('OK'),
             ),
@@ -126,6 +142,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
       });
     }
   }
+
 
   Future<void> _bulkSelectExpiration() async {
     Duration? selectedDuration = await showDialog<Duration>(
@@ -144,15 +161,15 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                     decoration: InputDecoration(labelText: 'Enter number of'),
                     onChanged: (value) {
                       setState(() {
-                        recurrenceValue = int.tryParse(value) ?? 1;
+                        expirationValue = int.tryParse(value) ?? 1; // Update to use expirationValue
                       });
                     },
                   ),
                   DropdownButton<String>(
-                    value: selectedUnit,
+                    value: expirationUnit, // Update to use expirationUnit
                     onChanged: (newValue) {
                       setState(() {
-                        selectedUnit = newValue!;
+                        expirationUnit = newValue!; // Update to use expirationUnit
                       });
                     },
                     items: timeUnitOptions.map((unit) {
@@ -170,22 +187,21 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
             TextButton(
               onPressed: () {
                 Duration duration;
-                switch (selectedUnit) {
+                switch (expirationUnit) { // Update to use expirationUnit
                   case 'Day':
-                    duration = Duration(days: recurrenceValue);
+                    duration = Duration(days: expirationValue); // Update to use expirationValue
                     break;
                   case 'Hour':
-                    duration = Duration(hours: recurrenceValue);
+                    duration = Duration(hours: expirationValue); // Update to use expirationValue
                     break;
                   case 'Week':
-                    duration = Duration(days: recurrenceValue * 7);
+                    duration = Duration(days: expirationValue * 7); // Update to use expirationValue
                     break;
                   case 'Month':
-                  // Approximate 1 month as 30 days
-                    duration = Duration(days: recurrenceValue * 30);
+                    duration = Duration(days: expirationValue * 30); // Update to use expirationValue
                     break;
                   default:
-                    duration = Duration(days: recurrenceValue);
+                    duration = Duration(days: expirationValue); // Update to use expirationValue
                 }
                 Navigator.pop(context, duration);
               },
@@ -365,7 +381,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                 onPressed: _selectRecurrence,
                 child: Text(
                   recurrenceValue > 0
-                      ? 'Repeat the challenge every $selectedUnit for $recurrenceValue ${selectedUnit}(s)'
+                      ? 'Repeat the challenge every $selectedUnit for $recurrenceValue ${selectedUnit}s'
                       : "",
                 ),
               ),
@@ -375,11 +391,58 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          if (selectedRecurrenceOption == 'Recurrence' && recurrenceValue <= 1) {
+            _showErrorDialog('Please enter a number greater than 1 for repetitions.');
+            return;
+          }
+          if (selectedRecurrenceOption == 'DateTime' && selectedDateTime != null && selectedDateTime!.isBefore(DateTime.now())) {
+            _showErrorDialog('The selected date and time cannot be in the past.');
+            return;
+          }
           if (selectedRecurrenceOption == null) {
             _showErrorDialog('Please select a completion option before proceeding.');
           } else if (selectedRecurrenceOption == 'DateTime' && selectedDateTime == null) {
             _showErrorDialog('Please select a date and time before proceeding.');
           } else {
+            // Get the current date
+            DateTime currentDate = DateTime.now();
+
+            // Initialize the completionDate variable
+            DateTime? completionDate;
+
+            // Calculate the completionDate if 'Set Repetition' is selected
+            if (selectedRecurrenceOption == 'Recurrence') {
+              // Calculate based on selected unit
+              switch (selectedUnit) {
+                case 'Hour': // For hour, add 1 hour
+                  completionDate = currentDate.add(Duration(hours: 1));
+                  break;
+                case 'Day': // For day, add 1 day
+                  completionDate = currentDate.add(Duration(days: 1));
+                  break;
+                case 'Week': // For week, add 7 days
+                  completionDate = currentDate.add(Duration(days: 7));
+                  break;
+                case 'Month': // For month, add 1 month
+                  completionDate = DateTime(
+                    currentDate.year,
+                    currentDate.month + 1,
+                    currentDate.day,
+                  );
+                  break;
+                default:
+                  completionDate = DateTime(0); // Default fallback if no valid unit
+              }
+            } else if (selectedRecurrenceOption == 'DateTime') {
+              completionDate = selectedDateTime;
+            }
+
+            // Ensure that completionDate is not null
+            if (completionDate == null || completionDate.isAtSameMomentAs(DateTime(0))) {
+              _showErrorDialog('Unable to determine the completion date.');
+              return;
+            }
+
             List<Duration> durations = orderedTitles.map((title) => expirationDurations[title] ?? Duration.zero).toList();
 
             // Print all parameters to the console
@@ -388,11 +451,12 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
             print('Challenge List Titles: ${orderedTitles}');
             print('Challenge Teams: ${widget.challengeTeams}');
             print('Challenge Friends: ${widget.challengeFriends}');
-            print('Completion Date: ${selectedDateTime}');
+            print('Completion Date: ${completionDate}');
             print('Expiration Durations: ${durations}');
             print('Recurrence Value: $recurrenceValue');
             print('Recurrence Unit: $selectedUnit');
 
+            // Navigate to GoalScreen, passing the calculated completion date
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -402,7 +466,7 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                   challengeListTitles: orderedTitles,
                   challengeTeams: widget.challengeTeams,
                   challengeFriends: widget.challengeFriends,
-                  completionDate: selectedDateTime ?? DateTime(0), // Pass an empty value if no date is selected
+                  completionDate: completionDate ?? DateTime(0), // Pass a valid date
                   expirationDurations: durations,
                   recurrenceValue: recurrenceValue,
                   recurrenceUnit: selectedUnit,
@@ -453,15 +517,15 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
                     decoration: InputDecoration(labelText: 'Enter number of'),
                     onChanged: (value) {
                       setState(() {
-                        recurrenceValue = int.tryParse(value) ?? 1;
+                        expirationValue = int.tryParse(value) ?? 1;
                       });
                     },
                   ),
                   DropdownButton<String>(
-                    value: selectedUnit,
+                    value: expirationUnit,
                     onChanged: (newValue) {
                       setState(() {
-                        selectedUnit = newValue!;
+                        expirationUnit = newValue!;
                       });
                     },
                     items: timeUnitOptions.map((unit) {
@@ -479,18 +543,18 @@ class _FrequencyScreenState extends State<FrequencyScreen> {
             TextButton(
               onPressed: () {
                 Duration duration;
-                switch (selectedUnit) {
+                switch (expirationUnit) {
                   case 'Day':
-                    duration = Duration(days: recurrenceValue);
+                    duration = Duration(days: expirationValue);
                     break;
                   case 'Hour':
-                    duration = Duration(hours: recurrenceValue);
+                    duration = Duration(hours: expirationValue);
                     break;
                   case 'Week':
-                    duration = Duration(days: recurrenceValue * 7);
+                    duration = Duration(days: expirationValue * 7);
                     break;
                   default:
-                    duration = Duration(days: recurrenceValue);
+                    duration = Duration(days: expirationValue);
                 }
                 Navigator.pop(context, duration);
               },
